@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -59,7 +60,7 @@ export const useMessages = () => {
         clientesData.map(async (cliente) => {
           try {
             const { data: mensajeData, error: mensajeError } = await supabase
-              .from("mensajes")
+              .from("chat_mensajes")
               .select("*")
               .or(`emisor_id.eq.${user.id},receptor_id.eq.${user.id}`)
               .or(`emisor_id.eq.${cliente.id},receptor_id.eq.${cliente.id}`)
@@ -79,7 +80,7 @@ export const useMessages = () => {
             }
             
             const { data: unreadData, error: unreadError } = await supabase
-              .from("mensajes")
+              .from("chat_mensajes")
               .select("id")
               .eq("receptor_id", user.id)
               .eq("emisor_id", cliente.id)
@@ -129,7 +130,7 @@ export const useMessages = () => {
       console.log("Cargando mensajes entre", user.id, "y", conversationId);
       
       const { data, error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .select("*")
         .or(`emisor_id.eq.${user.id},receptor_id.eq.${user.id}`)
         .or(`emisor_id.eq.${conversationId},receptor_id.eq.${conversationId}`)
@@ -157,7 +158,7 @@ export const useMessages = () => {
     
     try {
       const { error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .update({ leido: true })
         .eq("receptor_id", user.id)
         .eq("emisor_id", senderId)
@@ -191,7 +192,7 @@ export const useMessages = () => {
       console.log("Enviando mensaje:", newMessage);
       
       const { data, error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .insert(newMessage)
         .select()
         .single();
@@ -229,7 +230,7 @@ export const useMessages = () => {
     
     try {
       const { data, error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .select("id")
         .eq("receptor_id", user.id)
         .eq("leido", false);
@@ -261,11 +262,11 @@ export const useMessages = () => {
     if (!user?.id) return;
     
     const subscription = supabase
-      .channel('mensajes_changes')
+      .channel('chat_mensajes_changes')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'mensajes',
+        table: 'chat_mensajes',
         filter: `receptor_id=eq.${user.id}`
       }, (payload) => {
         console.log('Nuevo mensaje recibido:', payload);

@@ -87,7 +87,7 @@ export const useClientMessages = () => {
     try {
       // Obtener mensajes entre cliente y entrenador
       const { data, error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .select("*")
         .or(`emisor_id.eq.${user.id},receptor_id.eq.${user.id}`)
         .or(`emisor_id.eq.${entrenadorId},receptor_id.eq.${entrenadorId}`)
@@ -119,7 +119,7 @@ export const useClientMessages = () => {
     
     try {
       const { error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .update({ leido: true })
         .eq("receptor_id", user.id)
         .eq("emisor_id", senderId)
@@ -149,7 +149,7 @@ export const useClientMessages = () => {
       };
       
       const { data, error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .insert(newMessage)
         .select()
         .single();
@@ -175,7 +175,7 @@ export const useClientMessages = () => {
     
     try {
       const { data, error } = await supabase
-        .from("mensajes")
+        .from("chat_mensajes")
         .select("id")
         .eq("receptor_id", user.id)
         .eq("leido", false);
@@ -208,11 +208,11 @@ export const useClientMessages = () => {
     if (!user?.id) return;
     
     const subscription = supabase
-      .channel('mensajes_cliente_changes')
+      .channel('chat_mensajes_changes')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
-        table: 'mensajes',
+        table: 'chat_mensajes',
         filter: `receptor_id=eq.${user.id}`
       }, (payload) => {
         console.log('Nuevo mensaje recibido:', payload);

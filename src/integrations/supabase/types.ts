@@ -56,6 +56,48 @@ export type Database = {
           },
         ]
       }
+      chat_mensajes: {
+        Row: {
+          contenido: string
+          creado_en: string | null
+          emisor_id: string
+          id: string
+          leido: boolean | null
+          receptor_id: string
+        }
+        Insert: {
+          contenido: string
+          creado_en?: string | null
+          emisor_id: string
+          id?: string
+          leido?: boolean | null
+          receptor_id: string
+        }
+        Update: {
+          contenido?: string
+          creado_en?: string | null
+          emisor_id?: string
+          id?: string
+          leido?: boolean | null
+          receptor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_mensajes_emisor_id_fkey"
+            columns: ["emisor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_mensajes_receptor_id_fkey"
+            columns: ["receptor_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       citas: {
         Row: {
           actualizado_en: string | null
