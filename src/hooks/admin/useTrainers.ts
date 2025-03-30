@@ -28,7 +28,7 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
         // Consulta básica de entrenadores
         let query = supabase
           .from('usuarios')
-          .select('id, username, nombre, email, telefono, creado_en, eliminado')
+          .select('id, username, nombre, email, telefono, creado_en, actualizado_en, eliminado')
           .eq('role', 'entrenador')
           .eq('eliminado', showDeleted);
         
@@ -65,7 +65,8 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
                 phone: trainer.telefono,
                 clientCount: 0,
                 createdAt: new Date(trainer.creado_en),
-                deleted: trainer.eliminado
+                deleted: trainer.eliminado,
+                ...(trainer.eliminado && { deletedAt: new Date(trainer.actualizado_en) })
               };
             }
             
@@ -77,7 +78,8 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
               phone: trainer.telefono,
               clientCount: clients?.length || 0,
               createdAt: new Date(trainer.creado_en),
-              deleted: trainer.eliminado
+              deleted: trainer.eliminado,
+              ...(trainer.eliminado && { deletedAt: new Date(trainer.actualizado_en) })
             };
           })
         );

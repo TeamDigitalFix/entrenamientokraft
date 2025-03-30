@@ -59,6 +59,17 @@ export const TrainersTable = ({
   onPermanentDeleteTrainer,
   onRestoreTrainer
 }: TrainersTableProps) => {
+  // Format date with time
+  const formatDateTime = (date: Date) => {
+    return new Intl.DateTimeFormat('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -69,7 +80,7 @@ export const TrainersTable = ({
             <TableHead>Email</TableHead>
             <TableHead>Teléfono</TableHead>
             <TableHead>Clientes</TableHead>
-            <TableHead>Fecha Registro</TableHead>
+            <TableHead>{showDeleted ? "Eliminado" : "Registro"}</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
@@ -101,7 +112,11 @@ export const TrainersTable = ({
                 <TableCell>
                   <Badge variant="outline">{trainer.clientCount}</Badge>
                 </TableCell>
-                <TableCell>{trainer.createdAt.toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {showDeleted && 'deletedAt' in trainer
+                    ? formatDateTime(trainer.deletedAt)
+                    : trainer.createdAt.toLocaleDateString()}
+                </TableCell>
                 <TableCell className="text-right flex justify-end space-x-2">
                   {!showDeleted ? (
                     <>

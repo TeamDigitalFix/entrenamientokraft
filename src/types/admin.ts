@@ -28,5 +28,5 @@ export interface Activity {
 }
 
 export interface DeletedTrainer extends Trainer {
-  deletedAt?: Date;
+  deletedAt: Date;
 }
