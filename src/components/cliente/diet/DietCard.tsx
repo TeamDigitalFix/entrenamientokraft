@@ -11,7 +11,7 @@ interface DietCardProps {
 }
 
 const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
-  const { diet, isLoading, activeDay, setActiveDay, availableDays } = dietHook;
+  const { diet, isLoading, activeDay, setActiveDay, availableDays, clientId } = dietHook;
   const { isToggling } = useMealToggle();
 
   return (
@@ -43,6 +43,7 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             availableDays={availableDays}
             mealsByDay={diet.mealsByDay}
             isToggling={isToggling}
+            clientId={clientId} // Pass the clientId
           />
         )}
       </CardContent>

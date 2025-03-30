@@ -3,27 +3,27 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/useAuth";
 
 type ToggleMealParams = {
   mealId: string;
   completed: boolean;
+  clientId: string; // Now we'll pass the client ID directly
 };
 
 type ToggleMealTypeParams = {
   mealIds: string[];
   completed: boolean;
+  clientId: string; // Now we'll pass the client ID directly
 };
 
 export const useMealToggle = () => {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isToggling, setIsToggling] = useState(false);
 
   const toggleMealMutation = useMutation({
-    mutationFn: async ({ mealId, completed }: ToggleMealParams) => {
-      if (!user?.id) {
-        throw new Error("Usuario no autenticado");
+    mutationFn: async ({ mealId, completed, clientId }: ToggleMealParams) => {
+      if (!clientId) {
+        throw new Error("ID de cliente no proporcionado");
       }
 
       setIsToggling(true);
@@ -33,7 +33,7 @@ export const useMealToggle = () => {
         const { error } = await supabase
           .from("comidas_completadas")
           .delete()
-          .eq("cliente_id", user.id)
+          .eq("cliente_id", clientId)
           .eq("dieta_comida_id", mealId);
 
         if (error) {
@@ -45,7 +45,7 @@ export const useMealToggle = () => {
         const { error } = await supabase
           .from("comidas_completadas")
           .insert({
-            cliente_id: user.id,
+            cliente_id: clientId,
             dieta_comida_id: mealId
           });
 
@@ -79,9 +79,9 @@ export const useMealToggle = () => {
 
   // New mutation to toggle all meals in a meal type
   const toggleMealTypeMutation = useMutation({
-    mutationFn: async ({ mealIds, completed }: ToggleMealTypeParams) => {
-      if (!user?.id || mealIds.length === 0) {
-        throw new Error("Usuario no autenticado o no hay comidas seleccionadas");
+    mutationFn: async ({ mealIds, completed, clientId }: ToggleMealTypeParams) => {
+      if (!clientId || mealIds.length === 0) {
+        throw new Error("ID de cliente no proporcionado o no hay comidas seleccionadas");
       }
 
       setIsToggling(true);
@@ -92,7 +92,7 @@ export const useMealToggle = () => {
         const { error } = await supabase
           .from("comidas_completadas")
           .delete()
-          .eq("cliente_id", user.id)
+          .eq("cliente_id", clientId)
           .in("dieta_comida_id", mealIds);
 
         if (error) {
@@ -102,7 +102,7 @@ export const useMealToggle = () => {
       } else {
         // If they're not completed, mark them all (insert records)
         const recordsToInsert = mealIds.map(mealId => ({
-          cliente_id: user.id,
+          cliente_id: clientId,
           dieta_comida_id: mealId
         }));
 
