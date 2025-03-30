@@ -1,7 +1,7 @@
 
 import React, { ReactNode, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
   Home, 
@@ -112,14 +112,14 @@ const DashboardLayout = ({ children, allowedRoles = [] }: DashboardLayoutProps) 
         <div className="flex-1 flex flex-col overflow-y-auto py-4">
           <nav className="flex-1 px-2 space-y-1">
             {sidebarItems.map((item, index) => (
-              <a
+              <Link
                 key={index}
-                href={item.path}
+                to={item.path}
                 className="flex items-center px-4 py-3 text-sidebar-foreground hover:bg-sidebar-accent rounded-md transition-colors"
               >
                 {item.icon}
                 <span className="ml-3">{item.label}</span>
-              </a>
+              </Link>
             ))}
           </nav>
         </div>

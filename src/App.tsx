@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 
 // Páginas de administrador
 import AdminDashboard from "./pages/admin/Dashboard";
+import TrainersPage from "./pages/admin/Trainers";
 
 // Páginas de entrenador
 import TrainerDashboard from "./pages/entrenador/Dashboard";
@@ -39,6 +40,7 @@ const App = () => (
             
             {/* Rutas de administrador */}
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/entrenadores" element={<TrainersPage />} />
             
             {/* Rutas de entrenador */}
             <Route path="/entrenador/dashboard" element={<TrainerDashboard />} />
