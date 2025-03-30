@@ -81,6 +81,11 @@ const ClientProgress = () => {
     }
   };
 
+  console.log("Measurements data:", measurements);
+  console.log("Latest measurement:", latestMeasurement);
+  console.log("Changes:", changes);
+  console.log("Chart data:", chartData);
+
   return (
     <DashboardLayout allowedRoles={[UserRole.CLIENT]}>
       <div className="space-y-4">

@@ -764,7 +764,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      insertar_medicion_progreso: {
+        Args: {
+          p_cliente_id: string
+          p_peso: number
+          p_grasa_corporal: number
+          p_masa_muscular: number
+          p_notas: string
+          p_fecha: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
