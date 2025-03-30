@@ -39,7 +39,10 @@ export const useProgress = () => {
           .eq("cliente_id", user.id)
           .order("fecha", { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error en la consulta:", error);
+          throw error;
+        }
 
         return data as ProgressMeasurement[];
       } catch (error) {
@@ -87,22 +90,35 @@ export const useProgress = () => {
   // Mutación para añadir una nueva medición
   const { mutate: addMeasurement, isPending: isAddingMeasurement } = useMutation({
     mutationFn: async (newMeasurement: NewMeasurement) => {
-      if (!user?.id) throw new Error("Usuario no autenticado");
+      console.log("Añadiendo medición:", newMeasurement);
+      
+      if (!user?.id) {
+        console.error("Usuario no autenticado");
+        throw new Error("Usuario no autenticado");
+      }
 
+      const measurementData = {
+        cliente_id: user.id,
+        peso: newMeasurement.peso,
+        grasa_corporal: newMeasurement.grasa_corporal || null,
+        masa_muscular: newMeasurement.masa_muscular || null,
+        notas: newMeasurement.notas || null,
+        fecha: new Date().toISOString(),
+      };
+      
+      console.log("Datos a insertar:", measurementData);
+      
       const { data, error } = await supabase
         .from("progreso")
-        .insert({
-          cliente_id: user.id,
-          peso: newMeasurement.peso,
-          grasa_corporal: newMeasurement.grasa_corporal || null,
-          masa_muscular: newMeasurement.masa_muscular || null,
-          notas: newMeasurement.notas || null,
-          fecha: new Date().toISOString(),
-        })
-        .select()
-        .single();
+        .insert(measurementData)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error al insertar:", error);
+        throw error;
+      }
+      
+      console.log("Medición registrada:", data);
       return data;
     },
     onSuccess: () => {
@@ -118,7 +134,7 @@ export const useProgress = () => {
 
   // Formatear datos para gráficas
   const formatChartData = () => {
-    if (!measurements) return [];
+    if (!measurements || measurements.length === 0) return [];
     
     // Ordenar por fecha ascendente para gráficas
     const sortedData = [...measurements].sort((a, b) => 

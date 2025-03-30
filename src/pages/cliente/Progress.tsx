@@ -3,7 +3,9 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { BarChart2, TrendingUp, Scale, Percent, Dumbbell, PlusCircle, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { BarChart2, TrendingUp, Scale, Percent, Dumbbell, PlusCircle, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -13,6 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useProgress } from "@/hooks/cliente/useProgress";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Progress } from "@/components/ui/progress";
 
 // Tipo para el formulario de mediciones
 type MeasurementFormValues = {
@@ -24,6 +29,7 @@ type MeasurementFormValues = {
 
 const ClientProgress = () => {
   const { 
+    measurements,
     latestMeasurement,
     changes,
     chartData,
@@ -107,13 +113,16 @@ const ClientProgress = () => {
                   <>
                     <p className="text-4xl font-bold">{latestMeasurement.peso} kg</p>
                     {changes.pesoChange !== null && (
-                      <p className={`text-sm flex items-center mt-2 ${changes.pesoChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        <TrendingUp className="h-3 w-3 mr-1" /> {changes.pesoChange} kg desde el inicio
+                      <p className={`text-sm flex items-center mt-2 ${changes.pesoChange < 0 ? 'text-green-600' : changes.pesoChange > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                        <TrendingUp className="h-3 w-3 mr-1" /> {changes.pesoChange > 0 ? '+' : ''}{changes.pesoChange} kg desde el inicio
                       </p>
                     )}
                   </>
                 ) : (
-                  <p className="text-muted-foreground">Sin datos</p>
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-muted-foreground">Sin datos</p>
+                    <p className="text-xs text-muted-foreground mt-2">Registra tu primera medición</p>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -135,13 +144,16 @@ const ClientProgress = () => {
                   <>
                     <p className="text-4xl font-bold">{latestMeasurement.grasa_corporal}%</p>
                     {changes.grasaChange !== null && (
-                      <p className={`text-sm flex items-center mt-2 ${changes.grasaChange < 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        <TrendingUp className="h-3 w-3 mr-1" /> {changes.grasaChange}% desde el inicio
+                      <p className={`text-sm flex items-center mt-2 ${changes.grasaChange < 0 ? 'text-green-600' : changes.grasaChange > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                        <TrendingUp className="h-3 w-3 mr-1" /> {changes.grasaChange > 0 ? '+' : ''}{changes.grasaChange}% desde el inicio
                       </p>
                     )}
                   </>
                 ) : (
-                  <p className="text-muted-foreground">Sin datos</p>
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-muted-foreground">Sin datos</p>
+                    <p className="text-xs text-muted-foreground mt-2">Registra tu primera medición</p>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -163,13 +175,16 @@ const ClientProgress = () => {
                   <>
                     <p className="text-4xl font-bold">{latestMeasurement.masa_muscular}%</p>
                     {changes.musculoChange !== null && (
-                      <p className={`text-sm flex items-center mt-2 ${changes.musculoChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <p className={`text-sm flex items-center mt-2 ${changes.musculoChange > 0 ? 'text-green-600' : changes.musculoChange < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
                         <TrendingUp className="h-3 w-3 mr-1" /> {changes.musculoChange > 0 ? '+' : ''}{changes.musculoChange}% desde el inicio
                       </p>
                     )}
                   </>
                 ) : (
-                  <p className="text-muted-foreground">Sin datos</p>
+                  <div className="flex flex-col items-center text-center">
+                    <p className="text-muted-foreground">Sin datos</p>
+                    <p className="text-xs text-muted-foreground mt-2">Registra tu primera medición</p>
+                  </div>
                 )}
               </div>
             </CardContent>
@@ -223,13 +238,19 @@ const ClientProgress = () => {
                           activeDot={{ r: 8 }} 
                           strokeWidth={2}
                           name={chartConfig.peso.label}
+                          connectNulls
                         />
                       </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center justify-center h-full space-y-2">
+                    <Info className="h-12 w-12 text-muted-foreground opacity-20" />
                     <p className="text-muted-foreground">No hay datos suficientes para mostrar la gráfica</p>
+                    <Button variant="outline" size="sm" onClick={openDialog}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Registrar primera medición
+                    </Button>
                   </div>
                 )}
               </div>
@@ -281,6 +302,7 @@ const ClientProgress = () => {
                           activeDot={{ r: 8 }} 
                           strokeWidth={2}
                           name={chartConfig.grasa.label}
+                          connectNulls
                         />
                         <Line 
                           type="monotone" 
@@ -289,19 +311,78 @@ const ClientProgress = () => {
                           activeDot={{ r: 8 }} 
                           strokeWidth={2}
                           name={chartConfig.musculo.label}
+                          connectNulls
                         />
                       </LineChart>
                     </ResponsiveContainer>
                   </ChartContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center justify-center h-full space-y-2">
+                    <Info className="h-12 w-12 text-muted-foreground opacity-20" />
                     <p className="text-muted-foreground">No hay datos suficientes para mostrar la gráfica</p>
+                    <Button variant="outline" size="sm" onClick={openDialog}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Registrar primera medición
+                    </Button>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
+        
+        {/* Historial de mediciones */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Historial de Mediciones</CardTitle>
+            <CardDescription>Registro completo de todas tus mediciones</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingMeasurements ? (
+              <div className="flex justify-center p-4">
+                <p>Cargando historial...</p>
+              </div>
+            ) : measurements && measurements.length > 0 ? (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Peso (kg)</TableHead>
+                      <TableHead>Grasa (%)</TableHead>
+                      <TableHead>Músculo (%)</TableHead>
+                      <TableHead>Notas</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {measurements.map((measurement) => (
+                      <TableRow key={measurement.id}>
+                        <TableCell>
+                          {format(new Date(measurement.fecha), 'dd MMM yyyy', { locale: es })}
+                        </TableCell>
+                        <TableCell>{measurement.peso}</TableCell>
+                        <TableCell>{measurement.grasa_corporal || "-"}</TableCell>
+                        <TableCell>{measurement.masa_muscular || "-"}</TableCell>
+                        <TableCell className="max-w-sm truncate">
+                          {measurement.notas || "-"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 space-y-3 border rounded-md">
+                <Info className="h-12 w-12 text-muted-foreground opacity-20" />
+                <p className="text-muted-foreground">Aún no has registrado ninguna medición</p>
+                <Button onClick={openDialog}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Registrar Primera Medición
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
         
         {/* Diálogo para registrar nueva medición */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -391,7 +472,14 @@ const ClientProgress = () => {
                   type="submit" 
                   disabled={isAddingMeasurement}
                 >
-                  {isAddingMeasurement ? "Guardando..." : "Guardar Medición"}
+                  {isAddingMeasurement ? (
+                    <>
+                      <span className="mr-2">Guardando</span>
+                      <Progress className="w-20 h-2" value={75} />
+                    </>
+                  ) : (
+                    "Guardar Medición"
+                  )}
                 </Button>
               </DialogFooter>
             </form>
