@@ -144,7 +144,7 @@ export type Database = {
         Row: {
           alimento_id: string
           cantidad: number
-          dia: number
+          dia: string | null
           dieta_id: string
           id: string
           tipo_comida: string
@@ -152,7 +152,7 @@ export type Database = {
         Insert: {
           alimento_id: string
           cantidad: number
-          dia: number
+          dia?: string | null
           dieta_id: string
           id?: string
           tipo_comida: string
@@ -160,7 +160,7 @@ export type Database = {
         Update: {
           alimento_id?: string
           cantidad?: number
-          dia?: number
+          dia?: string | null
           dieta_id?: string
           id?: string
           tipo_comida?: string
@@ -583,7 +583,7 @@ export type Database = {
       }
       rutina_ejercicios: {
         Row: {
-          dia: number
+          dia: string | null
           ejercicio_id: string
           id: string
           notas: string | null
@@ -594,7 +594,7 @@ export type Database = {
           tiempo_descanso: number | null
         }
         Insert: {
-          dia: number
+          dia?: string | null
           ejercicio_id: string
           id?: string
           notas?: string | null
@@ -605,7 +605,7 @@ export type Database = {
           tiempo_descanso?: number | null
         }
         Update: {
-          dia?: number
+          dia?: string | null
           ejercicio_id?: string
           id?: string
           notas?: string | null
