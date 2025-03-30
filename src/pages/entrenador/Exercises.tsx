@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { 
   Search, 
   Filter, 
@@ -15,25 +16,57 @@ import {
   RefreshCw,
   Eye
 } from "lucide-react";
+import { useEjercicios } from "@/hooks/entrenador/useEjercicios";
+import { EjercicioForm } from "@/components/entrenador/EjercicioForm";
+import { Ejercicio, NuevoEjercicio } from "@/types/ejercicios";
+import { useAuth } from "@/hooks/useAuth";
 
 const TrainerExercises = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
+  const entrenadorId = user?.id || "";
+  const { 
+    filteredEjercicios, 
+    isLoading, 
+    searchTerm, 
+    setSearchTerm,
+
+    crearEjercicio,
+    actualizarEjercicio,
+    eliminarEjercicio 
+  } = useEjercicios(entrenadorId);
   
-  // Datos de ejemplo (en producción, vendrían de Supabase)
-  const exercises = [
-    { id: 1, name: "Press de banca", muscleGroup: "Pectoral", difficulty: "Intermedio", type: "Fuerza" },
-    { id: 2, name: "Sentadilla", muscleGroup: "Piernas", difficulty: "Intermedio", type: "Compuesto" },
-    { id: 3, name: "Dominadas", muscleGroup: "Espalda", difficulty: "Avanzado", type: "Peso corporal" },
-    { id: 4, name: "Curl de bíceps", muscleGroup: "Brazos", difficulty: "Principiante", type: "Aislamiento" },
-    { id: 5, name: "Plancha", muscleGroup: "Core", difficulty: "Principiante", type: "Isométrico" },
-  ];
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [selectedEjercicio, setSelectedEjercicio] = useState<Ejercicio | null>(null);
 
-  const filteredExercises = exercises.filter(exercise => 
-    exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    exercise.muscleGroup.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleCreateEjercicio = (nuevoEjercicio: NuevoEjercicio) => {
+    crearEjercicio(nuevoEjercicio);
+    setShowCreateDialog(false);
+  };
 
-  const difficultyColor = (difficulty: string) => {
+  const handleEditEjercicio = (ejercicio: NuevoEjercicio) => {
+    if (selectedEjercicio) {
+      actualizarEjercicio({ 
+        id: selectedEjercicio.id, 
+        ...ejercicio 
+      });
+      setShowEditDialog(false);
+      setSelectedEjercicio(null);
+    }
+  };
+
+  const openEditDialog = (ejercicio: Ejercicio) => {
+    setSelectedEjercicio(ejercicio);
+    setShowEditDialog(true);
+  };
+
+  const handleDeleteEjercicio = (id: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este ejercicio?")) {
+      eliminarEjercicio(id);
+    }
+  };
+
+  const difficultyColor = (difficulty: string | undefined) => {
     switch (difficulty) {
       case "Principiante": return "success";
       case "Intermedio": return "warning";
@@ -47,10 +80,19 @@ const TrainerExercises = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Biblioteca de Ejercicios</h1>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Ejercicio
-          </Button>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Ejercicio
+              </Button>
+            </DialogTrigger>
+            <EjercicioForm
+              tipo="crear"
+              onCancel={() => setShowCreateDialog(false)}
+              onSubmit={handleCreateEjercicio}
+            />
+          </Dialog>
         </div>
         
         <Card>
@@ -88,37 +130,73 @@ const TrainerExercises = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredExercises.map((exercise) => (
-                    <TableRow key={exercise.id}>
-                      <TableCell className="font-medium">{exercise.name}</TableCell>
-                      <TableCell>{exercise.muscleGroup}</TableCell>
-                      <TableCell>
-                        <Badge variant={difficultyColor(exercise.difficulty) as any}>
-                          {exercise.difficulty}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{exercise.type}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" title="Ver">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Editar">
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Eliminar">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        Cargando ejercicios...
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : filteredEjercicios && filteredEjercicios.length > 0 ? (
+                    filteredEjercicios.map((ejercicio) => (
+                      <TableRow key={ejercicio.id}>
+                        <TableCell className="font-medium">{ejercicio.nombre}</TableCell>
+                        <TableCell>{ejercicio.grupo_muscular}</TableCell>
+                        <TableCell>
+                          <Badge variant={difficultyColor(ejercicio.dificultad) as any}>
+                            {ejercicio.dificultad || "No especificado"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{ejercicio.tipo || "No especificado"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" title="Ver">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              title="Editar"
+                              onClick={() => openEditDialog(ejercicio)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              title="Eliminar"
+                              onClick={() => handleDeleteEjercicio(ejercicio.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        No se encontraron ejercicios. {searchTerm ? "Intenta con otra búsqueda." : "Crea tu primer ejercicio."}
+                      </TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Diálogo de Edición */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        {selectedEjercicio && (
+          <EjercicioForm
+            tipo="editar"
+            ejercicio={selectedEjercicio}
+            onCancel={() => setShowEditDialog(false)}
+            onSubmit={handleEditEjercicio}
+          />
+        )}
+      </Dialog>
     </DashboardLayout>
   );
 };

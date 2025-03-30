@@ -1,108 +1,90 @@
 
-import React, { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { login, isAuthenticated } = useAuth();
+  const { login } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
-
-  // Redirigir si ya está autenticado
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/");
-    }
-  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!username || !password) {
-      toast.error("Por favor ingresa usuario y contraseña");
-      return;
-    }
-    
     setIsLoading(true);
-    setError(null);
-    
+
     try {
       await login(username, password);
-      toast.success("Inicio de sesión exitoso");
+      toast({
+        title: "Inicio de sesión exitoso",
+        description: "Has iniciado sesión correctamente",
+      });
     } catch (error) {
-      setError("Usuario o contraseña incorrectos");
-      toast.error("Usuario o contraseña incorrectos");
+      console.error("Error logging in:", error);
+      toast({
+        title: "Error de inicio de sesión",
+        description: "Usuario o contraseña incorrectos",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-kraft-gray">
-      <div className="w-full max-w-md p-4">
-        <Card className="w-full">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center font-bold">
-              Entrenamiento Kraft
-            </CardTitle>
-            <CardDescription className="text-center">
-              Ingresa con tu usuario y contraseña
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <form onSubmit={handleSubmit}>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="username">Usuario</Label>
-                  <Input
-                    id="username"
-                    placeholder="Ingresa tu usuario"
-                    type="text"
-                    disabled={isLoading}
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <Input
-                    id="password"
-                    placeholder="Ingresa tu contraseña"
-                    type="password"
-                    disabled={isLoading}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-                <Button className="w-full bg-kraft-blue hover:bg-kraft-blue-dark" type="submit" disabled={isLoading}>
-                  {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
-                </Button>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <Card className="w-[350px]">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">KraftApp</CardTitle>
+          <CardDescription className="text-center">
+            Ingresa tus credenciales para acceder
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="username">Usuario</Label>
+              <Input
+                id="username"
+                type="text"
+                autoCapitalize="none"
+                autoComplete="username"
+                autoCorrect="off"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Contraseña</Label>
               </div>
-            </form>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+            </div>
           </CardContent>
-          <CardFooter className="flex flex-col">
-            <p className="text-xs text-center text-gray-500 mt-4">
-              Usuarios: admin/admin, entrenador/entrenador, cliente/cliente
-            </p>
+          <CardFooter>
+            <Button className="w-full" type="submit" disabled={isLoading}>
+              {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+            </Button>
           </CardFooter>
-        </Card>
-      </div>
+        </form>
+      </Card>
     </div>
   );
 };
