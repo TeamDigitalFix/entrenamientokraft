@@ -2,7 +2,7 @@
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart2, TrendingUp, Scale, Percent } from "lucide-react";
+import { BarChart2, TrendingUp, Scale, Percent, Dumbbell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';

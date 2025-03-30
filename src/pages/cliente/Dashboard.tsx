@@ -1,32 +1,49 @@
-import React from "react";
+
+import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, Utensils, Calendar, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
+import { useClientDashboard } from "@/hooks/cliente/useClientDashboard";
+import { useExerciseToggle } from "@/hooks/cliente/useExerciseToggle";
+import { useMealToggle } from "@/hooks/cliente/useMealToggle";
+import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ClientDashboard = () => {
-  // Datos de ejemplo (en producción, vendrían de Supabase)
-  const todayWorkout = [
-    { id: 1, name: "Press de banca", sets: 4, reps: 10, completed: false },
-    { id: 2, name: "Sentadillas", sets: 3, reps: 12, completed: true },
-    { id: 3, name: "Peso muerto", sets: 3, reps: 8, completed: false },
-  ];
+  const { 
+    todayExercises, 
+    todayMeals, 
+    upcomingAppointments, 
+    progressData, 
+    isLoading 
+  } = useClientDashboard();
 
-  const todayDiet = [
-    { id: 1, name: "Desayuno", items: ["Avena con frutas", "Claras de huevo"], completed: true },
-    { id: 2, name: "Almuerzo", items: ["Pechuga de pollo", "Arroz integral", "Ensalada"], completed: false },
-    { id: 3, name: "Cena", items: ["Salmón", "Vegetales al vapor"], completed: false },
-  ];
+  // State for local meal completion (since we don't have a backend implementation yet)
+  const [localMeals, setLocalMeals] = useState<Record<string, boolean>>({});
 
-  const toggleExerciseCompletion = (id: number) => {
-    // En producción, se actualizaría en Supabase
-    console.log(`Toggling exercise ${id}`);
+  const { toggleExerciseCompletion } = useExerciseToggle();
+  const { toggleMealCompletion } = useMealToggle();
+
+  const handleExerciseToggle = (id: string, currentStatus: boolean) => {
+    toggleExerciseCompletion({ exerciseId: id, completed: currentStatus });
   };
 
-  const toggleMealCompletion = (id: number) => {
-    // En producción, se actualizaría en Supabase
-    console.log(`Toggling meal ${id}`);
+  const handleMealToggle = (id: string, currentStatus: boolean) => {
+    // Update local state immediately for UI responsiveness
+    setLocalMeals(prev => ({
+      ...prev,
+      [id]: !currentStatus
+    }));
+    
+    // Call the backend mutation (currently just a placeholder)
+    toggleMealCompletion({ mealId: id, completed: currentStatus });
+  };
+
+  // Function to determine if a meal is completed (using local state or original data)
+  const isMealCompleted = (id: string, originalCompleted: boolean) => {
+    return id in localMeals ? localMeals[id] : originalCompleted;
   };
 
   return (
@@ -46,11 +63,17 @@ const ClientDashboard = () => {
               <Dumbbell className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {todayWorkout.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : todayExercises.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes ejercicios programados para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todayWorkout.map((exercise) => (
+                  {todayExercises.map((exercise) => (
                     <div key={exercise.id} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{exercise.name}</p>
@@ -60,9 +83,9 @@ const ClientDashboard = () => {
                       </div>
                       <Button 
                         variant={exercise.completed ? "default" : "outline"}
-                        className={`${exercise.completed ? "bg-kraft-green" : ""}`}
+                        className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
                         size="sm"
-                        onClick={() => toggleExerciseCompletion(exercise.id)}
+                        onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
                       >
                         {exercise.completed ? "Completado" : "Marcar"}
                       </Button>
@@ -70,8 +93,8 @@ const ClientDashboard = () => {
                   ))}
                 </div>
               )}
-              <Button className="w-full mt-4" variant="outline">
-                Ver rutina completa
+              <Button className="w-full mt-4" variant="outline" asChild>
+                <Link to="/cliente/rutina">Ver rutina completa</Link>
               </Button>
             </CardContent>
           </Card>
@@ -86,32 +109,41 @@ const ClientDashboard = () => {
               <Utensils className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {todayDiet.length === 0 ? (
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : todayMeals.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes comidas programadas para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todayDiet.map((meal) => (
-                    <div key={meal.id} className="flex items-center justify-between border-b pb-2">
-                      <div>
-                        <p className="font-medium">{meal.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {meal.items.join(", ")}
-                        </p>
+                  {todayMeals.map((meal) => {
+                    const isCompleted = isMealCompleted(meal.id, meal.completed);
+                    return (
+                      <div key={meal.id} className="flex items-center justify-between border-b pb-2">
+                        <div>
+                          <p className="font-medium">{meal.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {meal.items.join(", ")}
+                          </p>
+                        </div>
+                        <Button 
+                          variant={isCompleted ? "default" : "outline"}
+                          className={`${isCompleted ? "bg-green-500 hover:bg-green-600" : ""}`}
+                          size="sm"
+                          onClick={() => handleMealToggle(meal.id, isCompleted)}
+                        >
+                          {isCompleted ? "Completado" : "Marcar"}
+                        </Button>
                       </div>
-                      <Button 
-                        variant={meal.completed ? "default" : "outline"}
-                        className={`${meal.completed ? "bg-kraft-green" : ""}`}
-                        size="sm"
-                        onClick={() => toggleMealCompletion(meal.id)}
-                      >
-                        {meal.completed ? "Completado" : "Marcar"}
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
-              <Button className="w-full mt-4" variant="outline">
-                Ver dieta completa
+              <Button className="w-full mt-4" variant="outline" asChild>
+                <Link to="/cliente/dieta">Ver dieta completa</Link>
               </Button>
             </CardContent>
           </Card>
@@ -128,22 +160,27 @@ const ClientDashboard = () => {
               <Calendar className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="border-b pb-2">
-                  <p className="font-medium">Evaluación mensual</p>
-                  <p className="text-sm text-muted-foreground">
-                    Mañana - 15:00
-                  </p>
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
                 </div>
-                <div className="border-b pb-2">
-                  <p className="font-medium">Ajuste de dieta</p>
-                  <p className="text-sm text-muted-foreground">
-                    Viernes - 17:30
-                  </p>
+              ) : upcomingAppointments.length === 0 ? (
+                <p className="text-center py-4 text-muted-foreground">No tienes citas programadas próximamente</p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingAppointments.map((appointment) => (
+                    <div key={appointment.id} className="border-b pb-2">
+                      <p className="font-medium">{appointment.title}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {appointment.formattedDate}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <Button className="w-full mt-4" variant="outline">
-                Ver todas las citas
+              )}
+              <Button className="w-full mt-4" variant="outline" asChild>
+                <Link to="/cliente/citas">Ver todas las citas</Link>
               </Button>
             </CardContent>
           </Card>
@@ -158,22 +195,57 @@ const ClientDashboard = () => {
               <BarChart2 className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between border-b pb-2">
-                  <p className="font-medium">Peso actual:</p>
-                  <p>75 kg</p>
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
                 </div>
-                <div className="flex justify-between border-b pb-2">
-                  <p className="font-medium">Masa muscular:</p>
-                  <p>35%</p>
+              ) : !progressData ? (
+                <p className="text-center py-4 text-muted-foreground">No hay datos de progreso disponibles</p>
+              ) : (
+                <div className="space-y-3">
+                  <div className="flex justify-between border-b pb-2">
+                    <p className="font-medium">Peso actual:</p>
+                    <div className="flex items-center">
+                      <p>{progressData.weight} kg</p>
+                      {progressData.weightChange !== null && (
+                        <span className={`ml-2 text-xs flex items-center ${progressData.weightChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {progressData.weightChange < 0 ? '' : '+'}{progressData.weightChange.toFixed(1)} kg
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {progressData.muscleMass !== null && (
+                    <div className="flex justify-between border-b pb-2">
+                      <p className="font-medium">Masa muscular:</p>
+                      <div className="flex items-center">
+                        <p>{progressData.muscleMass}%</p>
+                        {progressData.muscleMassChange !== null && (
+                          <span className={`ml-2 text-xs flex items-center ${progressData.muscleMassChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {progressData.muscleMassChange > 0 ? '+' : ''}{progressData.muscleMassChange.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {progressData.bodyFat !== null && (
+                    <div className="flex justify-between border-b pb-2">
+                      <p className="font-medium">Grasa corporal:</p>
+                      <div className="flex items-center">
+                        <p>{progressData.bodyFat}%</p>
+                        {progressData.bodyFatChange !== null && (
+                          <span className={`ml-2 text-xs flex items-center ${progressData.bodyFatChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {progressData.bodyFatChange < 0 ? '' : '+'}{progressData.bodyFatChange.toFixed(1)}%
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="flex justify-between border-b pb-2">
-                  <p className="font-medium">Grasa corporal:</p>
-                  <p>18%</p>
-                </div>
-              </div>
-              <Button className="w-full mt-4" variant="outline">
-                Ver progreso completo
+              )}
+              <Button className="w-full mt-4" variant="outline" asChild>
+                <Link to="/cliente/progreso">Ver progreso completo</Link>
               </Button>
             </CardContent>
           </Card>
