@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -8,38 +7,43 @@ import { UserRole } from "@/types/index";
 import { supabase } from "@/integrations/supabase/client";
 import { Dumbbell, Plus, ArrowLeft, Info, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import RutinaEjercicioForm from "@/components/entrenador/RutinaEjercicioForm";
-import { Ejercicio } from "@/types/ejercicios";
-import { parseISO, format } from "date-fns";
+import RoutineExerciseForm from "@/components/entrenador/RoutineExerciseForm";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-// Función para obtener el día de la semana a partir de una fecha en formato YYYY-MM-DD
-const obtenerDiaSemana = (fechaStr: string): string => {
-  try {
-    // Parsear la fecha
-    const fecha = parseISO(fechaStr);
-    // Obtener el día de la semana (0 = domingo, 1 = lunes, etc.)
-    // Ajustamos para que 0 = lunes (formato español)
-    const diaSemanaNum = parseInt(format(fecha, "i", { locale: es })) - 1;
-    return diasSemana[diaSemanaNum] || "Desconocido";
-  } catch (error) {
-    console.error("Error al procesar la fecha:", fechaStr, error);
-    return "Desconocido";
-  }
-};
-
-interface Rutina {
+interface Exercise {
   id: string;
-  nombre: string;
-  descripcion?: string;
-  fecha_inicio: string;
-  fecha_fin?: string;
+  name: string;
+  muscleGroup: string;
+  description: string;
+  imageUrl?: string;
+  videoUrl?: string;
+}
+
+interface RoutineExercise {
+  id: string;
+  exerciseId: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+  restTime?: number;
+  notes?: string;
+  date: string;
+  exercise?: Exercise;
+}
+
+interface Routine {
+  id: string;
+  name: string;
+  description?: string;
+  startDate: string;
+  endDate?: string;
 }
 
 const ClientRoutine = () => {
@@ -47,8 +51,8 @@ const ClientRoutine = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [clientName, setClientName] = useState("");
-  const [rutina, setRutina] = useState<Rutina | null>(null);
-  const [ejercicios, setEjercicios] = useState<Ejercicio[]>([]);
+  const [routine, setRoutine] = useState<Routine | null>(null);
+  const [exercises, setExercises] = useState<RoutineExercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Lunes");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -57,62 +61,77 @@ const ClientRoutine = () => {
   useEffect(() => {
     const fetchClientDetails = async () => {
       if (!clientId) return;
-      
+
       try {
         setLoading(true);
-        
-        // Only select 'nombre' since 'ultimo_ingreso' might not exist in the table
+
         const { data: clientData, error: clientError } = await supabase
           .from("usuarios")
           .select("nombre")
           .eq("id", clientId)
           .single();
-        
+
         if (clientError) throw clientError;
         setClientName(clientData?.nombre || "Cliente");
-        
-        const { data: rutinasData, error: rutinasError } = await supabase
+
+        const { data: routineData, error: routineError } = await supabase
           .from("rutinas")
           .select("*")
           .eq("cliente_id", clientId)
           .order("fecha_inicio", { ascending: false })
           .limit(1);
-        
-        if (rutinasError) throw rutinasError;
-        
-        if (rutinasData && rutinasData.length > 0) {
-          const rutinaActual = rutinasData[0];
-          setRutina(rutinaActual);
-          
-          const { data: ejerciciosData, error: ejerciciosError } = await supabase
+
+        if (routineError) throw routineError;
+
+        if (routineData && routineData.length > 0) {
+          const rutinaActual = routineData[0];
+          setRoutine(rutinaActual);
+
+          const { data: exercisesData, error: exercisesError } = await supabase
             .from("rutina_ejercicios")
             .select(`
               id, 
-              series, 
-              repeticiones, 
-              dia, 
-              notas, 
+              ejercicio_id, 
+              sets, 
+              reps, 
               peso, 
-              rutina_id, 
-              ejercicio_id,
-              ejercicios:ejercicio_id (nombre, grupo_muscular, descripcion)
+              descanso, 
+              notas, 
+              dia,
+              ejercicios:ejercicio_id (nombre, grupo_muscular, descripcion, imagen_url, video_url)
             `)
             .eq("rutina_id", rutinaActual.id);
-          
-          if (ejerciciosError) throw ejerciciosError;
-          
-          if (ejerciciosData) {
-            const ejerciciosTransformados = ejerciciosData.map(ej => ({
-              ...ej,
-              nombre: ej.ejercicios?.nombre || "Ejercicio sin nombre",
-              dia: ej.dia, // Ahora dia es una fecha en formato texto YYYY-MM-DD
+
+          if (exercisesError) throw exercisesError;
+
+          if (exercisesData) {
+            // Type assertion to inform TypeScript about the structure
+            const typedExercisesData = exercisesData as Omit<RoutineExercise, 'exercise'>[] & { ejercicios: Exercise }[];
+
+            // Map the data to the RoutineExercise interface
+            const formattedExercises: RoutineExercise[] = typedExercisesData.map(item => ({
+              id: item.id,
+              exerciseId: item.ejercicio_id,
+              sets: item.sets,
+              reps: item.reps,
+              weight: item.peso,
+              restTime: item.descanso,
+              notes: item.notas,
+              date: item.dia,
+              exercise: {
+                id: item.ejercicios.id,
+                name: item.ejercicios.nombre,
+                muscleGroup: item.ejercicios.grupo_muscular,
+                description: item.ejercicios.descripcion,
+                imageUrl: item.ejercicios.imagen_url,
+                videoUrl: item.ejercicios.video_url,
+              }
             }));
-            
-            setEjercicios(ejerciciosTransformados as unknown as Ejercicio[]);
+            setExercises(formattedExercises);
           }
         } else {
-          setRutina(null);
-          setEjercicios([]);
+          setRoutine(null);
+          setExercises([]);
         }
       } catch (error: any) {
         toast({
@@ -137,30 +156,14 @@ const ClientRoutine = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleDeleteExercise = async (ejercicioId: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este ejercicio?")) {
+  // Fix the type conversion issues by explicitly converting the day number to a string
+  const handleDeleteExercise = async (exerciseId: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este ejercicio de la rutina?")) {
       try {
-        // First check if the exercise is completed
-        const { data: completados } = await supabase
-          .from("ejercicios_completados")
-          .select("id")
-          .eq("rutina_ejercicio_id", ejercicioId);
-          
-        // If completed, delete the completed exercises first
-        if (completados && completados.length > 0) {
-          const { error: deleteCompletadosError } = await supabase
-            .from("ejercicios_completados")
-            .delete()
-            .eq("rutina_ejercicio_id", ejercicioId);
-            
-          if (deleteCompletadosError) throw deleteCompletadosError;
-        }
-        
-        // Now delete the exercise from the routine
         const { error } = await supabase
           .from("rutina_ejercicios")
           .delete()
-          .eq("id", ejercicioId);
+          .eq("id", exerciseId);
 
         if (error) throw error;
 
@@ -180,56 +183,27 @@ const ClientRoutine = () => {
     }
   };
 
-  // Agrupar ejercicios por día de la semana basado en la fecha (formato texto YYYY-MM-DD)
-  const ejerciciosPorDia = diasSemana.reduce((acc, dia) => {
-    acc[dia] = ejercicios.filter(ejercicio => {
-      const diaEjercicio = obtenerDiaSemana(ejercicio.dia as string);
-      return diaEjercicio === dia;
-    });
-    return acc;
-  }, {} as Record<string, Ejercicio[]>);
-
-  useEffect(() => {
-    if (!loading && ejercicios.length > 0) {
-      for (const dia of diasSemana) {
-        if (ejerciciosPorDia[dia]?.length > 0) {
-          setActiveTab(dia);
-          break;
-        }
-      }
-    }
-  }, [loading, ejercicios]);
-
-  // Función para mostrar la fecha formateada
-  const formatearFecha = (fechaStr: string) => {
-    try {
-      return format(parseISO(fechaStr), "d 'de' MMMM", { locale: es });
-    } catch (error) {
-      return fechaStr;
-    }
-  };
-
   const handleCreateRoutine = async () => {
     if (!clientId) return;
-    
+
     try {
       const { data, error } = await supabase
         .from("rutinas")
         .insert({
           cliente_id: clientId,
-          nombre: "Nueva rutina",
+          nombre: "Rutina personalizada",
           fecha_inicio: new Date().toISOString().split('T')[0],
         })
         .select()
         .single();
-        
+
       if (error) throw error;
-      
+
       toast({
         title: "Rutina creada",
         description: "La nueva rutina ha sido creada correctamente."
       });
-      
+
       setRefreshTrigger(prev => prev + 1);
     } catch (error: any) {
       toast({
@@ -240,32 +214,76 @@ const ClientRoutine = () => {
     }
   };
 
+  const exercisesPorDia = diasSemana.reduce((acc, dia, index) => {
+    const diaNumero = index + 1;
+    acc[dia] = exercises.filter(exercise => {
+      if (typeof exercise.date === 'number') {
+        return String(exercise.date) === String(diaNumero);
+      } else if (typeof exercise.date === 'string' && /^[1-7]$/.test(exercise.date)) {
+        return exercise.date === String(diaNumero);
+      } else if (exercise.date.includes("-")) {
+        const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(exercise.date), "i", { locale: es })));
+        return diaSemana === dia;
+      }
+      return false;
+    });
+    return acc;
+  }, {} as Record<string, RoutineExercise[]>);
+
+  // Update the line with the type error using String() conversion
+  const formatDay = (day: number | string): string => {
+    if (typeof day === 'number') {
+      return diasSemana[day - 1] || "Desconocido";
+    }
+    return day.toString();
+  };
+
+  useEffect(() => {
+    if (!loading && exercises.length > 0) {
+      for (const dia of diasSemana) {
+        if (exercisesPorDia[dia]?.length > 0) {
+          setActiveTab(dia);
+          break;
+        }
+      }
+    }
+  }, [loading, exercises]);
+
+  // Función para mostrar la fecha formateada
+  const formatearFecha = (fechaStr: string) => {
+    try {
+      return format(parseISO(fechaStr), "d 'de' MMMM", { locale: es });
+    } catch (error) {
+      return fechaStr;
+    }
+  };
+
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={() => navigate('/entrenador/clientes')}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-3xl font-bold">Rutina de {clientName}</h1>
         </div>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
-              <CardTitle className="text-2xl">Programa de entrenamiento</CardTitle>
-              {rutina && (
+              <CardTitle className="text-2xl">Rutina de ejercicios</CardTitle>
+              {routine && (
                 <p className="text-sm text-muted-foreground">
-                  {rutina.nombre} - Inicio: {formatearFecha(rutina.fecha_inicio)}
+                  {routine.name} - Inicio: {formatearFecha(routine.startDate)}
                 </p>
               )}
             </div>
             <div className="flex gap-2">
-              {rutina && (
+              {routine && (
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                   <DialogTrigger asChild>
                     <Button onClick={handleAddExercise}>
@@ -273,18 +291,18 @@ const ClientRoutine = () => {
                       Añadir ejercicio
                     </Button>
                   </DialogTrigger>
-                  <RutinaEjercicioForm 
-                    clienteId={clientId || ""} 
-                    rutinaId={rutina.id || null}
+                  <RoutineExerciseForm
+                    clienteId={clientId || ""}
+                    routineId={routine.id || null}
                     onCancel={() => setShowAddDialog(false)}
                     onSuccess={handleAddSuccess}
                   />
                 </Dialog>
               )}
-              {!rutina && (
+              {!routine && (
                 <Button onClick={handleCreateRoutine}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Crear nueva rutina
+                  Crear rutina
                 </Button>
               )}
             </div>
@@ -292,7 +310,7 @@ const ClientRoutine = () => {
           <CardContent>
             {loading ? (
               <div className="text-center py-8">Cargando rutina...</div>
-            ) : ejercicios.length > 0 ? (
+            ) : exercises.length > 0 ? (
               <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="w-full flex mb-4 overflow-x-auto">
                   {diasSemana.map(dia => (
@@ -300,74 +318,83 @@ const ClientRoutine = () => {
                       key={dia}
                       value={dia}
                       className="flex-1"
-                      disabled={ejerciciosPorDia[dia]?.length === 0}
+                      disabled={exercisesPorDia[dia]?.length === 0}
                     >
                       {dia}
-                      {ejerciciosPorDia[dia]?.length > 0 && (
+                      {exercisesPorDia[dia]?.length > 0 && (
                         <Badge variant="secondary" className="ml-2">
-                          {ejerciciosPorDia[dia].length}
+                          {exercisesPorDia[dia].length}
                         </Badge>
                       )}
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                
+
                 {diasSemana.map(dia => (
                   <TabsContent key={dia} value={dia} className="space-y-4">
-                    {ejerciciosPorDia[dia]?.length > 0 ? (
+                    {exercisesPorDia[dia]?.length > 0 ? (
                       <Accordion type="single" collapsible className="w-full">
-                        {ejerciciosPorDia[dia].map((ejercicio) => (
-                          <AccordionItem key={ejercicio.id} value={`ejercicio-${ejercicio.id}`}>
+                        {exercisesPorDia[dia].map((exercise) => (
+                          <AccordionItem key={exercise.id} value={`exercise-${exercise.id}`}>
                             <AccordionTrigger className="hover:no-underline py-3 px-4 data-[state=open]:bg-accent/50 rounded-t-md">
                               <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">{ejercicio.nombre}</span>
+                                  <span className="font-medium">{exercise.exercise?.name}</span>
+                                  {exercise.exercise && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {exercise.exercise.muscleGroup}
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">{formatearFecha(ejercicio.dia as string)}</Badge>
-                                  <Badge variant="outline">{ejercicio.series} series</Badge>
-                                  <Badge variant="outline">{ejercicio.repeticiones} reps</Badge>
-                                </div>
+                                <Badge>{exercise.sets} x {exercise.reps}</Badge>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="bg-accent/20 rounded-b-md px-4 pb-4 pt-2">
                               <div className="space-y-3">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {ejercicio.peso && (
+                                {exercise.exercise && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <div>
-                                      <h4 className="text-sm font-medium mb-1">Peso</h4>
-                                      <Badge variant="secondary">{ejercicio.peso}</Badge>
+                                      <h4 className="text-sm font-medium mb-1">Ejercicio</h4>
+                                      <div className="flex flex-col">
+                                        <span className="text-sm">
+                                          {exercise.exercise.name}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          {exercise.exercise.description}
+                                        </span>
+                                      </div>
                                     </div>
-                                  )}
-                                  
-                                  {ejercicio.ejercicios && (
+
                                     <div>
-                                      <h4 className="text-sm font-medium mb-1">Grupo muscular</h4>
-                                      <Badge variant="outline">{ejercicio.ejercicios.grupo_muscular}</Badge>
+                                      <h4 className="text-sm font-medium mb-1">Detalles</h4>
+                                      <div className="flex flex-wrap gap-2">
+                                        <Badge variant="outline">
+                                          Sets: {exercise.sets}
+                                        </Badge>
+                                        <Badge variant="outline">
+                                          Reps: {exercise.reps}
+                                        </Badge>
+                                        {exercise.weight && (
+                                          <Badge variant="outline">
+                                            Peso: {exercise.weight}kg
+                                          </Badge>
+                                        )}
+                                        {exercise.restTime && (
+                                          <Badge variant="outline">
+                                            Descanso: {exercise.restTime}s
+                                          </Badge>
+                                        )}
+                                      </div>
                                     </div>
-                                  )}
-                                  
-                                  {ejercicio.notas && (
-                                    <div className="col-span-full">
-                                      <h4 className="text-sm font-medium mb-1">Notas</h4>
-                                      <p className="text-sm text-muted-foreground">{ejercicio.notas}</p>
-                                    </div>
-                                  )}
-                                  
-                                  {ejercicio.ejercicios?.descripcion && (
-                                    <div className="col-span-full">
-                                      <h4 className="text-sm font-medium mb-1">Descripción</h4>
-                                      <p className="text-sm text-muted-foreground">{ejercicio.ejercicios.descripcion}</p>
-                                    </div>
-                                  )}
-                                </div>
-                                
+                                  </div>
+                                )}
+
                                 <div className="flex justify-end gap-2">
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="sm"
                                     className="text-destructive"
-                                    onClick={() => handleDeleteExercise(ejercicio.id)}
+                                    onClick={() => handleDeleteExercise(exercise.id)}
                                   >
                                     <Trash2 className="h-3.5 w-3.5 mr-1" />
                                     Eliminar
@@ -389,9 +416,9 @@ const ClientRoutine = () => {
                               Añadir ejercicio para {dia}
                             </Button>
                           </DialogTrigger>
-                          <RutinaEjercicioForm 
-                            clienteId={clientId || ""} 
-                            rutinaId={rutina?.id || null}
+                          <RoutineExerciseForm
+                            clienteId={clientId || ""}
+                            routineId={routine?.id || null}
                             onCancel={() => setShowAddDialog(false)}
                             onSuccess={handleAddSuccess}
                           />
@@ -404,8 +431,8 @@ const ClientRoutine = () => {
             ) : (
               <div className="text-center py-8 flex flex-col items-center">
                 <Dumbbell className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Este cliente no tiene ejercicios asignados</p>
-                {rutina ? (
+                <p className="text-muted-foreground">Este cliente no tiene una rutina asignada</p>
+                {routine ? (
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button className="mt-4">
@@ -413,17 +440,17 @@ const ClientRoutine = () => {
                         Añadir primer ejercicio
                       </Button>
                     </DialogTrigger>
-                    <RutinaEjercicioForm 
-                      clienteId={clientId || ""} 
-                      rutinaId={rutina.id}
+                    <RoutineExerciseForm
+                      clienteId={clientId || ""}
+                      routineId={routine.id}
                       onCancel={() => setShowAddDialog(false)}
                       onSuccess={handleAddSuccess}
                     />
                   </Dialog>
                 ) : (
-                  <Button className="mt-4" onClick={handleCreateRoutine}>
+                  <Button onClick={handleCreateRoutine} className="mt-4">
                     <Plus className="h-4 w-4 mr-2" />
-                    Crear nueva rutina
+                    Crear rutina
                   </Button>
                 )}
               </div>

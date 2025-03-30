@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { supabase } from "@/integrations/supabase/client";
-import { Utensils, Plus, ArrowLeft, Info, Edit, Trash2 } from "lucide-react";
+import { Utensils, Plus, ArrowLeft, Info, Edit, Trash2, RotateCcw, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,24 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import DietaComidaForm from "@/components/entrenador/DietaComidaForm";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -53,11 +71,13 @@ const ClientDiet = () => {
   const { toast } = useToast();
   const [clientName, setClientName] = useState("");
   const [dieta, setDieta] = useState<Dieta | null>(null);
+  const [allDietas, setAllDietas] = useState<Dieta[]>([]);
   const [comidas, setComidas] = useState<Comida[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("Lunes");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showDeleteDietAlert, setShowDeleteDietAlert] = useState(false);
 
   useEffect(() => {
     const fetchClientDetails = async () => {
@@ -75,17 +95,19 @@ const ClientDiet = () => {
         if (clientError) throw clientError;
         setClientName(clientData?.nombre || "Cliente");
         
+        // Get all diets for this client
         const { data: dietasData, error: dietasError } = await supabase
           .from("dietas")
           .select("*")
           .eq("cliente_id", clientId)
-          .order("fecha_inicio", { ascending: false })
-          .limit(1);
+          .order("fecha_inicio", { ascending: false });
         
         if (dietasError) throw dietasError;
         
+        setAllDietas(dietasData || []);
+        
         if (dietasData && dietasData.length > 0) {
-          const dietaActual = dietasData[0];
+          const dietaActual = dietasData[0]; // Get the most recent diet
           setDieta(dietaActual);
           
           const { data: comidasData, error: comidasError } = await supabase
@@ -159,6 +181,116 @@ const ClientDiet = () => {
     }
   };
 
+  const handleCreateDiet = async () => {
+    if (!clientId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("dietas")
+        .insert({
+          cliente_id: clientId,
+          nombre: "Plan alimenticio personalizado",
+          fecha_inicio: new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Dieta creada",
+        description: "El nuevo plan alimenticio ha sido creado correctamente."
+      });
+      
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `No se pudo crear el plan alimenticio: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteDiet = async () => {
+    if (!dieta?.id) return;
+    
+    try {
+      // First delete all meals associated with this diet
+      const { error: mealsError } = await supabase
+        .from("dieta_comidas")
+        .delete()
+        .eq("dieta_id", dieta.id);
+      
+      if (mealsError) throw mealsError;
+      
+      // Then delete the diet itself
+      const { error: dietError } = await supabase
+        .from("dietas")
+        .delete()
+        .eq("id", dieta.id);
+      
+      if (dietError) throw dietError;
+      
+      toast({
+        title: "Dieta eliminada",
+        description: "El plan alimenticio ha sido eliminado correctamente."
+      });
+      
+      setShowDeleteDietAlert(false);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `No se pudo eliminar el plan alimenticio: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSwitchDiet = (dietaId: string) => {
+    const selectedDiet = allDietas.find(d => d.id === dietaId);
+    if (selectedDiet) {
+      setDieta(selectedDiet);
+      // Load meals for this diet
+      loadMealsForDiet(dietaId);
+    }
+  };
+
+  const loadMealsForDiet = async (dietaId: string) => {
+    try {
+      setLoading(true);
+      const { data: comidasData, error: comidasError } = await supabase
+        .from("dieta_comidas")
+        .select(`
+          id, 
+          tipo_comida, 
+          cantidad, 
+          dia, 
+          alimento_id, 
+          dieta_id,
+          alimentos:alimento_id (nombre, categoria, calorias, proteinas, carbohidratos, grasas)
+        `)
+        .eq("dieta_id", dietaId);
+      
+      if (comidasError) throw comidasError;
+      
+      if (comidasData) {
+        setComidas(comidasData);
+      } else {
+        setComidas([]);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `No se pudieron cargar las comidas: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const comidasPorDia = diasSemana.reduce((acc, dia, index) => {
     const diaNumero = (index + 1).toString();
     acc[dia] = comidas.filter(comida => {
@@ -207,37 +339,6 @@ const ClientDiet = () => {
     return Math.round((comida.alimentos.calorias * comida.cantidad) / 100);
   };
 
-  const handleCreateDiet = async () => {
-    if (!clientId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from("dietas")
-        .insert({
-          cliente_id: clientId,
-          nombre: "Plan alimenticio personalizado",
-          fecha_inicio: new Date().toISOString().split('T')[0],
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Dieta creada",
-        description: "El nuevo plan alimenticio ha sido creado correctamente."
-      });
-      
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: `No se pudo crear el plan alimenticio: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  };
-
   // Función para mostrar la fecha formateada
   const formatearFecha = (fechaStr: string) => {
     try {
@@ -250,15 +351,41 @@ const ClientDiet = () => {
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={() => navigate('/entrenador/clientes')}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <h1 className="text-3xl font-bold">Dieta de {clientName}</h1>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={() => navigate('/entrenador/clientes')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-3xl font-bold">Dieta de {clientName}</h1>
+          </div>
+          
+          {allDietas.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Planes alimenticios
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Seleccionar plan</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {allDietas.map((d) => (
+                  <DropdownMenuItem 
+                    key={d.id}
+                    onClick={() => handleSwitchDiet(d.id)}
+                    className={dieta?.id === d.id ? "bg-accent" : ""}
+                  >
+                    {d.nombre} ({formatearFecha(d.fecha_inicio)})
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         
         <Card>
@@ -273,20 +400,31 @@ const ClientDiet = () => {
             </div>
             <div className="flex gap-2">
               {dieta && (
-                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                  <DialogTrigger asChild>
-                    <Button onClick={handleAddMeal}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Añadir comida
-                    </Button>
-                  </DialogTrigger>
-                  <DietaComidaForm 
-                    clienteId={clientId || ""} 
-                    dietaId={dieta.id || null}
-                    onCancel={() => setShowAddDialog(false)}
-                    onSuccess={handleAddSuccess}
-                  />
-                </Dialog>
+                <>
+                  <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                    <DialogTrigger asChild>
+                      <Button onClick={handleAddMeal}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Añadir comida
+                      </Button>
+                    </DialogTrigger>
+                    <DietaComidaForm 
+                      clienteId={clientId || ""} 
+                      dietaId={dieta.id || null}
+                      onCancel={() => setShowAddDialog(false)}
+                      onSuccess={handleAddSuccess}
+                    />
+                  </Dialog>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="text-destructive" 
+                    onClick={() => setShowDeleteDietAlert(true)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar plan
+                  </Button>
+                </>
               )}
               {!dieta && (
                 <Button onClick={handleCreateDiet}>
@@ -439,6 +577,25 @@ const ClientDiet = () => {
             )}
           </CardContent>
         </Card>
+        
+        {/* Alerta de confirmación para eliminar dieta */}
+        <AlertDialog open={showDeleteDietAlert} onOpenChange={setShowDeleteDietAlert}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Estás seguro de eliminar este plan alimenticio?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará el plan alimenticio completo y todas las comidas asociadas.
+                Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteDiet} className="bg-destructive text-destructive-foreground">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

@@ -18,9 +18,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { NuevoAlimento, Alimento } from "@/hooks/entrenador/useAlimentos";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AlimentoFormProps {
-  tipo: "crear" | "editar";
+  tipo: "crear" | "editar" | "clonar";
   alimento?: Alimento;
   onCancel: () => void;
   onSubmit: (alimento: NuevoAlimento) => void;
@@ -33,11 +34,21 @@ export const AlimentoForm = ({
   onSubmit,
 }: AlimentoFormProps) => {
   const isCreating = tipo === "crear";
-  const title = isCreating ? "Crear Nuevo Alimento" : "Editar Alimento";
-  const description = isCreating
-    ? "Completa el formulario para agregar un nuevo alimento a tu biblioteca."
-    : "Actualiza la información del alimento.";
-  const submitLabel = isCreating ? "Crear Alimento" : "Guardar Cambios";
+  const isCloning = tipo === "clonar";
+  
+  let title = "Crear Nuevo Alimento";
+  let description = "Completa el formulario para agregar un nuevo alimento a tu biblioteca.";
+  let submitLabel = "Crear Alimento";
+  
+  if (tipo === "editar") {
+    title = "Editar Alimento";
+    description = "Actualiza la información del alimento.";
+    submitLabel = "Guardar Cambios";
+  } else if (tipo === "clonar") {
+    title = "Duplicar Alimento";
+    description = "Edita este alimento para crear una nueva variante en tu biblioteca.";
+    submitLabel = "Crear Copia";
+  }
 
   const [formData, setFormData] = useState<NuevoAlimento>({
     nombre: "",
@@ -50,9 +61,16 @@ export const AlimentoForm = ({
   });
 
   useEffect(() => {
-    if (alimento && !isCreating) {
+    if (alimento && (tipo === "editar" || tipo === "clonar")) {
+      let nombreValue = alimento.nombre;
+      
+      // If cloning, add "- Copia" to the name
+      if (isCloning) {
+        nombreValue = `${alimento.nombre} - Copia`;
+      }
+      
       setFormData({
-        nombre: alimento.nombre,
+        nombre: nombreValue,
         categoria: alimento.categoria,
         calorias: alimento.calorias,
         proteinas: alimento.proteinas,
@@ -61,10 +79,10 @@ export const AlimentoForm = ({
         imagen_url: alimento.imagen_url,
       });
     }
-  }, [alimento, isCreating]);
+  }, [alimento, tipo, isCloning]);
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     

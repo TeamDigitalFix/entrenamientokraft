@@ -15,7 +15,8 @@ import {
   Trash2, 
   RefreshCw,
   Eye,
-  RotateCcw
+  Copy,
+  MoreVertical
 } from "lucide-react";
 import { UserRole } from "@/types/index";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const TrainerFoods = () => {
   const { user } = useAuth();
@@ -47,6 +54,7 @@ const TrainerFoods = () => {
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [selectedAlimento, setSelectedAlimento] = useState<Alimento | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deleteAlimentoId, setDeleteAlimentoId] = useState<string | null>(null);
@@ -67,9 +75,20 @@ const TrainerFoods = () => {
     }
   };
 
+  const handleCloneAlimento = (nuevoAlimento: NuevoAlimento) => {
+    crearAlimento(nuevoAlimento);
+    setShowCloneDialog(false);
+    setSelectedAlimento(null);
+  };
+
   const openEditDialog = (alimento: Alimento) => {
     setSelectedAlimento(alimento);
     setShowEditDialog(true);
+  };
+
+  const openCloneDialog = (alimento: Alimento) => {
+    setSelectedAlimento(alimento);
+    setShowCloneDialog(true);
   };
 
   const openDeleteAlert = (id: string) => {
@@ -182,26 +201,34 @@ const TrainerFoods = () => {
                         <TableCell>{alimento.carbohidratos}</TableCell>
                         <TableCell>{alimento.grasas}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" title="Ver">
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              title="Editar"
-                              onClick={() => openEditDialog(alimento)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              title="Eliminar"
-                              onClick={() => openDeleteAlert(alimento.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditDialog(alimento)}>
+                                  <Edit className="h-4 w-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openCloneDialog(alimento)}>
+                                  <Copy className="h-4 w-4 mr-2" />
+                                  Duplicar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => openDeleteAlert(alimento.id)}
+                                  className="text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Eliminar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -228,6 +255,18 @@ const TrainerFoods = () => {
             alimento={selectedAlimento}
             onCancel={() => setShowEditDialog(false)}
             onSubmit={handleEditAlimento}
+          />
+        )}
+      </Dialog>
+
+      {/* Diálogo de Clonación */}
+      <Dialog open={showCloneDialog} onOpenChange={setShowCloneDialog}>
+        {selectedAlimento && (
+          <AlimentoForm
+            tipo="clonar"
+            alimento={selectedAlimento}
+            onCancel={() => setShowCloneDialog(false)}
+            onSubmit={handleCloneAlimento}
           />
         )}
       </Dialog>
