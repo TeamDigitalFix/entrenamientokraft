@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -96,7 +95,6 @@ const ClientDiet = () => {
         if (clientError) throw clientError;
         setClientName(clientData?.nombre || "Cliente");
         
-        // Get all diets for this client
         const { data: dietasData, error: dietasError } = await supabase
           .from("dietas")
           .select("*")
@@ -108,10 +106,9 @@ const ClientDiet = () => {
         setAllDietas(dietasData || []);
         
         if (dietasData && dietasData.length > 0) {
-          const dietaActual = dietasData[0]; // Get the most recent diet
+          const dietaActual = dietasData[0];
           setDieta(dietaActual);
           
-          // Fetch meals with their associated food details
           const { data: comidasData, error: comidasError } = await supabase
             .from("dieta_comidas")
             .select(`
@@ -182,6 +179,7 @@ const ClientDiet = () => {
 
         setRefreshTrigger(prev => prev + 1);
       } catch (error: any) {
+        console.error("Error al eliminar comida:", error);
         toast({
           title: "Error",
           description: `No se pudo eliminar la comida: ${error.message}`,
@@ -226,7 +224,6 @@ const ClientDiet = () => {
     if (!dieta?.id) return;
     
     try {
-      // First delete all meals associated with this diet
       const { error: mealsError } = await supabase
         .from("dieta_comidas")
         .delete()
@@ -234,7 +231,6 @@ const ClientDiet = () => {
       
       if (mealsError) throw mealsError;
       
-      // Then delete the diet itself
       const { error: dietError } = await supabase
         .from("dietas")
         .delete()
@@ -262,7 +258,6 @@ const ClientDiet = () => {
     const selectedDiet = allDietas.find(d => d.id === dietaId);
     if (selectedDiet) {
       setDieta(selectedDiet);
-      // Load meals for this diet
       loadMealsForDiet(dietaId);
     }
   };
@@ -354,7 +349,6 @@ const ClientDiet = () => {
     return Math.round((comida.alimentos.calorias * comida.cantidad) / 100);
   };
 
-  // Función para mostrar la fecha formateada
   const formatearFecha = (fechaStr: string) => {
     try {
       return format(parseISO(fechaStr), "d 'de' MMMM", { locale: es });
@@ -593,7 +587,6 @@ const ClientDiet = () => {
           </CardContent>
         </Card>
         
-        {/* Alerta de confirmación para eliminar dieta */}
         <AlertDialog open={showDeleteDietAlert} onOpenChange={setShowDeleteDietAlert}>
           <AlertDialogContent>
             <AlertDialogHeader>

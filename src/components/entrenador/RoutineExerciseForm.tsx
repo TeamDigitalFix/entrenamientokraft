@@ -2,7 +2,7 @@
 import React from "react";
 import RutinaEjercicioForm from "./RutinaEjercicioForm";
 
-// This is a wrapper component to maintain compatibility with imports while using our Spanish-named component
+// Este es un componente wrapper para mantener la compatibilidad con los imports mientras usamos nuestro componente con nombre en español
 const RoutineExerciseForm = (props: any) => {
   return <RutinaEjercicioForm {...props} />;
 };

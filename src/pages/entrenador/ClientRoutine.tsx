@@ -206,6 +206,25 @@ const ClientRoutine = () => {
   const handleDeleteExercise = async (exerciseId: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este ejercicio de la rutina?")) {
       try {
+        // Primero comprobamos si hay registros de ejercicios completados relacionados
+        const { data: completedExercises, error: checkError } = await supabase
+          .from("ejercicios_completados")
+          .select("id")
+          .eq("rutina_ejercicio_id", exerciseId);
+        
+        if (checkError) throw checkError;
+        
+        // Si hay ejercicios completados, eliminarlos primero
+        if (completedExercises && completedExercises.length > 0) {
+          const { error: deleteCompletedError } = await supabase
+            .from("ejercicios_completados")
+            .delete()
+            .eq("rutina_ejercicio_id", exerciseId);
+          
+          if (deleteCompletedError) throw deleteCompletedError;
+        }
+        
+        // Luego eliminamos el ejercicio de la rutina
         const { error } = await supabase
           .from("rutina_ejercicios")
           .delete()
@@ -220,6 +239,7 @@ const ClientRoutine = () => {
 
         setRefreshTrigger(prev => prev + 1);
       } catch (error: any) {
+        console.error("Error al eliminar ejercicio:", error);
         toast({
           title: "Error",
           description: `No se pudo eliminar el ejercicio: ${error.message}`,
