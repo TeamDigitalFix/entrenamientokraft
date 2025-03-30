@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { InfoCircle } from "lucide-react";
+import { Info } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 type MeasurementFormValues = {
@@ -65,7 +64,6 @@ const MeasurementForm = ({
   const watchCintura = watch("circunferencia_cintura");
   const watchCadera = watch("circunferencia_cadera");
 
-  // Calcular el porcentaje de grasa corporal en tiempo real
   useEffect(() => {
     const altura = parseFloat(watchAltura);
     const cuello = parseFloat(watchCuello);
@@ -81,11 +79,9 @@ const MeasurementForm = ({
         watchSexo
       );
 
-      // Actualizar los porcentajes calculados
       if (bodyFatPercentage !== null) {
         const muscleMassPercentage = calculateMuscleMassPercentage(bodyFatPercentage);
         
-        // Mostrar en la UI
         setCalculatedValues({
           grasa: bodyFatPercentage,
           musculo: muscleMassPercentage || 0
@@ -94,7 +90,6 @@ const MeasurementForm = ({
     }
   }, [watchSexo, watchAltura, watchCuello, watchCintura, watchCadera]);
 
-  // Estado para los valores calculados
   const [calculatedValues, setCalculatedValues] = React.useState({
     grasa: 0,
     musculo: 0
@@ -107,7 +102,6 @@ const MeasurementForm = ({
     const cinturaValue = data.circunferencia_cintura ? parseFloat(data.circunferencia_cintura) : undefined;
     const caderaValue = data.circunferencia_cadera ? parseFloat(data.circunferencia_cadera) : undefined;
     
-    // Calcular los porcentajes
     let grasaValue: number | undefined;
     let musculoValue: number | undefined;
     
@@ -242,7 +236,7 @@ const MeasurementForm = ({
             <HoverCard>
               <HoverCardTrigger asChild>
                 <Button variant="ghost" size="sm" className="ml-2 h-6 w-6 p-0">
-                  <InfoCircle className="h-4 w-4" />
+                  <Info className="h-4 w-4" />
                   <span className="sr-only">Info</span>
                 </Button>
               </HoverCardTrigger>
@@ -352,7 +346,6 @@ const MeasurementForm = ({
             />
           )}
           
-          {/* Mostrar resultados calculados si hay suficientes datos */}
           {(calculatedValues.grasa > 0 || calculatedValues.musculo > 0) && (
             <div className="bg-accent/50 p-3 rounded-md space-y-2 mt-2">
               <p className="text-sm font-medium">Valores calculados:</p>
