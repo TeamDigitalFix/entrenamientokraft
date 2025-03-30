@@ -4,7 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "next-themes";
 
 // Páginas de autenticación
 import Login from "./pages/Login";
@@ -32,40 +33,42 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            {/* Ruta raíz - redirige a login */}
-            <Route path="/" element={<Navigate to="/login" />} />
-            
-            {/* Autenticación */}
-            <Route path="/login" element={<Login />} />
-            
-            {/* Rutas de administrador */}
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/entrenadores" element={<TrainersPage />} />
-            
-            {/* Rutas de entrenador */}
-            <Route path="/entrenador/dashboard" element={<TrainerDashboard />} />
-            <Route path="/entrenador/clientes" element={<TrainerClients />} />
-            <Route path="/entrenador/ejercicios" element={<TrainerExercises />} />
-            <Route path="/entrenador/alimentos" element={<TrainerFoods />} />
-            <Route path="/entrenador/citas" element={<TrainerAppointments />} />
-            <Route path="/entrenador/mensajes" element={<TrainerMessages />} />
-            <Route path="/entrenador/informes" element={<TrainerReports />} />
-            
-            {/* Rutas de cliente */}
-            <Route path="/cliente/dashboard" element={<ClientDashboard />} />
-            
-            {/* Ruta 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              {/* Ruta raíz - redirige a login */}
+              <Route path="/" element={<Navigate to="/login" />} />
+              
+              {/* Autenticación */}
+              <Route path="/login" element={<Login />} />
+              
+              {/* Rutas de administrador */}
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/entrenadores" element={<TrainersPage />} />
+              
+              {/* Rutas de entrenador */}
+              <Route path="/entrenador/dashboard" element={<TrainerDashboard />} />
+              <Route path="/entrenador/clientes" element={<TrainerClients />} />
+              <Route path="/entrenador/ejercicios" element={<TrainerExercises />} />
+              <Route path="/entrenador/alimentos" element={<TrainerFoods />} />
+              <Route path="/entrenador/citas" element={<TrainerAppointments />} />
+              <Route path="/entrenador/mensajes" element={<TrainerMessages />} />
+              <Route path="/entrenador/informes" element={<TrainerReports />} />
+              
+              {/* Rutas de cliente */}
+              <Route path="/cliente/dashboard" element={<ClientDashboard />} />
+              
+              {/* Ruta 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

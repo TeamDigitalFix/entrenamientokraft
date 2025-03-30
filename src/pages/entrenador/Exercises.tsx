@@ -20,6 +20,7 @@ import { useEjercicios } from "@/hooks/entrenador/useEjercicios";
 import { EjercicioForm } from "@/components/entrenador/EjercicioForm";
 import { Ejercicio, NuevoEjercicio } from "@/types/ejercicios";
 import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/types/index";
 
 const TrainerExercises = () => {
   const { user } = useAuth();
@@ -76,7 +77,7 @@ const TrainerExercises = () => {
   };
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Biblioteca de Ejercicios</h1>
