@@ -35,10 +35,10 @@ export const useProgress = () => {
 
         console.log("Consultando mediciones para usuario:", user.id);
         
-        // Check for measurements in the database
+        // Check for measurements in the database using explicit columns
         const { data, error } = await supabase
           .from("progreso")
-          .select("*")
+          .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, created_at, cliente_id")
           .eq("cliente_id", user.id)
           .order("fecha", { ascending: false });
 
@@ -48,6 +48,7 @@ export const useProgress = () => {
         }
 
         console.log("Mediciones obtenidas desde la BD:", data);
+        console.log("Número de mediciones encontradas:", data ? data.length : 0);
         
         // If we have data, return it
         if (data && data.length > 0) {
@@ -128,7 +129,7 @@ export const useProgress = () => {
         
         console.log("Fecha formateada:", currentDateString);
         
-        // Preparamos los datos a insertar directamente en la tabla sin RLS
+        // Preparamos los datos a insertar
         const measurementData = {
           cliente_id: user.id,
           peso: newMeasurement.peso,
@@ -166,9 +167,11 @@ export const useProgress = () => {
       console.log("Medición registrada con éxito:", data);
       toast.success("Medición registrada correctamente");
       
-      // Forzar una invalidación y recarga de los datos
-      queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
-      queryClient.refetchQueries({ queryKey: ["progress", user?.id] });
+      // Forzar una invalidación y recarga de los datos inmediatamente
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
+        queryClient.refetchQueries({ queryKey: ["progress", user?.id] });
+      }, 500);
       
       setIsDialogOpen(false);
     },
