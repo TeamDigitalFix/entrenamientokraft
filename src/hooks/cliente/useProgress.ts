@@ -78,7 +78,7 @@ export const useProgress = () => {
           throw new Error("Usuario no autenticado");
         }
 
-        console.log("Añadiendo medición para usuario:", user.id);
+        console.log("Procesando medición para usuario:", user.id);
         console.log("Datos de medición:", newMeasurement);
         
         // Verify values are valid before sending
@@ -93,34 +93,78 @@ export const useProgress = () => {
         
         console.log("Fecha formateada:", currentDateString);
         
-        // Now insert directly into the progreso table
-        const { data, error } = await supabase
+        // Check if there's already a measurement for today
+        const { data: existingMeasurement, error: queryError } = await supabase
           .from('progreso')
-          .insert({
-            cliente_id: user.id,
-            peso: newMeasurement.peso,
-            grasa_corporal: newMeasurement.grasa_corporal || null,
-            masa_muscular: newMeasurement.masa_muscular || null,
-            notas: newMeasurement.notas || null,
-            fecha: currentDateString
-          })
-          .select()
-          .single();
+          .select('id')
+          .eq('cliente_id', user.id)
+          .eq('fecha', currentDateString)
+          .maybeSingle();
         
-        if (error) {
-          console.error("Error al insertar medición:", error);
-          throw error;
+        if (queryError) {
+          console.error("Error al verificar mediciones existentes:", queryError);
+          throw queryError;
         }
         
-        console.log("Medición guardada con éxito:", data);
-        return data;
+        let result;
+        
+        if (existingMeasurement) {
+          // Update the existing measurement for today
+          console.log("Actualizando medición existente para hoy:", existingMeasurement.id);
+          
+          const { data, error } = await supabase
+            .from('progreso')
+            .update({
+              peso: newMeasurement.peso,
+              grasa_corporal: newMeasurement.grasa_corporal || null,
+              masa_muscular: newMeasurement.masa_muscular || null,
+              notas: newMeasurement.notas || null
+            })
+            .eq('id', existingMeasurement.id)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error("Error al actualizar medición:", error);
+            throw error;
+          }
+          
+          result = data;
+          console.log("Medición actualizada con éxito:", data);
+        } else {
+          // Insert a new measurement
+          console.log("Creando nueva medición para hoy");
+          
+          const { data, error } = await supabase
+            .from('progreso')
+            .insert({
+              cliente_id: user.id,
+              peso: newMeasurement.peso,
+              grasa_corporal: newMeasurement.grasa_corporal || null,
+              masa_muscular: newMeasurement.masa_muscular || null,
+              notas: newMeasurement.notas || null,
+              fecha: currentDateString
+            })
+            .select()
+            .single();
+          
+          if (error) {
+            console.error("Error al insertar medición:", error);
+            throw error;
+          }
+          
+          result = data;
+          console.log("Medición guardada con éxito:", data);
+        }
+        
+        return result;
       } catch (error) {
         console.error("Error al guardar medición:", error);
         throw error;
       }
     },
     onSuccess: (data) => {
-      console.log("Medición registrada con éxito:", data);
+      console.log("Medición procesada con éxito:", data);
       toast.success("Medición registrada correctamente");
       
       // Force invalidation and immediate reload of data
