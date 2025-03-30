@@ -102,6 +102,11 @@ export const useProgress = () => {
       const now = new Date().toISOString();
       console.log("Fecha actual:", now);
       
+      // Verificar que los valores son válidos antes de enviar
+      if (isNaN(newMeasurement.peso) || newMeasurement.peso <= 0) {
+        throw new Error("El peso debe ser un número positivo");
+      }
+      
       const measurementData = {
         cliente_id: user.id,
         peso: newMeasurement.peso,
@@ -113,19 +118,28 @@ export const useProgress = () => {
       
       console.log("Datos a insertar:", measurementData);
       
-      // Usar upsert en lugar de insert para mayor compatibilidad
-      const { data, error } = await supabase
+      // Intentar primero con insert (más común)
+      let result = await supabase
         .from("progreso")
-        .upsert(measurementData)
+        .insert(measurementData)
         .select();
-
-      if (error) {
-        console.error("Error al insertar:", error);
-        throw error;
+      
+      // Si falla el insert, intentar con upsert como fallback
+      if (result.error) {
+        console.log("Error con insert, intentando upsert:", result.error);
+        result = await supabase
+          .from("progreso")
+          .upsert(measurementData)
+          .select();
       }
       
-      console.log("Medición registrada:", data);
-      return data;
+      if (result.error) {
+        console.error("Error al guardar medición:", result.error);
+        throw result.error;
+      }
+      
+      console.log("Medición registrada:", result.data);
+      return result.data;
     },
     onSuccess: () => {
       toast.success("Medición registrada correctamente");
@@ -134,7 +148,7 @@ export const useProgress = () => {
     },
     onError: (error) => {
       console.error("Error al registrar medición:", error);
-      toast.error("No se pudo registrar la medición. Inténtalo de nuevo.");
+      toast.error("No se pudo registrar la medición. Revisa que estés autenticado e inténtalo de nuevo.");
     },
   });
 
