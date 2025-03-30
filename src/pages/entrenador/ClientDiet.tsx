@@ -54,6 +54,7 @@ interface Comida {
     proteinas: number;
     carbohidratos: number;
     grasas: number;
+    imagen_url?: string;
   };
 }
 
@@ -110,6 +111,7 @@ const ClientDiet = () => {
           const dietaActual = dietasData[0]; // Get the most recent diet
           setDieta(dietaActual);
           
+          // Fetch meals with their associated food details
           const { data: comidasData, error: comidasError } = await supabase
             .from("dieta_comidas")
             .select(`
@@ -119,20 +121,28 @@ const ClientDiet = () => {
               dia, 
               alimento_id, 
               dieta_id,
-              alimentos:alimento_id (nombre, categoria, calorias, proteinas, carbohidratos, grasas)
+              alimentos:alimento_id (nombre, categoria, calorias, proteinas, carbohidratos, grasas, imagen_url)
             `)
             .eq("dieta_id", dietaActual.id);
           
-          if (comidasError) throw comidasError;
+          if (comidasError) {
+            console.error("Error fetching meals:", comidasError);
+            throw comidasError;
+          }
           
-          if (comidasData) {
+          if (comidasData && comidasData.length > 0) {
+            console.log("Meals found:", comidasData);
             setComidas(comidasData);
+          } else {
+            console.log("No meals found for diet:", dietaActual.id);
+            setComidas([]);
           }
         } else {
           setDieta(null);
           setComidas([]);
         }
       } catch (error: any) {
+        console.error("Error fetching client diet:", error);
         toast({
           title: "Error",
           description: `No se pudo cargar la información del cliente: ${error.message}`,
@@ -296,9 +306,14 @@ const ClientDiet = () => {
     acc[dia] = comidas.filter(comida => {
       if (/^[1-7]$/.test(comida.dia)) {
         return comida.dia === diaNumero;
-      } else if (comida.dia.includes("-")) {
-        const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(comida.dia), "i", { locale: es })));
-        return diaSemana === dia;
+      } else if (comida.dia && comida.dia.includes("-")) {
+        try {
+          const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(comida.dia), "i", { locale: es })));
+          return diaSemana === dia;
+        } catch (error) {
+          console.error("Error parsing date:", comida.dia, error);
+          return false;
+        }
       }
       return false;
     });
@@ -551,7 +566,7 @@ const ClientDiet = () => {
             ) : (
               <div className="text-center py-8 flex flex-col items-center">
                 <Utensils className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Este cliente no tiene un plan alimenticio asignado</p>
+                <p className="text-muted-foreground">Este cliente no tiene comidas asignadas en su plan alimenticio</p>
                 {dieta ? (
                   <Dialog>
                     <DialogTrigger asChild>

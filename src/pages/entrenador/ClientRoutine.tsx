@@ -59,7 +59,7 @@ interface DbExercise {
   series: number;
   repeticiones: number;
   peso: number | null;
-  descanso: number | null;
+  tiempo_descanso: number | null;
   notas: string | null;
   dia: string;
   ejercicios: {
@@ -123,6 +123,7 @@ const ClientRoutine = () => {
           
           setRoutine(mappedRoutine);
 
+          // Fixed query to match actual database schema
           const { data: exercisesData, error: exercisesError } = await supabase
             .from("rutina_ejercicios")
             .select(`
@@ -131,16 +132,21 @@ const ClientRoutine = () => {
               series, 
               repeticiones, 
               peso, 
-              descanso, 
+              tiempo_descanso, 
               notas, 
               dia,
-              ejercicios:ejercicio_id (nombre, grupo_muscular, descripcion, imagen_url, video_url)
+              ejercicios:ejercicio_id (id, nombre, grupo_muscular, descripcion, imagen_url, video_url)
             `)
             .eq("rutina_id", rutinaActual.id);
 
-          if (exercisesError) throw exercisesError;
+          if (exercisesError) {
+            console.error("Error fetching exercises:", exercisesError);
+            throw exercisesError;
+          }
 
-          if (exercisesData) {
+          if (exercisesData && exercisesData.length > 0) {
+            console.log("Exercises found:", exercisesData);
+            
             // Safe type assertion
             const dbExercises = exercisesData as unknown as DbExercise[];
             
@@ -151,25 +157,30 @@ const ClientRoutine = () => {
               sets: item.series,
               reps: item.repeticiones,
               weight: item.peso,
-              restTime: item.descanso,
+              restTime: item.tiempo_descanso,
               notes: item.notas,
               date: item.dia,
               exercise: {
-                id: item.ejercicios.id || item.ejercicio_id,
-                name: item.ejercicios.nombre,
-                muscleGroup: item.ejercicios.grupo_muscular,
-                description: item.ejercicios.descripcion || "",
-                imageUrl: item.ejercicios.imagen_url,
-                videoUrl: item.ejercicios.video_url,
+                id: item.ejercicios?.id || item.ejercicio_id,
+                name: item.ejercicios?.nombre || "Ejercicio sin nombre",
+                muscleGroup: item.ejercicios?.grupo_muscular || "Sin grupo",
+                description: item.ejercicios?.descripcion || "",
+                imageUrl: item.ejercicios?.imagen_url,
+                videoUrl: item.ejercicios?.video_url,
               }
             }));
+            
             setExercises(formattedExercises);
+          } else {
+            console.log("No exercises found for routine:", rutinaActual.id);
+            setExercises([]);
           }
         } else {
           setRoutine(null);
           setExercises([]);
         }
       } catch (error: any) {
+        console.error("Error fetching client routine:", error);
         toast({
           title: "Error",
           description: `No se pudo cargar la información del cliente: ${error.message}`,
@@ -258,8 +269,13 @@ const ClientRoutine = () => {
       } else if (typeof exercise.date === 'string' && /^[1-7]$/.test(exercise.date)) {
         return exercise.date === String(diaNumero);
       } else if (exercise.date && exercise.date.includes("-")) {
-        const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(exercise.date), "i", { locale: es })));
-        return diaSemana === dia;
+        try {
+          const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(exercise.date), "i", { locale: es })));
+          return diaSemana === dia;
+        } catch (error) {
+          console.error("Error parsing date:", exercise.date, error);
+          return false;
+        }
       }
       return false;
     });
@@ -467,7 +483,7 @@ const ClientRoutine = () => {
             ) : (
               <div className="text-center py-8 flex flex-col items-center">
                 <Dumbbell className="h-12 w-12 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">Este cliente no tiene una rutina asignada</p>
+                <p className="text-muted-foreground">Este cliente no tiene ejercicios asignados en su rutina</p>
                 {routine ? (
                   <Dialog>
                     <DialogTrigger asChild>
