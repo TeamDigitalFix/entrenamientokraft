@@ -31,7 +31,10 @@ export const useMealToggle = () => {
           .eq("cliente_id", user.id)
           .eq("dieta_comida_id", mealId);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error al desmarcar comida:", error);
+          throw error;
+        }
       } else {
         // Si no está completada, la marcamos (insertamos un registro)
         const { error } = await supabase
@@ -41,7 +44,10 @@ export const useMealToggle = () => {
             dieta_comida_id: mealId
           });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error al marcar comida:", error);
+          throw error;
+        }
       }
       
       return !completed;

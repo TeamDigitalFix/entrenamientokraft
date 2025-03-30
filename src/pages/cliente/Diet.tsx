@@ -1,4 +1,3 @@
-
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -140,9 +139,9 @@ const ClientDiet = () => {
                                     <div className="flex items-start space-x-3 w-full">
                                       <Checkbox 
                                         id={meal.id} 
-                                        checked={meal.completed}
+                                        checked={meal.completed || false}
                                         disabled={isToggling}
-                                        onCheckedChange={(checked) => {
+                                        onCheckedChange={() => {
                                           handleToggleMeal(meal.id, !!meal.completed);
                                         }}
                                       />
