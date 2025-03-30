@@ -140,6 +140,35 @@ export type Database = {
         }
         Relationships: []
       }
+      comidas_completadas: {
+        Row: {
+          cliente_id: string
+          dieta_comida_id: string
+          fecha_completado: string
+          id: string
+        }
+        Insert: {
+          cliente_id: string
+          dieta_comida_id: string
+          fecha_completado?: string
+          id?: string
+        }
+        Update: {
+          cliente_id?: string
+          dieta_comida_id?: string
+          fecha_completado?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dieta_comida"
+            columns: ["dieta_comida_id"]
+            isOneToOne: false
+            referencedRelation: "dieta_comidas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dieta_comidas: {
         Row: {
           alimento_id: string

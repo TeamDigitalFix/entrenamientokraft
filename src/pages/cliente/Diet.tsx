@@ -9,9 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useMealToggle } from "@/hooks/cliente/useMealToggle";
 
 const ClientDiet = () => {
   const { diet, isLoading, activeDay, setActiveDay, availableDays } = useClientDiet();
+  const { toggleMealCompletion, isToggling } = useMealToggle();
 
   // Group meals by type for the active day
   const getMealsByType = (day: string) => {
@@ -41,6 +43,14 @@ const ClientDiet = () => {
       },
       { calories: 0, protein: 0, carbs: 0, fat: 0 }
     );
+  };
+
+  // Handler para marcar/desmarcar comidas
+  const handleToggleMeal = (mealId: string, isCompleted: boolean) => {
+    toggleMealCompletion({
+      mealId,
+      completed: isCompleted
+    });
   };
 
   return (
@@ -128,7 +138,14 @@ const ClientDiet = () => {
                                 {meals.map(meal => (
                                   <div key={meal.id} className="flex items-start justify-between border-b pb-3">
                                     <div className="flex items-start space-x-3 w-full">
-                                      <Checkbox id={meal.id} />
+                                      <Checkbox 
+                                        id={meal.id} 
+                                        checked={meal.completed}
+                                        disabled={isToggling}
+                                        onCheckedChange={(checked) => {
+                                          handleToggleMeal(meal.id, !!meal.completed);
+                                        }}
+                                      />
                                       
                                       {meal.imageUrl && (
                                         <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden mr-2">

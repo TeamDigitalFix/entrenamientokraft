@@ -23,9 +23,26 @@ export const useMealToggle = () => {
 
       setIsToggling(true);
 
-      // For now, just simulate API call since we don't have the table
-      // In a real implementation, we would store this in the database
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (completed) {
+        // Si está completada, la desmarcamos (eliminamos el registro)
+        const { error } = await supabase
+          .from("comidas_completadas")
+          .delete()
+          .eq("cliente_id", user.id)
+          .eq("dieta_comida_id", mealId);
+
+        if (error) throw error;
+      } else {
+        // Si no está completada, la marcamos (insertamos un registro)
+        const { error } = await supabase
+          .from("comidas_completadas")
+          .insert({
+            cliente_id: user.id,
+            dieta_comida_id: mealId
+          });
+
+        if (error) throw error;
+      }
       
       return !completed;
     },

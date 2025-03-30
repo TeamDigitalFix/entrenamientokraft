@@ -114,6 +114,17 @@ export const useClientDiet = (): ClientDietHook => {
 
         if (mealsError) throw mealsError;
 
+        // Get completed meals for the client
+        const { data: completedMeals, error: completedError } = await supabase
+          .from("comidas_completadas")
+          .select("dieta_comida_id")
+          .eq("cliente_id", clientId);
+
+        if (completedError) throw completedError;
+
+        // Create a set of completed meal IDs for faster lookup
+        const completedMealIds = new Set(completedMeals?.map(meal => meal.dieta_comida_id) || []);
+
         // Format meals by date
         const transformedMeals: ClientMeal[] = meals?.map(meal => ({
           id: meal.id,
@@ -126,6 +137,7 @@ export const useClientDiet = (): ClientDietHook => {
           quantity: meal.cantidad,
           mealType: meal.tipo_comida,
           date: meal.dia || "1", // Si no tiene día, asignamos "1" (Lunes)
+          completed: completedMealIds.has(meal.id),
           imageUrl: meal.alimentos?.imagen_url
         }));
 
