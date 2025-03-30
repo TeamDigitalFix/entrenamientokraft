@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,7 +213,6 @@ const TrainerExercises = () => {
         </Card>
       </div>
 
-      {/* Diálogo de Edición */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         {selectedEjercicio && (
           <EjercicioForm
@@ -226,7 +224,6 @@ const TrainerExercises = () => {
         )}
       </Dialog>
 
-      {/* Alerta de Confirmación para Eliminar */}
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>

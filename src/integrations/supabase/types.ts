@@ -198,30 +198,36 @@ export type Database = {
           creado_en: string | null
           creado_por: string
           descripcion: string | null
+          dificultad: string | null
           grupo_muscular: string
           id: string
           imagen_url: string | null
           nombre: string
+          tipo: string | null
           video_url: string | null
         }
         Insert: {
           creado_en?: string | null
           creado_por: string
           descripcion?: string | null
+          dificultad?: string | null
           grupo_muscular: string
           id?: string
           imagen_url?: string | null
           nombre: string
+          tipo?: string | null
           video_url?: string | null
         }
         Update: {
           creado_en?: string | null
           creado_por?: string
           descripcion?: string | null
+          dificultad?: string | null
           grupo_muscular?: string
           id?: string
           imagen_url?: string | null
           nombre?: string
+          tipo?: string | null
           video_url?: string | null
         }
         Relationships: [
