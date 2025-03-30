@@ -1,6 +1,18 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+
+export type DashboardStats = {
+  totalClients: number;
+  totalExercisesCreated: number;
+  totalFoodsCreated: number;
+  totalExercises: number;
+  activeClients?: number;
+  upcomingAppointments?: number;
+  unreadMessages?: number;
+  completedToday?: number;
+};
 
 export const useDashboardStats = () => {
   const { user } = useAuth();
@@ -107,11 +119,16 @@ export const useDashboardStats = () => {
     enabled: !!trainerId,
   });
 
-  return {
+  // Create and return the stats object
+  const stats: DashboardStats = {
     totalClients: totalClients || 0,
     totalExercisesCreated: totalExercisesCreated || 0,
     totalFoodsCreated: totalFoodsCreated || 0,
     totalExercises: totalExercises || 0,
+  };
+
+  return {
+    stats,
     isLoading: clientsLoading || exercisesCreatedLoading || foodsCreatedLoading || exercisesLoading,
   };
 };

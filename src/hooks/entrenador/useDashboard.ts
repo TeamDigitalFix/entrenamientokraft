@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useDashboardStats } from "./useDashboardStats";
+import { useDashboardStats, DashboardStats } from "./useDashboardStats";
 import { useDashboardAppointments } from "./useDashboardAppointments";
 import { useDashboardMessages } from "./useDashboardMessages";
 import { useDashboardActivity } from "./useDashboardActivity";
@@ -14,7 +14,7 @@ export type { WeeklyActivity } from "./useDashboardActivity";
 export const useDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   
-  const { dashboardStats, isLoading: isLoadingStats } = useDashboardStats();
+  const { stats: dashboardStats, isLoading: isLoadingStats } = useDashboardStats();
   const { todayAppointments, isLoading: isLoadingAppointments } = useDashboardAppointments();
   const { recentMessages, isLoading: isLoadingMessages } = useDashboardMessages();
   const { weeklyActivity, isLoading: isLoadingActivity } = useDashboardActivity();
