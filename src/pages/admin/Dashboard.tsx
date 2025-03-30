@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +11,7 @@ import { useTrainers } from "@/hooks/admin/useTrainers";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RecentActivity } from "@/components/admin/RecentActivity";
 import { TrainersManagement } from "@/components/admin/TrainersManagement";
+import { ResetDataDialog } from "@/components/admin/ResetDataDialog";
 import { UserRole } from "@/types/index";
 
 const AdminDashboard = () => {
@@ -58,10 +60,13 @@ const AdminDashboard = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
-          <Button onClick={refreshData} size="sm" variant="outline">
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Actualizar datos
-          </Button>
+          <div className="flex gap-2">
+            <ResetDataDialog onResetComplete={refreshData} />
+            <Button onClick={refreshData} size="sm" variant="outline">
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Actualizar datos
+            </Button>
+          </div>
         </div>
         
         <Tabs defaultValue="dashboard" value={currentTab} onValueChange={setCurrentTab}>

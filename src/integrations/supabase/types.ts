@@ -951,6 +951,10 @@ export type Database = {
         }
         Returns: Json
       }
+      reset_application_data: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
