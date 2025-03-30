@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,22 +97,22 @@ export const useDashboard = () => {
         const today = new Date().toISOString().split('T')[0];
         
         // Fix for the infinite type instantiation issue:
-        // Define clientIds array explicitly with string[] type before using it in the query
-        const clientIds: string[] = clientsData.map(client => client.id);
+        // Use a type assertion to string[] to avoid the type inference problem
+        const clientIds = clientsData.map(client => client.id) as string[];
         
         // Only proceed if we have client IDs
-        let completedExercisesData = [];
+        let completedExercisesData: any[] = [];
         let completedExercisesError = null;
         
         if (clientIds.length > 0) {
-          const result = await supabase
+          const { data, error } = await supabase
             .from("ejercicios_completados")
             .select("id")
             .eq("fecha_completado::date", today)
             .in("cliente_id", clientIds);
             
-          completedExercisesData = result.data || [];
-          completedExercisesError = result.error;
+          completedExercisesData = data || [];
+          completedExercisesError = error;
         }
           
         if (completedExercisesError) throw completedExercisesError;
@@ -308,40 +309,40 @@ export const useDashboard = () => {
           
         if (clientsError) throw clientsError;
         
-        // Fix for infinite type issue: define explicitly with string[] type before using
-        const clientIds: string[] = clientsData.map(c => c.id);
+        // Use type assertion to string[] to avoid the inference problem
+        const clientIds = clientsData.map(c => c.id) as string[];
         
         // Obtener ejercicios completados por día - only proceed if we have clients
-        let completedExercises = [];
+        let completedExercises: any[] = [];
         let exercisesError = null;
         
         if (clientIds.length > 0) {
-          const result = await supabase
+          const { data, error } = await supabase
             .from("ejercicios_completados")
             .select("fecha_completado")
             .in("cliente_id", clientIds)
             .gte("fecha_completado", formattedDates[0]);
             
-          completedExercises = result.data || [];
-          exercisesError = result.error;
+          completedExercises = data || [];
+          exercisesError = error;
         }
           
         if (exercisesError) throw exercisesError;
         
         // Obtener sesiones diarias - only proceed if we have clients
-        let dailySessions = [];
+        let dailySessions: any[] = [];
         let sessionsError = null;
         
         if (clientIds.length > 0) {
-          const result = await supabase
+          const { data, error } = await supabase
             .from("sesiones_diarias")
             .select("fecha, completada")
             .in("cliente_id", clientIds)
             .gte("fecha", formattedDates[0])
             .eq("completada", true);
             
-          dailySessions = result.data || [];
-          sessionsError = result.error;
+          dailySessions = data || [];
+          sessionsError = error;
         }
           
         if (sessionsError) throw sessionsError;
