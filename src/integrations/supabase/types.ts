@@ -940,6 +940,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_client_cascade: {
+        Args: {
+          client_id: string
+        }
+        Returns: undefined
+      }
       insertar_medicion_progreso: {
         Args: {
           p_cliente_id: string

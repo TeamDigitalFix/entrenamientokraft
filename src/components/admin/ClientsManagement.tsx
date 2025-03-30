@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -190,8 +189,16 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Está seguro de eliminar permanentemente este cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente al cliente y todos sus datos asociados.
-              Esta operación no se puede deshacer.
+              Esta acción eliminará permanentemente al cliente y <strong>todos sus datos asociados</strong> incluyendo:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Rutinas y ejercicios</li>
+                <li>Dietas y comidas</li>
+                <li>Citas</li>
+                <li>Registros de progreso</li>
+                <li>Mensajes</li>
+                <li>Suscripciones y pagos</li>
+              </ul>
+              <p className="mt-2 font-semibold text-destructive">Esta operación NO se puede deshacer.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

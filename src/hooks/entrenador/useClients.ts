@@ -227,143 +227,36 @@ export const useClients = (searchTerm: string = "") => {
   const resetClientData = useMutation({
     mutationFn: async (clientId: string) => {
       try {
-        const { data: rutinas, error: rutinasQueryError } = await supabase
-          .from("rutinas")
-          .select("id")
-          .eq("cliente_id", clientId);
-        
-        if (rutinasQueryError) {
-          console.error("Error fetching routines:", rutinasQueryError);
-          throw rutinasQueryError;
-        }
-        
-        const rutinaIds = rutinas?.map(r => r.id) || [];
-        
-        const { data: dietas, error: dietasQueryError } = await supabase
-          .from("dietas")
-          .select("id")
-          .eq("cliente_id", clientId);
-        
-        if (dietasQueryError) {
-          console.error("Error fetching diets:", dietasQueryError);
-          throw dietasQueryError;
-        }
-        
-        const dietaIds = dietas?.map(d => d.id) || [];
-        
-        const { error: completedExercisesError } = await supabase
-          .from("ejercicios_completados")
-          .delete()
-          .eq("cliente_id", clientId);
-        
-        if (completedExercisesError) {
-          console.error("Error deleting completed exercises:", completedExercisesError);
-        }
-        
-        if (rutinaIds.length > 0) {
-          const { error: rutinasEjerciciosError } = await supabase
-            .from("rutina_ejercicios")
-            .delete()
-            .in("rutina_id", rutinaIds);
+        const { data: clientData, error: clientError } = await supabase
+          .from("usuarios")
+          .select("*")
+          .eq("id", clientId)
+          .single();
           
-          if (rutinasEjerciciosError) {
-            console.error("Error deleting rutina exercises:", rutinasEjerciciosError);
-          }
-        }
-
-        const { error: rutinasError } = await supabase
-          .from("rutinas")
-          .delete()
-          .eq("cliente_id", clientId);
+        if (clientError) throw clientError;
         
-        if (rutinasError) {
-          console.error("Error deleting routines:", rutinasError);
-        }
-
-        const { error: completedMealsError } = await supabase
-          .from("comidas_completadas")
-          .delete()
-          .eq("cliente_id", clientId);
+        const { error: deleteError } = await supabase
+          .rpc('delete_client_cascade', { client_id: clientId });
         
-        if (completedMealsError) {
-          console.error("Error deleting completed meals:", completedMealsError);
-        }
-
-        if (dietaIds.length > 0) {
-          const { error: dietaComidasError } = await supabase
-            .from("dieta_comidas")
-            .delete()
-            .in("dieta_id", dietaIds);
+        if (deleteError) throw deleteError;
+        
+        const { data: newClient, error: createError } = await supabase
+          .from("usuarios")
+          .insert([{
+            id: clientId,
+            nombre: clientData.nombre,
+            email: clientData.email,
+            telefono: clientData.telefono,
+            username: clientData.username,
+            password: clientData.password,
+            role: clientData.role,
+            entrenador_id: clientData.entrenador_id
+          }])
+          .select();
           
-          if (dietaComidasError) {
-            console.error("Error deleting diet meals:", dietaComidasError);
-          }
-        }
-
-        const { error: dietasError } = await supabase
-          .from("dietas")
-          .delete()
-          .eq("cliente_id", clientId);
+        if (createError) throw createError;
         
-        if (dietasError) {
-          console.error("Error deleting diets:", dietasError);
-        }
-
-        const { error: appointmentsError } = await supabase
-          .from("citas")
-          .delete()
-          .eq("cliente_id", clientId);
-        
-        if (appointmentsError) {
-          console.error("Error deleting appointments:", appointmentsError);
-        }
-
-        const { error: progressError } = await supabase
-          .from("progreso")
-          .delete()
-          .eq("cliente_id", clientId);
-        
-        if (progressError) {
-          console.error("Error deleting progress records:", progressError);
-        }
-
-        const { error: receivedMessagesError } = await supabase
-          .from("mensajes")
-          .delete()
-          .eq("receptor_id", clientId);
-        
-        if (receivedMessagesError) {
-          console.error("Error deleting received messages:", receivedMessagesError);
-        }
-
-        const { error: sentMessagesError } = await supabase
-          .from("mensajes")
-          .delete()
-          .eq("emisor_id", clientId);
-        
-        if (sentMessagesError) {
-          console.error("Error deleting sent messages:", sentMessagesError);
-        }
-
-        const { error: dailySessionsError } = await supabase
-          .from("sesiones_diarias")
-          .delete()
-          .eq("cliente_id", clientId);
-        
-        if (dailySessionsError) {
-          console.error("Error deleting daily sessions:", dailySessionsError);
-        }
-
-        const { error: dailyExercisesError } = await supabase
-          .from("ejercicios_diarios")
-          .delete()
-          .eq("cliente_id", clientId);
-        
-        if (dailyExercisesError) {
-          console.error("Error deleting daily exercises:", dailyExercisesError);
-        }
-        
-        return { success: true };
+        return newClient;
       } catch (error) {
         console.error("Error in resetClientData:", error);
         throw error;
@@ -371,6 +264,7 @@ export const useClients = (searchTerm: string = "") => {
     },
     onSuccess: () => {
       toast.success("Datos del cliente restablecidos con éxito");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
       setClientToReset(null);
     },
     onError: (error: any) => {

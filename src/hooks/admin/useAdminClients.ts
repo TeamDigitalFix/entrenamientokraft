@@ -52,7 +52,6 @@ export const useAdminClients = (
     ultimo_ingreso: null
   });
 
-  // Get trainers for dropdown
   const { data: trainers = [] } = useQuery({
     queryKey: ["admin-trainers-dropdown"],
     queryFn: async () => {
@@ -70,14 +69,12 @@ export const useAdminClients = (
     }
   });
 
-  // Get clients with pagination and filtering
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin-clients", page, searchTerm, showDeleted],
     queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Start building the query to include trainer name through a join
       let query = supabase
         .from("usuarios")
         .select(`
@@ -88,17 +85,14 @@ export const useAdminClients = (
         `)
         .eq("role", "cliente");
 
-      // Add filter for deleted state
       if (!showDeleted) {
         query = query.eq("eliminado", false);
       }
 
-      // Add search term if provided
       if (searchTerm) {
         query = query.or(`nombre.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
       }
 
-      // Add pagination
       query = query.range(from, to);
 
       const { data, error } = await query;
@@ -108,13 +102,11 @@ export const useAdminClients = (
         return { clients: [], totalCount: 0 };
       }
 
-      // Transform data to include trainer name
       const clientsWithTrainerName = data.map(client => ({
         ...client,
         entrenador_nombre: client.entrenador?.nombre || 'Sin entrenador'
       }));
 
-      // Get total count for pagination
       let countQuery = supabase
         .from("usuarios")
         .select("id", { count: 'exact', head: true })
@@ -295,15 +287,13 @@ export const useAdminClients = (
   const permanentDeleteClient = useMutation({
     mutationFn: async (clientId: string) => {
       const { data, error } = await supabase
-        .from("usuarios")
-        .delete()
-        .eq("id", clientId);
+        .rpc('delete_client_cascade', { client_id: clientId });
 
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      toast.success("Cliente eliminado permanentemente");
+      toast.success("Cliente eliminado permanentemente junto con todos sus datos asociados");
       queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
       setClientToPermanentDelete(null);
     },

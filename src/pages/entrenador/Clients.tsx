@@ -316,8 +316,17 @@ const TrainerClients = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Restablecer datos del cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará todos los datos del cliente (rutinas, dietas, mensajes, citas, progresos, etc.), 
-              pero mantendrá su cuenta activa. Esta acción no se puede deshacer.
+              Esta acción eliminará todos los datos asociados al cliente:
+              <ul className="list-disc pl-5 mt-2 space-y-1">
+                <li>Rutinas y ejercicios</li>
+                <li>Dietas y comidas</li>
+                <li>Citas</li>
+                <li>Registros de progreso</li>
+                <li>Mensajes</li>
+                <li>Estadísticas y seguimiento</li>
+              </ul>
+              <p className="mt-2">La cuenta del cliente se mantendrá activa, pero perderá todo su historial y datos.</p>
+              <p className="mt-2 font-semibold text-amber-600">Esta acción no se puede deshacer.</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
