@@ -1,4 +1,3 @@
-
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +34,7 @@ const extractYouTubeVideoId = (url: string): string | null => {
 
 const ClientRoutine = () => {
   const { routine, isLoading, activeDay, setActiveDay, dayNames } = useClientRoutine();
-  const { toggleExerciseCompletion, isPending } = useExerciseToggle();
+  const { toggleExerciseCompletion, isToggling } = useExerciseToggle();
 
   const handleExerciseToggle = (id: string, currentStatus: boolean) => {
     toggleExerciseCompletion({ exerciseId: id, completed: currentStatus });
@@ -187,9 +186,9 @@ const ClientRoutine = () => {
                                     className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
                                     size="sm"
                                     onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
-                                    disabled={isPending}
+                                    disabled={isToggling}
                                   >
-                                    {isPending ? (
+                                    {isToggling ? (
                                       <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                         Actualizando...
