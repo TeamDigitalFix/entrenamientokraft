@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { format, isToday, parseISO, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
+import { format, parseISO, startOfWeek, eachDayOfInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 export type DashboardStats = {
@@ -96,11 +96,15 @@ export const useDashboard = () => {
         // Ejercicios completados hoy
         const today = new Date().toISOString().split('T')[0];
         
+        // Fix for the infinite type instantiation issue:
+        // Define clientIds array explicitly before using it in the query
+        const clientIds = clientsData.map(client => client.id);
+        
         const { data: completedExercisesData, error: completedExercisesError } = await supabase
           .from("ejercicios_completados")
           .select("id")
           .eq("fecha_completado::date", today)
-          .in("cliente_id", clientsData.map(client => client.id));
+          .in("cliente_id", clientIds);
           
         if (completedExercisesError) throw completedExercisesError;
 
@@ -296,6 +300,7 @@ export const useDashboard = () => {
           
         if (clientsError) throw clientsError;
         
+        // Fix for infinite type issue: define explicitly before using
         const clientIds = clientsData.map(c => c.id);
         
         // Obtener ejercicios completados por día
