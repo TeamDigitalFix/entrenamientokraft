@@ -90,12 +90,18 @@ export const useClientDashboard = () => {
         if (exercisesError) throw exercisesError;
 
         // Get completed exercises for today
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
         const { data: completedExercises, error: completedError } = await supabase
           .from("ejercicios_completados")
           .select("rutina_ejercicio_id")
           .eq("cliente_id", clientId)
-          .gte("fecha_completado", new Date().setHours(0, 0, 0, 0).toISOString())
-          .lte("fecha_completado", new Date().setHours(23, 59, 59, 999).toISOString());
+          .gte("fecha_completado", todayStart.toISOString())
+          .lte("fecha_completado", todayEnd.toISOString());
 
         if (completedError) throw completedError;
 
