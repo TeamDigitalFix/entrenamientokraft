@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -17,6 +18,11 @@ import { es } from "date-fns/locale";
 
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
+// Helper function to map day number to name
+const mapDiaNumeroANombre = (dayNumber: number): string => {
+  return diasSemana[dayNumber - 1] || "Desconocido";
+};
+
 interface Exercise {
   id: string;
   name: string;
@@ -31,9 +37,9 @@ interface RoutineExercise {
   exerciseId: string;
   sets: number;
   reps: number;
-  weight?: number;
-  restTime?: number;
-  notes?: string;
+  weight?: number | null;
+  restTime?: number | null;
+  notes?: string | null;
   date: string;
   exercise?: Exercise;
 }
@@ -41,9 +47,29 @@ interface RoutineExercise {
 interface Routine {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   startDate: string;
-  endDate?: string;
+  endDate?: string | null;
+}
+
+// Interface for Supabase database exercise response
+interface DbExercise {
+  id: string;
+  ejercicio_id: string;
+  series: number;
+  repeticiones: number;
+  peso: number | null;
+  descanso: number | null;
+  notas: string | null;
+  dia: string;
+  ejercicios: {
+    id?: string;
+    nombre: string;
+    grupo_muscular: string;
+    descripcion: string | null;
+    imagen_url: string | null;
+    video_url: string | null;
+  };
 }
 
 const ClientRoutine = () => {
@@ -85,15 +111,25 @@ const ClientRoutine = () => {
 
         if (routineData && routineData.length > 0) {
           const rutinaActual = routineData[0];
-          setRoutine(rutinaActual);
+          
+          // Transform to match our Routine interface
+          const mappedRoutine: Routine = {
+            id: rutinaActual.id,
+            name: rutinaActual.nombre,
+            description: rutinaActual.descripcion,
+            startDate: rutinaActual.fecha_inicio,
+            endDate: rutinaActual.fecha_fin
+          };
+          
+          setRoutine(mappedRoutine);
 
           const { data: exercisesData, error: exercisesError } = await supabase
             .from("rutina_ejercicios")
             .select(`
               id, 
               ejercicio_id, 
-              sets, 
-              reps, 
+              series, 
+              repeticiones, 
               peso, 
               descanso, 
               notas, 
@@ -105,24 +141,24 @@ const ClientRoutine = () => {
           if (exercisesError) throw exercisesError;
 
           if (exercisesData) {
-            // Type assertion to inform TypeScript about the structure
-            const typedExercisesData = exercisesData as Omit<RoutineExercise, 'exercise'>[] & { ejercicios: Exercise }[];
-
+            // Safe type assertion
+            const dbExercises = exercisesData as unknown as DbExercise[];
+            
             // Map the data to the RoutineExercise interface
-            const formattedExercises: RoutineExercise[] = typedExercisesData.map(item => ({
+            const formattedExercises: RoutineExercise[] = dbExercises.map(item => ({
               id: item.id,
               exerciseId: item.ejercicio_id,
-              sets: item.sets,
-              reps: item.reps,
+              sets: item.series,
+              reps: item.repeticiones,
               weight: item.peso,
               restTime: item.descanso,
               notes: item.notas,
               date: item.dia,
               exercise: {
-                id: item.ejercicios.id,
+                id: item.ejercicios.id || item.ejercicio_id,
                 name: item.ejercicios.nombre,
                 muscleGroup: item.ejercicios.grupo_muscular,
-                description: item.ejercicios.descripcion,
+                description: item.ejercicios.descripcion || "",
                 imageUrl: item.ejercicios.imagen_url,
                 videoUrl: item.ejercicios.video_url,
               }
@@ -156,7 +192,6 @@ const ClientRoutine = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Fix the type conversion issues by explicitly converting the day number to a string
   const handleDeleteExercise = async (exerciseId: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este ejercicio de la rutina?")) {
       try {
@@ -218,10 +253,11 @@ const ClientRoutine = () => {
     const diaNumero = index + 1;
     acc[dia] = exercises.filter(exercise => {
       if (typeof exercise.date === 'number') {
+        // Convert number to string for comparison
         return String(exercise.date) === String(diaNumero);
       } else if (typeof exercise.date === 'string' && /^[1-7]$/.test(exercise.date)) {
         return exercise.date === String(diaNumero);
-      } else if (exercise.date.includes("-")) {
+      } else if (exercise.date && exercise.date.includes("-")) {
         const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(exercise.date), "i", { locale: es })));
         return diaSemana === dia;
       }
@@ -230,7 +266,7 @@ const ClientRoutine = () => {
     return acc;
   }, {} as Record<string, RoutineExercise[]>);
 
-  // Update the line with the type error using String() conversion
+  // Format the day display
   const formatDay = (day: number | string): string => {
     if (typeof day === 'number') {
       return diasSemana[day - 1] || "Desconocido";
@@ -249,7 +285,7 @@ const ClientRoutine = () => {
     }
   }, [loading, exercises]);
 
-  // Función para mostrar la fecha formateada
+  // Function to format date
   const formatearFecha = (fechaStr: string) => {
     try {
       return format(parseISO(fechaStr), "d 'de' MMMM", { locale: es });
@@ -293,7 +329,7 @@ const ClientRoutine = () => {
                   </DialogTrigger>
                   <RoutineExerciseForm
                     clienteId={clientId || ""}
-                    routineId={routine.id || null}
+                    rutinaId={routine.id || null}
                     onCancel={() => setShowAddDialog(false)}
                     onSuccess={handleAddSuccess}
                   />
@@ -418,7 +454,7 @@ const ClientRoutine = () => {
                           </DialogTrigger>
                           <RoutineExerciseForm
                             clienteId={clientId || ""}
-                            routineId={routine?.id || null}
+                            rutinaId={routine?.id || null}
                             onCancel={() => setShowAddDialog(false)}
                             onSuccess={handleAddSuccess}
                           />
@@ -442,7 +478,7 @@ const ClientRoutine = () => {
                     </DialogTrigger>
                     <RoutineExerciseForm
                       clienteId={clientId || ""}
-                      routineId={routine.id}
+                      rutinaId={routine.id}
                       onCancel={() => setShowAddDialog(false)}
                       onSuccess={handleAddSuccess}
                     />
