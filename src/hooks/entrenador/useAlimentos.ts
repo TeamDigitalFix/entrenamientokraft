@@ -36,6 +36,11 @@ export const useAlimentos = (entrenadorId: string) => {
   const { data: alimentos, isLoading } = useQuery({
     queryKey: ["alimentos", entrenadorId],
     queryFn: async () => {
+      // Skip the query if entrenadorId is empty
+      if (!entrenadorId) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from("alimentos")
         .select("*")
@@ -131,9 +136,32 @@ export const useAlimentos = (entrenadorId: string) => {
     },
   });
 
+  // Verificar si un alimento está en uso
+  const verificarAlimentoEnUso = async (id: string) => {
+    const { data, error } = await supabase
+      .from("dieta_comidas")
+      .select("id")
+      .eq("alimento_id", id)
+      .limit(1);
+
+    if (error) {
+      console.error("Error al verificar uso de alimento:", error);
+      throw error;
+    }
+
+    return data && data.length > 0;
+  };
+
   // Eliminar alimento
   const { mutate: eliminarAlimento } = useMutation({
     mutationFn: async (id: string) => {
+      // Verificar si el alimento está siendo utilizado en alguna dieta
+      const enUso = await verificarAlimentoEnUso(id);
+      
+      if (enUso) {
+        throw new Error("El alimento está siendo utilizado en una o más dietas. No se puede eliminar.");
+      }
+
       const { error } = await supabase
         .from("alimentos")
         .delete()
@@ -153,10 +181,10 @@ export const useAlimentos = (entrenadorId: string) => {
       });
       queryClient.invalidateQueries({ queryKey: ["alimentos"] });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "No se pudo eliminar el alimento",
+        description: error.message || "No se pudo eliminar el alimento",
         variant: "destructive",
       });
     },
@@ -171,5 +199,6 @@ export const useAlimentos = (entrenadorId: string) => {
     crearAlimento,
     actualizarAlimento,
     eliminarAlimento,
+    verificarAlimentoEnUso,
   };
 };

@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Eye,
   Copy,
-  MoreVertical
+  MoreVertical,
+  AlertTriangle
 } from "lucide-react";
 import { UserRole } from "@/types/index";
 import { useAuth } from "@/hooks/useAuth";
@@ -31,6 +32,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
@@ -49,7 +51,8 @@ const TrainerFoods = () => {
     setSearchTerm,
     crearAlimento,
     actualizarAlimento,
-    eliminarAlimento
+    eliminarAlimento,
+    verificarAlimentoEnUso
   } = useAlimentos(entrenadorId);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -58,6 +61,7 @@ const TrainerFoods = () => {
   const [selectedAlimento, setSelectedAlimento] = useState<Alimento | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deleteAlimentoId, setDeleteAlimentoId] = useState<string | null>(null);
+  const [alimentoEnUso, setAlimentoEnUso] = useState(false);
 
   const handleCreateAlimento = (nuevoAlimento: NuevoAlimento) => {
     crearAlimento(nuevoAlimento);
@@ -91,13 +95,20 @@ const TrainerFoods = () => {
     setShowCloneDialog(true);
   };
 
-  const openDeleteAlert = (id: string) => {
-    setDeleteAlimentoId(id);
-    setShowDeleteAlert(true);
+  const openDeleteAlert = async (id: string) => {
+    // Verificar si el alimento está en uso antes de mostrar la alerta
+    try {
+      const enUso = await verificarAlimentoEnUso(id);
+      setAlimentoEnUso(enUso);
+      setDeleteAlimentoId(id);
+      setShowDeleteAlert(true);
+    } catch (error) {
+      console.error("Error al verificar si el alimento está en uso:", error);
+    }
   };
 
   const handleDeleteAlimento = () => {
-    if (deleteAlimentoId) {
+    if (deleteAlimentoId && !alimentoEnUso) {
       eliminarAlimento(deleteAlimentoId);
       setShowDeleteAlert(false);
       setDeleteAlimentoId(null);
@@ -275,16 +286,32 @@ const TrainerFoods = () => {
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción eliminará el alimento de forma permanente y no podrá ser recuperado.
-            </AlertDialogDescription>
+            {alimentoEnUso ? (
+              <>
+                <AlertDialogTitle className="flex items-center text-amber-500">
+                  <AlertTriangle className="h-5 w-5 mr-2" />
+                  No se puede eliminar
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Este alimento está siendo utilizado en una o más dietas de clientes. Para eliminarlo, primero debes quitar el alimento de todas las dietas donde se utiliza.
+                </AlertDialogDescription>
+              </>
+            ) : (
+              <>
+                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción eliminará el alimento de forma permanente y no podrá ser recuperado.
+                </AlertDialogDescription>
+              </>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAlimento} className="bg-destructive text-destructive-foreground">
-              Eliminar
-            </AlertDialogAction>
+            {!alimentoEnUso && (
+              <AlertDialogAction onClick={handleDeleteAlimento} className="bg-destructive text-destructive-foreground">
+                Eliminar
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -87,7 +87,8 @@ const DietaComidaForm = ({
       try {
         const { data, error } = await supabase
           .from("alimentos")
-          .select("id, nombre, categoria");
+          .select("id, nombre, categoria")
+          .order("nombre");
 
         if (error) throw error;
         setAlimentos(data || []);
