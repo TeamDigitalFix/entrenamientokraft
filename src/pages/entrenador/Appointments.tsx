@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,34 +19,97 @@ import {
   Clock
 } from "lucide-react";
 import { UserRole } from "@/types/index";
+import { useCitas } from "@/hooks/entrenador/useCitas";
+import { CitaForm } from "@/components/entrenador/CitaForm";
+import { useAuth } from "@/hooks/useAuth";
+import { format, parseISO, isToday } from "date-fns";
+import { es } from "date-fns/locale";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const TrainerAppointments = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const { user } = useAuth();
+  const entrenadorId = user?.id || "";
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [selectedCitaId, setSelectedCitaId] = useState<string | null>(null);
   
-  const appointments = [
-    { id: 1, clientName: "Ana Martínez", date: "2023-11-15", time: "14:30", status: "scheduled", type: "Evaluación mensual" },
-    { id: 2, clientName: "Carlos Rodríguez", date: "2023-11-15", time: "16:00", status: "scheduled", type: "Ajuste de rutina" },
-    { id: 3, clientName: "Laura García", date: "2023-11-16", time: "10:00", status: "scheduled", type: "Sesión de entrenamiento" },
-    { id: 4, clientName: "Pedro Sánchez", date: "2023-11-17", time: "18:30", status: "scheduled", type: "Consulta de nutrición" },
-    { id: 5, clientName: "María López", date: "2023-11-18", time: "15:00", status: "canceled", type: "Evaluación inicial" },
-  ];
+  const {
+    isLoading,
+    searchTerm,
+    setSearchTerm,
+    selectedDate,
+    setSelectedDate,
+    filteredCitas,
+    selectedTab,
+    setSelectedTab,
+    crearCita,
+    actualizarCita,
+    completarCita,
+    cancelarCita,
+    getCitasPorFecha,
+    formatearFecha,
+    formatearHora,
+  } = useCitas(entrenadorId);
 
-  const filteredAppointments = appointments.filter(appointment => 
-    appointment.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    appointment.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Obtener la cita seleccionada para editar o cancelar
+  const selectedCita = filteredCitas.find(cita => cita.id === selectedCitaId);
+  
+  // Citas para el día actual o seleccionado
+  const citasHoy = getCitasPorFecha(new Date());
+  
+  // Citas para el día seleccionado en el calendario
+  const citasFechaSeleccionada = selectedDate 
+    ? getCitasPorFecha(selectedDate)
+    : [];
 
-  const todayAppointments = appointments.filter(appointment => 
-    appointment.date === "2023-11-15" && appointment.status === "scheduled"
-  );
+  const handleCompletarCita = async (id: string) => {
+    await completarCita(id);
+  };
+
+  const handleCancelarCita = async () => {
+    if (selectedCitaId) {
+      await cancelarCita(selectedCitaId);
+      setShowCancelDialog(false);
+      setSelectedCitaId(null);
+    }
+  };
+
+  const openEditForm = (id: string) => {
+    setSelectedCitaId(id);
+    setShowEditForm(true);
+  };
+
+  const openCancelDialog = (id: string) => {
+    setSelectedCitaId(id);
+    setShowCancelDialog(true);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "scheduled": return "success";
-      case "completed": return "secondary";
-      case "canceled": return "destructive";
+      case "programada": return "success";
+      case "completada": return "secondary";
+      case "cancelada": return "destructive";
       default: return "secondary";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "programada": return "Programada";
+      case "completada": return "Completada";
+      case "cancelada": return "Cancelada";
+      default: return status;
     }
   };
 
@@ -54,7 +118,7 @@ const TrainerAppointments = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Gestión de Citas</h1>
-          <Button>
+          <Button onClick={() => setShowCreateForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nueva Cita
           </Button>
@@ -66,7 +130,7 @@ const TrainerAppointments = () => {
               <CardTitle>Citas</CardTitle>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="all">
+              <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="all">Todas</TabsTrigger>
                   <TabsTrigger value="today">Hoy</TabsTrigger>
@@ -100,33 +164,65 @@ const TrainerAppointments = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredAppointments.map((appointment) => (
-                          <TableRow key={appointment.id}>
-                            <TableCell className="font-medium">{appointment.clientName}</TableCell>
-                            <TableCell>{appointment.date}</TableCell>
-                            <TableCell>{appointment.time}</TableCell>
-                            <TableCell>{appointment.type}</TableCell>
-                            <TableCell>
-                              <Badge variant={getStatusColor(appointment.status) as any}>
-                                {appointment.status === "scheduled" ? "Programada" : 
-                                 appointment.status === "completed" ? "Completada" : "Cancelada"}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" title="Completar">
-                                  <CheckCircle className="h-4 w-4 text-success" />
-                                </Button>
-                                <Button variant="ghost" size="icon" title="Editar">
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" title="Cancelar">
-                                  <XCircle className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
+                        {isLoading ? (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-6">
+                              Cargando citas...
                             </TableCell>
                           </TableRow>
-                        ))}
+                        ) : filteredCitas.length > 0 ? (
+                          filteredCitas.map((cita) => (
+                            <TableRow key={cita.id}>
+                              <TableCell className="font-medium">{cita.cliente?.nombre}</TableCell>
+                              <TableCell>{formatearFecha(cita.fecha)}</TableCell>
+                              <TableCell>{formatearHora(cita.fecha)}</TableCell>
+                              <TableCell>{cita.tipo || cita.titulo}</TableCell>
+                              <TableCell>
+                                <Badge variant={getStatusColor(cita.estado) as any}>
+                                  {getStatusText(cita.estado)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {cita.estado === "programada" && (
+                                    <>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        title="Completar"
+                                        onClick={() => handleCompletarCita(cita.id)}
+                                      >
+                                        <CheckCircle className="h-4 w-4 text-success" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        title="Editar"
+                                        onClick={() => openEditForm(cita.id)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        title="Cancelar"
+                                        onClick={() => openCancelDialog(cita.id)}
+                                      >
+                                        <XCircle className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={6} className="text-center py-6">
+                              No hay citas disponibles
+                            </TableCell>
+                          </TableRow>
+                        )}
                       </TableBody>
                     </Table>
                   </div>
@@ -134,22 +230,34 @@ const TrainerAppointments = () => {
                 
                 <TabsContent value="today">
                   <div className="space-y-4">
-                    {todayAppointments.length > 0 ? (
-                      todayAppointments.map((appointment) => (
-                        <Card key={appointment.id}>
+                    {filteredCitas.length > 0 ? (
+                      filteredCitas.map((cita) => (
+                        <Card key={cita.id}>
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h3 className="font-bold text-lg">{appointment.clientName}</h3>
-                                <p className="text-sm text-muted-foreground">{appointment.type}</p>
+                                <h3 className="font-bold text-lg">{cita.cliente?.nombre}</h3>
+                                <p className="text-sm text-muted-foreground">{cita.tipo || cita.titulo}</p>
                                 <div className="flex items-center mt-2">
                                   <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                                  <span className="text-sm">{appointment.time}</span>
+                                  <span className="text-sm">{formatearHora(cita.fecha)}</span>
                                 </div>
                               </div>
                               <div className="flex gap-2">
-                                <Button variant="outline" size="sm">Completar</Button>
-                                <Button variant="outline" size="sm">Editar</Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleCompletarCita(cita.id)}
+                                >
+                                  Completar
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openEditForm(cita.id)}
+                                >
+                                  Editar
+                                </Button>
                               </div>
                             </div>
                           </CardContent>
@@ -162,11 +270,84 @@ const TrainerAppointments = () => {
                 </TabsContent>
                 
                 <TabsContent value="upcoming">
-                  <p className="text-center text-muted-foreground py-4">Selecciona una fecha para ver las citas próximas</p>
+                  <div className="space-y-4">
+                    {filteredCitas.length > 0 ? (
+                      filteredCitas.map((cita) => (
+                        <Card key={cita.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-bold text-lg">{cita.cliente?.nombre}</h3>
+                                <p className="text-sm text-muted-foreground">{cita.tipo || cita.titulo}</p>
+                                <div className="flex flex-col mt-2">
+                                  <div className="flex items-center">
+                                    <CalendarIcon className="h-4 w-4 mr-1 text-muted-foreground" />
+                                    <span className="text-sm">{formatearFecha(cita.fecha)}</span>
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                                    <span className="text-sm">{formatearHora(cita.fecha)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openEditForm(cita.id)}
+                                >
+                                  Editar
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => openCancelDialog(cita.id)}
+                                >
+                                  Cancelar
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">No hay citas próximas</p>
+                    )}
+                  </div>
                 </TabsContent>
                 
                 <TabsContent value="past">
-                  <p className="text-center text-muted-foreground py-4">Selecciona una fecha para ver las citas pasadas</p>
+                  <div className="space-y-4">
+                    {filteredCitas.length > 0 ? (
+                      filteredCitas.map((cita) => (
+                        <Card key={cita.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-bold text-lg">{cita.cliente?.nombre}</h3>
+                                <p className="text-sm text-muted-foreground">{cita.tipo || cita.titulo}</p>
+                                <div className="flex flex-col mt-2">
+                                  <div className="flex items-center">
+                                    <CalendarIcon className="h-4 w-4 mr-1 text-muted-foreground" />
+                                    <span className="text-sm">{formatearFecha(cita.fecha)}</span>
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                                    <span className="text-sm">{formatearHora(cita.fecha)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Badge variant={getStatusColor(cita.estado) as any}>
+                                {getStatusText(cita.estado)}
+                              </Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">No hay citas pasadas</p>
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -182,30 +363,84 @@ const TrainerAppointments = () => {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 className="rounded-md border"
+                locale={es}
               />
               
               <div className="mt-4">
-                <h3 className="font-medium mb-2">Citas para hoy</h3>
-                {todayAppointments.length > 0 ? (
+                <h3 className="font-medium mb-2">
+                  {selectedDate 
+                    ? isToday(selectedDate) 
+                      ? "Citas para hoy" 
+                      : `Citas para ${format(selectedDate, "PPP", { locale: es })}`
+                    : "Citas para hoy"
+                  }
+                </h3>
+                {(selectedDate ? citasFechaSeleccionada : citasHoy).length > 0 ? (
                   <div className="space-y-2">
-                    {todayAppointments.map((appointment) => (
-                      <div key={appointment.id} className="flex justify-between items-center p-2 rounded-md border">
-                        <div>
-                          <p className="font-medium">{appointment.clientName}</p>
-                          <p className="text-xs text-muted-foreground">{appointment.time} - {appointment.type}</p>
+                    {(selectedDate ? citasFechaSeleccionada : citasHoy)
+                      .filter(cita => cita.estado === "programada")
+                      .map((cita) => (
+                        <div key={cita.id} className="flex justify-between items-center p-2 rounded-md border">
+                          <div>
+                            <p className="font-medium">{cita.cliente?.nombre}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatearHora(cita.fecha)} - {cita.tipo || cita.titulo}
+                            </p>
+                          </div>
+                          <Badge variant="outline">{formatearHora(cita.fecha)}</Badge>
                         </div>
-                        <Badge variant="outline">{appointment.time}</Badge>
-                      </div>
-                    ))}
+                      ))
+                    }
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No hay citas para hoy</p>
+                  <p className="text-sm text-muted-foreground">No hay citas para este día</p>
                 )}
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {showCreateForm && (
+        <CitaForm
+          tipo="crear"
+          entrenadorId={entrenadorId}
+          onSubmit={crearCita}
+          onCancel={() => setShowCreateForm(false)}
+        />
+      )}
+
+      {showEditForm && selectedCita && (
+        <CitaForm
+          tipo="editar"
+          cita={selectedCita}
+          entrenadorId={entrenadorId}
+          onSubmit={(data) => actualizarCita(selectedCita.id, data)}
+          onCancel={() => {
+            setShowEditForm(false);
+            setSelectedCitaId(null);
+          }}
+        />
+      )}
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Cita</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedCitaId(null)}>
+              No, mantener
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelarCita} className="bg-destructive text-destructive-foreground">
+              Sí, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
