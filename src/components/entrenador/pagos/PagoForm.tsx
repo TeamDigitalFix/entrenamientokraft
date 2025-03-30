@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Pago, PagoInput } from "@/hooks/entrenador/usePagos";
+import { Pago, PagoInput, PagoEstado } from "@/hooks/entrenador/usePagos";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon } from "lucide-react";
@@ -65,9 +65,13 @@ export const PagoForm = ({
 
   const handleSubmit = (data: z.infer<typeof pagoSchema>) => {
     onSubmit({
-      ...data,
+      suscripcion_id: data.suscripcion_id,
       fecha_programada: format(data.fecha_programada, 'yyyy-MM-dd'),
-      fecha_pago: data.fecha_pago ? format(data.fecha_pago, 'yyyy-MM-dd') : null
+      fecha_pago: data.fecha_pago ? format(data.fecha_pago, 'yyyy-MM-dd') : null,
+      monto: data.monto,
+      estado: data.estado as PagoEstado,
+      metodo_pago: data.metodo_pago,
+      notas: data.notas
     });
   };
 

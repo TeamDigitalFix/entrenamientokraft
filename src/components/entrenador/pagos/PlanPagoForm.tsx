@@ -8,11 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { PlanPago, PlanPagoInput } from "@/hooks/entrenador/usePlanesPago";
+import { PlanPago } from "@/hooks/entrenador/usePlanesPago";
+import { Switch } from "@/components/ui/switch";
 
 const planPagoSchema = z.object({
-  nombre: z.string().min(3, { message: "El nombre debe tener al menos 3 caracteres" }),
-  descripcion: z.string().optional().nullable(),
+  nombre: z.string().min(1, { message: "El nombre es requerido" }),
+  descripcion: z.string().nullable().optional(),
   precio: z.coerce.number().positive({ message: "El precio debe ser mayor que 0" }),
   intervalo_dias: z.coerce.number().int().positive({ message: "El intervalo debe ser mayor que 0" }),
   activo: z.boolean().default(true)
@@ -21,7 +22,7 @@ const planPagoSchema = z.object({
 type PlanPagoFormProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: PlanPagoInput) => void;
+  onSubmit: (data: z.infer<typeof planPagoSchema>) => void;
   isSubmitting: boolean;
   initialData?: PlanPago | null;
 };
@@ -45,7 +46,13 @@ export const PlanPagoForm = ({
   });
 
   const handleSubmit = (data: z.infer<typeof planPagoSchema>) => {
-    onSubmit(data);
+    onSubmit({
+      nombre: data.nombre,
+      descripcion: data.descripcion,
+      precio: data.precio,
+      intervalo_dias: data.intervalo_dias,
+      activo: data.activo
+    });
   };
 
   return (

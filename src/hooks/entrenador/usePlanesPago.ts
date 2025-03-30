@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +15,13 @@ export type PlanPago = {
   creado_en: string | null;
 };
 
-export type PlanPagoInput = Omit<PlanPago, "id" | "creado_en" | "creado_por">;
+export type PlanPagoInput = {
+  nombre: string;
+  descripcion: string | null;
+  precio: number;
+  intervalo_dias: number;
+  activo: boolean;
+};
 
 export const usePlanesPago = () => {
   const { user } = useAuth();
@@ -24,7 +29,6 @@ export const usePlanesPago = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [currentPlan, setCurrentPlan] = useState<PlanPago | null>(null);
 
-  // Fetch payment plans created by the trainer
   const { data: planes, isLoading } = useQuery({
     queryKey: ["planes-pago", user?.id],
     queryFn: async () => {
@@ -46,7 +50,6 @@ export const usePlanesPago = () => {
     enabled: !!user?.id
   });
 
-  // Create a new payment plan
   const { mutate: crearPlan, isPending: isCreating } = useMutation({
     mutationFn: async (nuevoPlan: PlanPagoInput) => {
       if (!user?.id) throw new Error("Usuario no autenticado");
@@ -75,7 +78,6 @@ export const usePlanesPago = () => {
     }
   });
 
-  // Update an existing payment plan
   const { mutate: actualizarPlan, isPending: isUpdating } = useMutation({
     mutationFn: async (plan: PlanPago) => {
       const { id, creado_en, creado_por, ...updateData } = plan;
@@ -102,7 +104,6 @@ export const usePlanesPago = () => {
     }
   });
 
-  // Toggle plan active status
   const { mutate: toggleActivoPlan } = useMutation({
     mutationFn: async (plan: PlanPago) => {
       const { data, error } = await supabase

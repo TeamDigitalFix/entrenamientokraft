@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +26,14 @@ export type Suscripcion = {
   plan: PlanPago;
 };
 
-export type SuscripcionInput = Omit<Suscripcion, "id" | "creado_en" | "cliente" | "plan">;
+export type SuscripcionInput = {
+  cliente_id: string;
+  plan_id: string;
+  fecha_inicio: string;
+  fecha_fin: string | null;
+  notas: string | null;
+  activo: boolean;
+};
 
 export const useSuscripciones = () => {
   const { user } = useAuth();

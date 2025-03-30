@@ -43,7 +43,7 @@ export const SuscripcionForm = ({
   isSubmitting,
   initialData
 }: SuscripcionFormProps) => {
-  const { clientes, isLoading: isLoadingClientes } = useClients();
+  const { clients, isLoading: isLoadingClientes } = useClients();
   const { planes, isLoading: isLoadingPlanes } = usePlanesPago();
   const [selectedPlan, setSelectedPlan] = useState<PlanPago | null>(null);
 
@@ -69,9 +69,12 @@ export const SuscripcionForm = ({
 
   const handleSubmit = (data: z.infer<typeof suscripcionSchema>) => {
     onSubmit({
-      ...data,
+      cliente_id: data.cliente_id,
+      plan_id: data.plan_id,
       fecha_inicio: format(data.fecha_inicio, 'yyyy-MM-dd'),
-      fecha_fin: data.fecha_fin ? format(data.fecha_fin, 'yyyy-MM-dd') : null
+      fecha_fin: data.fecha_fin ? format(data.fecha_fin, 'yyyy-MM-dd') : null,
+      notas: data.notas,
+      activo: data.activo
     });
   };
 
@@ -102,7 +105,7 @@ export const SuscripcionForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {clientes?.map((cliente) => (
+                      {clients?.map((cliente) => (
                         <SelectItem key={cliente.id} value={cliente.id}>
                           {cliente.nombre}
                         </SelectItem>

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,13 +7,15 @@ import { toast } from "sonner";
 import { Suscripcion } from "./useSuscripciones";
 import { addDays, format, isAfter, isBefore, parseISO } from "date-fns";
 
+export type PagoEstado = "pendiente" | "pagado" | "atrasado" | "cancelado";
+
 export type Pago = {
   id: string;
   suscripcion_id: string;
   fecha_programada: string;
   fecha_pago: string | null;
   monto: number;
-  estado: "pendiente" | "pagado" | "atrasado" | "cancelado";
+  estado: PagoEstado;
   metodo_pago: string | null;
   notas: string | null;
   creado_en: string | null;
@@ -20,8 +23,14 @@ export type Pago = {
   suscripcion?: Suscripcion;
 };
 
-export type PagoInput = Omit<Pago, "id" | "creado_en" | "suscripcion" | "estado"> & {
-  estado?: "pendiente" | "pagado" | "atrasado" | "cancelado";
+export type PagoInput = {
+  suscripcion_id: string;
+  fecha_programada: string;
+  fecha_pago: string | null;
+  monto: number;
+  estado?: PagoEstado;
+  metodo_pago?: string | null;
+  notas?: string | null;
 };
 
 export type DashboardPagoStats = {

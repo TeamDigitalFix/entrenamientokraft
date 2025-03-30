@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { CalendarDays, AlertTriangle, DollarSign, ArrowRight } from "lucide-react";
-import { usePagos } from "@/hooks/entrenador/usePagos";
+import { usePagos, Pago, PagoEstado } from "@/hooks/entrenador/usePagos";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +20,7 @@ export const PaymentAlerts = () => {
       .find(p => p.id === pagoId);
       
     if (pago) {
-      marcarComoPagado(pago);
+      marcarComoPagado(pago as Pago);
     }
   };
 
