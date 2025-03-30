@@ -92,63 +92,82 @@ export const useProgress = () => {
   // Mutación para añadir una nueva medición
   const { mutate: addMeasurement, isPending: isAddingMeasurement } = useMutation({
     mutationFn: async (newMeasurement: NewMeasurement) => {
-      console.log("Añadiendo medición:", newMeasurement);
-      
-      if (!user?.id) {
-        console.error("Usuario no autenticado");
-        throw new Error("Usuario no autenticado");
-      }
+      try {
+        if (!user?.id) {
+          console.error("Usuario no autenticado");
+          toast.error("Debes iniciar sesión para registrar mediciones");
+          throw new Error("Usuario no autenticado");
+        }
 
-      const now = new Date().toISOString();
-      console.log("Fecha actual:", now);
-      
-      // Verificar que los valores son válidos antes de enviar
-      if (isNaN(newMeasurement.peso) || newMeasurement.peso <= 0) {
-        throw new Error("El peso debe ser un número positivo");
-      }
-      
-      const measurementData = {
-        cliente_id: user.id,
-        peso: newMeasurement.peso,
-        grasa_corporal: newMeasurement.grasa_corporal || null,
-        masa_muscular: newMeasurement.masa_muscular || null,
-        notas: newMeasurement.notas || null,
-        fecha: now,
-      };
-      
-      console.log("Datos a insertar:", measurementData);
-      
-      // Intentar primero con insert (más común)
-      let result = await supabase
-        .from("progreso")
-        .insert(measurementData)
-        .select();
-      
-      // Si falla el insert, intentar con upsert como fallback
-      if (result.error) {
-        console.log("Error con insert, intentando upsert:", result.error);
-        result = await supabase
+        console.log("Añadiendo medición para usuario:", user.id);
+        console.log("Datos de medición:", newMeasurement);
+        
+        // Verificar que los valores son válidos antes de enviar
+        if (isNaN(newMeasurement.peso) || newMeasurement.peso <= 0) {
+          toast.error("El peso debe ser un número positivo");
+          throw new Error("El peso debe ser un número positivo");
+        }
+        
+        // Usamos la fecha actual para la medición
+        const now = new Date();
+        const currentDateString = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        console.log("Fecha formateada:", currentDateString);
+        
+        const measurementData = {
+          cliente_id: user.id,
+          peso: newMeasurement.peso,
+          grasa_corporal: newMeasurement.grasa_corporal || null,
+          masa_muscular: newMeasurement.masa_muscular || null,
+          notas: newMeasurement.notas || null,
+          fecha: currentDateString,
+        };
+        
+        console.log("Datos completos a insertar:", measurementData);
+        
+        // Intentar insertar la medición
+        const { data, error } = await supabase
           .from("progreso")
-          .upsert(measurementData)
+          .insert(measurementData)
           .select();
+        
+        if (error) {
+          console.error("Error al insertar medición:", error);
+          
+          // Si hay error con la inserción, intentamos un upsert como alternativa
+          console.log("Intentando upsert como alternativa...");
+          const { data: upsertData, error: upsertError } = await supabase
+            .from("progreso")
+            .upsert(measurementData)
+            .select();
+            
+          if (upsertError) {
+            console.error("Error también con upsert:", upsertError);
+            toast.error(`Error al guardar: ${upsertError.message}`);
+            throw upsertError;
+          }
+          
+          console.log("Medición guardada con upsert:", upsertData);
+          return upsertData;
+        }
+        
+        console.log("Medición guardada con éxito:", data);
+        return data;
+      } catch (error) {
+        console.error("Error al guardar medición:", error);
+        throw error;
       }
-      
-      if (result.error) {
-        console.error("Error al guardar medición:", result.error);
-        throw result.error;
-      }
-      
-      console.log("Medición registrada:", result.data);
-      return result.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Medición registrada con éxito:", data);
       toast.success("Medición registrada correctamente");
       queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
       setIsDialogOpen(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Error al registrar medición:", error);
-      toast.error("No se pudo registrar la medición. Revisa que estés autenticado e inténtalo de nuevo.");
+      const errorMessage = error?.message || "Error desconocido";
+      toast.error(`No se pudo registrar la medición: ${errorMessage}`);
     },
   });
 
