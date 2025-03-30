@@ -72,7 +72,7 @@ const ClientAppointments = () => {
       case "pendiente":
         return (
           <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
-            Pendiente
+            Pendiente de confirmación
           </span>
         );
       case "programada":
@@ -160,6 +160,14 @@ const ClientAppointments = () => {
                                 {appointment.entrenador_nombre || "Sin asignar"}
                               </p>
                             </div>
+                            <div className="py-2">
+                              <h4 className="text-sm font-medium mb-2">Estado:</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {appointment.estado === 'pendiente' ? 'Pendiente de confirmación' : 
+                                 appointment.estado === 'programada' ? 'Programada' : 
+                                 appointment.estado === 'completada' ? 'Completada' : 'Cancelada'}
+                              </p>
+                            </div>
                           </DialogContent>
                         </Dialog>
                         
@@ -175,7 +183,7 @@ const ClientAppointments = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción no se puede deshacer. Cancelarás tu cita {appointment.estado === "pendiente" ? "solicitada" : "programada"}.
+                                  Esta acción no se puede deshacer. Cancelarás tu cita {appointment.estado === "pendiente" ? "pendiente de confirmación" : "programada"}.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -342,9 +350,9 @@ const ClientAppointments = () => {
                           <div className="py-2">
                             <h4 className="text-sm font-medium mb-2">Estado:</h4>
                             <p className="text-sm text-muted-foreground">
-                              {appointment.estado === 'completada' ? 'Completada' : 
-                               appointment.estado === 'cancelada' ? 'Cancelada' : 
-                               appointment.estado === 'pendiente' ? 'Pendiente' : 'Programada'}
+                              {appointment.estado === 'pendiente' ? 'Pendiente de confirmación' : 
+                               appointment.estado === 'completada' ? 'Completada' : 
+                               appointment.estado === 'cancelada' ? 'Cancelada' : 'Programada'}
                             </p>
                           </div>
                         </DialogContent>

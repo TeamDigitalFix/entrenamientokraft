@@ -137,7 +137,7 @@ export const useClientAppointments = () => {
         descripcion: appointmentData.descripcion,
         fecha: appointmentData.fecha,
         duracion: appointmentData.duracion,
-        estado: "pendiente"
+        estado: "pendiente" as "pendiente"
       };
 
       console.log("Solicitando cita:", newAppointment);
