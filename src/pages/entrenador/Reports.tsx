@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,46 +22,31 @@ import {
   YAxis
 } from "recharts";
 import { UserRole } from "@/types/index";
+import { useReportes } from "@/hooks/entrenador/useReportes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const TrainerReports = () => {
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("month");
   
-  const clientActivityData = [
-    { name: "Lun", sesiones: 3, ejercicios: 24 },
-    { name: "Mar", sesiones: 2, ejercicios: 16 },
-    { name: "Mié", sesiones: 4, ejercicios: 32 },
-    { name: "Jue", sesiones: 3, ejercicios: 20 },
-    { name: "Vie", sesiones: 5, ejercicios: 40 },
-    { name: "Sáb", sesiones: 1, ejercicios: 10 },
-    { name: "Dom", sesiones: 0, ejercicios: 0 },
-  ];
-  
-  const clientProgressData = [
-    { name: "Semana 1", peso: 75, grasa: 20 },
-    { name: "Semana 2", peso: 74.2, grasa: 19.5 },
-    { name: "Semana 3", peso: 73.5, grasa: 19 },
-    { name: "Semana 4", peso: 72.8, grasa: 18.5 },
-    { name: "Semana 5", peso: 72, grasa: 18 },
-    { name: "Semana 6", peso: 71.5, grasa: 17.5 },
-    { name: "Semana 7", peso: 71, grasa: 17 },
-    { name: "Semana 8", peso: 70.5, grasa: 16.5 },
-  ];
-  
-  const clientDistributionData = [
-    { name: "Activos", value: 12 },
-    { name: "Inactivos", value: 3 },
-  ];
-  
-  const exerciseDistributionData = [
-    { name: "Pectoral", value: 25 },
-    { name: "Espalda", value: 20 },
-    { name: "Piernas", value: 30 },
-    { name: "Brazos", value: 15 },
-    { name: "Core", value: 10 },
-  ];
+  const {
+    activityData,
+    progressData,
+    clientDistributionData,
+    exerciseDistributionData,
+    clientsList,
+    activityStats,
+    progressStats,
+    topPerformers,
+    isLoading,
+    generateReport
+  } = useReportes(selectedClient, dateRange);
   
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+
+  const handleGenerateReport = () => {
+    generateReport(selectedClient, dateRange);
+  };
 
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
@@ -75,11 +61,9 @@ const TrainerReports = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos los clientes</SelectItem>
-                <SelectItem value="1">Ana Martínez</SelectItem>
-                <SelectItem value="2">Carlos Rodríguez</SelectItem>
-                <SelectItem value="3">Laura García</SelectItem>
-                <SelectItem value="4">Pedro Sánchez</SelectItem>
-                <SelectItem value="5">María López</SelectItem>
+                {clientsList.map(client => (
+                  <SelectItem key={client.id} value={client.id}>{client.nombre}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             
@@ -95,7 +79,7 @@ const TrainerReports = () => {
               </SelectContent>
             </Select>
             
-            <Button>Generar informe</Button>
+            <Button onClick={handleGenerateReport}>Generar informe</Button>
           </div>
         </div>
         
@@ -112,29 +96,35 @@ const TrainerReports = () => {
                 <CardTitle>Actividad Semanal</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsBarChart
-                      width={500}
-                      height={300}
-                      data={clientActivityData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="sesiones" name="Sesiones" fill="#8884d8" />
-                      <Bar dataKey="ejercicios" name="Ejercicios" fill="#82ca9d" />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
-                </div>
+                {isLoading ? (
+                  <div className="h-[400px]">
+                    <Skeleton className="w-full h-full" />
+                  </div>
+                ) : (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsBarChart
+                        width={500}
+                        height={300}
+                        data={activityData}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="sesiones" name="Sesiones" fill="#8884d8" />
+                        <Bar dataKey="ejercicios" name="Ejercicios" fill="#82ca9d" />
+                      </RechartsBarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -144,10 +134,18 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Total de Sesiones</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">18</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="text-green-500">↑ 12%</span> vs. período anterior
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{activityStats?.totalSesiones || 0}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className={`${activityStats?.cambioSesiones && activityStats.cambioSesiones > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {activityStats?.cambioSesiones && activityStats.cambioSesiones > 0 ? '↑' : '↓'} {Math.abs(activityStats?.cambioSesiones || 0)}%
+                        </span> vs. período anterior
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -156,10 +154,18 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Ejercicios Completados</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">142</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="text-green-500">↑ 8%</span> vs. período anterior
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{activityStats?.totalEjercicios || 0}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className={`${activityStats?.cambioEjercicios && activityStats.cambioEjercicios > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {activityStats?.cambioEjercicios && activityStats.cambioEjercicios > 0 ? '↑' : '↓'} {Math.abs(activityStats?.cambioEjercicios || 0)}%
+                        </span> vs. período anterior
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -168,10 +174,18 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Asistencia</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">92%</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="text-red-500">↓ 3%</span> vs. período anterior
-                  </p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{activityStats?.porcentajeAsistencia || 0}%</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <span className={`${activityStats?.cambioAsistencia && activityStats.cambioAsistencia > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {activityStats?.cambioAsistencia && activityStats.cambioAsistencia > 0 ? '↑' : '↓'} {Math.abs(activityStats?.cambioAsistencia || 0)}%
+                        </span> vs. período anterior
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -183,30 +197,36 @@ const TrainerReports = () => {
                 <CardTitle>Progreso de Clientes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[400px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsLineChart
-                      width={500}
-                      height={300}
-                      data={clientProgressData}
-                      margin={{
-                        top: 20,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <Line yAxisId="left" type="monotone" dataKey="peso" name="Peso (kg)" stroke="#8884d8" activeDot={{ r: 8 }} />
-                      <Line yAxisId="right" type="monotone" dataKey="grasa" name="% Grasa Corporal" stroke="#82ca9d" />
-                    </RechartsLineChart>
-                  </ResponsiveContainer>
-                </div>
+                {isLoading ? (
+                  <div className="h-[400px]">
+                    <Skeleton className="w-full h-full" />
+                  </div>
+                ) : (
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsLineChart
+                        width={500}
+                        height={300}
+                        data={progressData}
+                        margin={{
+                          top: 20,
+                          right: 30,
+                          left: 20,
+                          bottom: 5,
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="right" orientation="right" />
+                        <Tooltip />
+                        <Legend />
+                        <Line yAxisId="left" type="monotone" dataKey="peso" name="Peso (kg)" stroke="#8884d8" activeDot={{ r: 8 }} />
+                        <Line yAxisId="right" type="monotone" dataKey="grasa" name="% Grasa Corporal" stroke="#82ca9d" />
+                      </RechartsLineChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -216,8 +236,14 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Reducción Media de Peso</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">-4.5 kg</div>
-                  <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">-{progressStats?.reduccionPeso || 0} kg</div>
+                      <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -226,8 +252,14 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Reducción % Grasa</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">-3.5%</div>
-                  <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">-{progressStats?.reduccionGrasa || 0}%</div>
+                      <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -236,8 +268,14 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Aumento Masa Muscular</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">+2.2 kg</div>
-                  <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">+{progressStats?.aumentoMuscular || 0} kg</div>
+                      <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -250,28 +288,34 @@ const TrainerReports = () => {
                   <CardTitle>Distribución de Clientes</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart width={400} height={300}>
-                        <Pie
-                          data={clientDistributionData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {clientDistributionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {isLoading ? (
+                    <div className="h-[300px]">
+                      <Skeleton className="w-full h-full" />
+                    </div>
+                  ) : (
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart width={400} height={300}>
+                          <Pie
+                            data={clientDistributionData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {clientDistributionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               
@@ -280,28 +324,34 @@ const TrainerReports = () => {
                   <CardTitle>Distribución de Ejercicios</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsPieChart width={400} height={300}>
-                        <Pie
-                          data={exerciseDistributionData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {exerciseDistributionData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </RechartsPieChart>
-                    </ResponsiveContainer>
-                  </div>
+                  {isLoading ? (
+                    <div className="h-[300px]">
+                      <Skeleton className="w-full h-full" />
+                    </div>
+                  ) : (
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart width={400} height={300}>
+                          <Pie
+                            data={exerciseDistributionData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {exerciseDistributionData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -312,8 +362,14 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Cliente Más Activo</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-lg font-bold">Ana Martínez</div>
-                  <p className="text-xs text-muted-foreground mt-1">12 sesiones este mes</p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-lg font-bold">{topPerformers?.clienteMasActivo.nombre}</div>
+                      <p className="text-xs text-muted-foreground mt-1">{topPerformers?.clienteMasActivo.sesiones} sesiones este mes</p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -322,8 +378,14 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Ejercicio Más Popular</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-lg font-bold">Sentadilla</div>
-                  <p className="text-xs text-muted-foreground mt-1">Usado en 85% de las rutinas</p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-lg font-bold">{topPerformers?.ejercicioMasPopular.nombre}</div>
+                      <p className="text-xs text-muted-foreground mt-1">Usado en {topPerformers?.ejercicioMasPopular.porcentaje}% de las rutinas</p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -332,8 +394,14 @@ const TrainerReports = () => {
                   <CardTitle className="text-sm font-medium">Mayor Progreso</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-lg font-bold">Carlos Rodríguez</div>
-                  <p className="text-xs text-muted-foreground mt-1">-6.5kg en 3 meses</p>
+                  {isLoading ? (
+                    <Skeleton className="w-full h-12" />
+                  ) : (
+                    <>
+                      <div className="text-lg font-bold">{topPerformers?.mayorProgreso.nombre}</div>
+                      <p className="text-xs text-muted-foreground mt-1">{topPerformers?.mayorProgreso.reduccion}</p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>

@@ -181,6 +181,66 @@ export type Database = {
           },
         ]
       }
+      distribucion_clientes: {
+        Row: {
+          cantidad: number
+          categoria: string
+          creado_en: string | null
+          entrenador_id: string
+          fecha_calculo: string
+          id: string
+          porcentaje: number | null
+        }
+        Insert: {
+          cantidad: number
+          categoria: string
+          creado_en?: string | null
+          entrenador_id: string
+          fecha_calculo?: string
+          id?: string
+          porcentaje?: number | null
+        }
+        Update: {
+          cantidad?: number
+          categoria?: string
+          creado_en?: string | null
+          entrenador_id?: string
+          fecha_calculo?: string
+          id?: string
+          porcentaje?: number | null
+        }
+        Relationships: []
+      }
+      distribucion_ejercicios: {
+        Row: {
+          cantidad: number
+          creado_en: string | null
+          entrenador_id: string
+          fecha_calculo: string
+          grupo_muscular: string
+          id: string
+          porcentaje: number | null
+        }
+        Insert: {
+          cantidad: number
+          creado_en?: string | null
+          entrenador_id: string
+          fecha_calculo?: string
+          grupo_muscular: string
+          id?: string
+          porcentaje?: number | null
+        }
+        Update: {
+          cantidad?: number
+          creado_en?: string | null
+          entrenador_id?: string
+          fecha_calculo?: string
+          grupo_muscular?: string
+          id?: string
+          porcentaje?: number | null
+        }
+        Relationships: []
+      }
       ejercicios: {
         Row: {
           creado_en: string | null
@@ -276,6 +336,87 @@ export type Database = {
           },
         ]
       }
+      ejercicios_diarios: {
+        Row: {
+          cantidad: number
+          cliente_id: string
+          creado_en: string | null
+          dia_semana: string
+          entrenador_id: string
+          fecha: string
+          id: string
+        }
+        Insert: {
+          cantidad: number
+          cliente_id: string
+          creado_en?: string | null
+          dia_semana: string
+          entrenador_id: string
+          fecha: string
+          id?: string
+        }
+        Update: {
+          cantidad?: number
+          cliente_id?: string
+          creado_en?: string | null
+          dia_semana?: string
+          entrenador_id?: string
+          fecha?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      estadisticas_cliente: {
+        Row: {
+          actualizado_en: string | null
+          cambio_asistencia_porcentaje: number | null
+          cambio_ejercicios_porcentaje: number | null
+          cambio_sesiones_porcentaje: number | null
+          cliente_id: string
+          creado_en: string | null
+          entrenador_id: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          periodo: string
+          porcentaje_asistencia: number | null
+          total_ejercicios: number | null
+          total_sesiones: number | null
+        }
+        Insert: {
+          actualizado_en?: string | null
+          cambio_asistencia_porcentaje?: number | null
+          cambio_ejercicios_porcentaje?: number | null
+          cambio_sesiones_porcentaje?: number | null
+          cliente_id: string
+          creado_en?: string | null
+          entrenador_id: string
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          periodo: string
+          porcentaje_asistencia?: number | null
+          total_ejercicios?: number | null
+          total_sesiones?: number | null
+        }
+        Update: {
+          actualizado_en?: string | null
+          cambio_asistencia_porcentaje?: number | null
+          cambio_ejercicios_porcentaje?: number | null
+          cambio_sesiones_porcentaje?: number | null
+          cliente_id?: string
+          creado_en?: string | null
+          entrenador_id?: string
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          periodo?: string
+          porcentaje_asistencia?: number | null
+          total_ejercicios?: number | null
+          total_sesiones?: number | null
+        }
+        Relationships: []
+      }
       mensajes: {
         Row: {
           contenido: string
@@ -358,6 +499,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      progreso_periodo: {
+        Row: {
+          cliente_id: string
+          creado_en: string | null
+          entrenador_id: string
+          fecha_fin: string
+          fecha_inicio: string
+          id: string
+          masa_muscular: number | null
+          periodo: string
+          peso: number | null
+          porcentaje_grasa: number | null
+        }
+        Insert: {
+          cliente_id: string
+          creado_en?: string | null
+          entrenador_id: string
+          fecha_fin: string
+          fecha_inicio: string
+          id?: string
+          masa_muscular?: number | null
+          periodo: string
+          peso?: number | null
+          porcentaje_grasa?: number | null
+        }
+        Update: {
+          cliente_id?: string
+          creado_en?: string | null
+          entrenador_id?: string
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: string
+          masa_muscular?: number | null
+          periodo?: string
+          peso?: number | null
+          porcentaje_grasa?: number | null
+        }
+        Relationships: []
       }
       rutina_ejercicios: {
         Row: {
@@ -450,6 +630,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sesiones_diarias: {
+        Row: {
+          cliente_id: string
+          completada: boolean | null
+          creado_en: string | null
+          dia_semana: string
+          duracion_minutos: number | null
+          entrenador_id: string
+          fecha: string
+          id: string
+        }
+        Insert: {
+          cliente_id: string
+          completada?: boolean | null
+          creado_en?: string | null
+          dia_semana: string
+          duracion_minutos?: number | null
+          entrenador_id: string
+          fecha: string
+          id?: string
+        }
+        Update: {
+          cliente_id?: string
+          completada?: boolean | null
+          creado_en?: string | null
+          dia_semana?: string
+          duracion_minutos?: number | null
+          entrenador_id?: string
+          fecha?: string
+          id?: string
+        }
+        Relationships: []
       }
       usuarios: {
         Row: {
