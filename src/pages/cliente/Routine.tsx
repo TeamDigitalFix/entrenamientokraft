@@ -2,34 +2,145 @@
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
+import { useClientRoutine } from "@/hooks/cliente/useClientRoutine";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useExerciseToggle } from "@/hooks/cliente/useExerciseToggle";
 
 const ClientRoutine = () => {
+  const { routine, isLoading, activeDay, setActiveDay, dayNames } = useClientRoutine();
+  const { toggleExerciseCompletion, isPending } = useExerciseToggle();
+
+  const handleExerciseToggle = (id: string, currentStatus: boolean) => {
+    toggleExerciseCompletion({ exerciseId: id, completed: currentStatus });
+  };
+
   return (
     <DashboardLayout allowedRoles={[UserRole.CLIENT]}>
       <div className="space-y-4">
         <h1 className="text-3xl font-bold">Mi Rutina</h1>
         <p className="text-muted-foreground">Aquí puedes ver y seguir tu rutina de ejercicios personalizada</p>
         
-        <div className="grid grid-cols-1 gap-4 mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div>
-                <CardTitle>Rutina Actual</CardTitle>
-                <CardDescription>Tu programa de entrenamiento personalizado</CardDescription>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <div>
+              <CardTitle>{routine?.name || "Rutina Actual"}</CardTitle>
+              <CardDescription>Tu programa de entrenamiento personalizado</CardDescription>
+            </div>
+            <Dumbbell className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="pt-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Cargando rutina...</span>
               </div>
-              <Dumbbell className="h-5 w-5 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="pt-6">
-              <p className="text-center py-10 text-muted-foreground">
-                Estamos preparando tu rutina personalizada. Tu entrenador estará actualizándola pronto.
-              </p>
-              <Button className="w-full mt-4">Ver detalles</Button>
-            </CardContent>
-          </Card>
-        </div>
+            ) : !routine || routine.exercises.length === 0 ? (
+              <div className="text-center py-8">
+                <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  Estamos preparando tu rutina personalizada. Tu entrenador estará actualizándola pronto.
+                </p>
+              </div>
+            ) : (
+              <Tabs value={activeDay} onValueChange={setActiveDay} className="w-full">
+                <TabsList className="w-full mb-4 flex overflow-x-auto">
+                  {dayNames.map(day => (
+                    <TabsTrigger
+                      key={day}
+                      value={day}
+                      className="flex-1"
+                      disabled={!routine.exercisesByDay[day]?.length}
+                    >
+                      {day}
+                      {routine.exercisesByDay[day]?.length > 0 && (
+                        <Badge variant="secondary" className="ml-2">
+                          {routine.exercisesByDay[day].length}
+                        </Badge>
+                      )}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {dayNames.map(day => (
+                  <TabsContent key={day} value={day} className="space-y-4">
+                    {routine.exercisesByDay[day]?.length > 0 ? (
+                      <Accordion type="single" collapsible className="w-full">
+                        {routine.exercisesByDay[day].map((exercise) => (
+                          <AccordionItem key={exercise.id} value={exercise.id}>
+                            <AccordionTrigger className="hover:no-underline py-3 px-4 data-[state=open]:bg-accent/50 rounded-t-md">
+                              <div className="flex justify-between w-full items-center">
+                                <div className="flex items-center">
+                                  <span className="font-medium">{exercise.name}</span>
+                                  <Badge variant="outline" className="ml-2">
+                                    {exercise.muscleGroup}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <Badge variant="outline">{exercise.sets} series</Badge>
+                                  <Badge variant="outline">{exercise.reps} reps</Badge>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="bg-accent/20 rounded-b-md px-4 pb-4 pt-2">
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {exercise.weight && (
+                                    <div>
+                                      <h4 className="text-sm font-medium mb-1">Peso</h4>
+                                      <Badge variant="secondary">{exercise.weight} kg</Badge>
+                                    </div>
+                                  )}
+                                  
+                                  {exercise.notes && (
+                                    <div className="col-span-full">
+                                      <h4 className="text-sm font-medium mb-1">Notas</h4>
+                                      <p className="text-sm text-muted-foreground">{exercise.notes}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="flex justify-end">
+                                  <Button 
+                                    variant={exercise.completed ? "default" : "outline"}
+                                    className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                    size="sm"
+                                    onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
+                                    disabled={isPending}
+                                  >
+                                    {isPending ? (
+                                      <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Actualizando...
+                                      </>
+                                    ) : exercise.completed ? (
+                                      "Completado"
+                                    ) : (
+                                      "Marcar como completado"
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p className="text-muted-foreground">No hay ejercicios programados para {day}</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
