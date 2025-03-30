@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +26,6 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/ui/mode-toggle";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -58,13 +56,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, setTheme } = useTheme();
   
-  // Safe default value for unreadCount
   const [unreadCount, setUnreadCount] = useState(0);
   
-  // Only call useClientMessages when user is a client and component is mounted
   useEffect(() => {
     if (user?.role === UserRole.CLIENT) {
-      // Dynamically import to avoid dependency cycle
       import("@/hooks/cliente/useClientMessages").then(({ useClientMessages }) => {
         const { unreadCount, updateUnreadCount } = useClientMessages();
         setUnreadCount(unreadCount || 0);
@@ -80,7 +75,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
     }
   }, [user, loading, allowedRoles, navigate]);
 
-  // Cerrar sidebar móvil al cambiar de ruta
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
@@ -132,7 +126,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar (hidden on small screens) */}
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r dark:border-gray-700">
         <div className="flex items-center justify-center h-16 border-b dark:border-gray-700">
           <Link to="/" className="text-xl font-bold text-gray-800 dark:text-white">KraftApp</Link>
@@ -190,10 +183,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
           <Separator className="my-2 dark:border-gray-700" />
           <div className="flex items-center justify-between">
             <ModeToggle />
-            <Avatar className="h-8 w-8">
-              <AvatarImage src="https://github.com/shadcn.png" alt={user.name} />
-              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
           </div>
           <button onClick={logout} className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 mt-2 text-left flex items-center">
             <LogOut className="h-4 w-4 mr-2" />
@@ -202,7 +191,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
       <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
         <SheetTrigger asChild className="md:hidden z-10 absolute top-4 left-4">
           <button className="p-2 rounded-md bg-white dark:bg-gray-800 shadow-md">
@@ -266,10 +254,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
             <Separator className="my-2 dark:border-gray-700" />
             <div className="flex items-center justify-between">
               <ModeToggle />
-              <Avatar className="h-8 w-8">
-                <AvatarImage src="https://github.com/shadcn.png" alt={user.name} />
-                <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
             </div>
             <button onClick={logout} className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 mt-2 text-left flex items-center">
               <LogOut className="h-4 w-4 mr-2" />
@@ -279,7 +263,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
         </SheetContent>
       </Sheet>
 
-      {/* Main Content */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <div className="flex md:hidden justify-start p-4">
           <button 
