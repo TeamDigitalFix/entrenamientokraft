@@ -15,7 +15,7 @@ export interface ClientData {
   password: string;
   role: string;
   entrenador_id: string | null;
-  ultimo_ingreso?: string | null;  // Añadimos esta propiedad
+  ultimo_ingreso: string | null;  // Ensure this property is defined
 }
 
 export const useClients = (searchTerm: string = "") => {

@@ -469,6 +469,7 @@ export type Database = {
           password: string
           role: string
           telefono: string | null
+          ultimo_ingreso: string | null
           username: string
         }
         Insert: {
@@ -482,6 +483,7 @@ export type Database = {
           password: string
           role: string
           telefono?: string | null
+          ultimo_ingreso?: string | null
           username: string
         }
         Update: {
@@ -495,6 +497,7 @@ export type Database = {
           password?: string
           role?: string
           telefono?: string | null
+          ultimo_ingreso?: string | null
           username?: string
         }
         Relationships: [
