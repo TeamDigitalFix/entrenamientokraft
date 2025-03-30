@@ -17,7 +17,6 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Progress } from "@/components/ui/progress";
 
-// Tipo para el formulario de mediciones
 type MeasurementFormValues = {
   peso: string;
   grasa_corporal: string;
@@ -50,7 +49,6 @@ const ClientProgress = () => {
   const onSubmit = (data: MeasurementFormValues) => {
     console.log("Formulario enviado con datos:", data);
     
-    // Convertir valores de string a número
     const pesoValue = parseFloat(data.peso);
     const grasaValue = data.grasa_corporal ? parseFloat(data.grasa_corporal) : undefined;
     const musculoValue = data.masa_muscular ? parseFloat(data.masa_muscular) : undefined;
@@ -68,19 +66,18 @@ const ClientProgress = () => {
     setIsDialogOpen(true);
   };
 
-  // Configuración para los gráficos
   const chartConfig = {
     peso: {
       label: "Peso (kg)",
-      color: "#3b82f6" // azul
+      color: "#3b82f6"
     },
     grasa: {
       label: "Grasa Corporal (%)",
-      color: "#ef4444" // rojo
+      color: "#ef4444"
     },
     musculo: {
       label: "Masa Muscular (%)",
-      color: "#10b981" // verde
+      color: "#10b981"
     }
   };
 
@@ -336,7 +333,6 @@ const ClientProgress = () => {
           </Card>
         </div>
         
-        {/* Historial de mediciones */}
         <Card>
           <CardHeader>
             <CardTitle>Historial de Mediciones</CardTitle>
@@ -389,7 +385,6 @@ const ClientProgress = () => {
           </CardContent>
         </Card>
         
-        {/* Diálogo para registrar nueva medición */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>

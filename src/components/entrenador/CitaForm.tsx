@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -141,7 +140,7 @@ export const CitaForm = ({
         descripcion: values.descripcion || null,
         fecha: fechaHora.toISOString(),
         duracion: values.duracion,
-        estado: "programada", // Siempre establecemos el estado inicial como "programada"
+        estado: "programada",
         tipo: values.tipo || null,
       };
 
