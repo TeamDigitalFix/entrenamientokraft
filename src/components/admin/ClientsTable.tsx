@@ -26,6 +26,7 @@ interface ClientsTableProps {
   onEdit: (client: AdminClientData) => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
+  onPermanentDelete: (id: string) => void;
 }
 
 export const ClientsTable: React.FC<ClientsTableProps> = ({
@@ -39,6 +40,7 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({
   onEdit,
   onDelete,
   onRestore,
+  onPermanentDelete,
 }) => {
   const totalPages = Math.ceil(totalItems / pageSize);
 
@@ -97,21 +99,35 @@ export const ClientsTable: React.FC<ClientsTableProps> = ({
                   )}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(client)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  {client.eliminado ? (
+                  {!client.eliminado && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onRestore(client.id!)}
+                      onClick={() => onEdit(client)}
                     >
-                      <RefreshCw className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
+                  )}
+                  {client.eliminado ? (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onRestore(client.id!)}
+                        title="Restaurar"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onPermanentDelete(client.id!)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Eliminar permanentemente"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
                   ) : (
                     <Button
                       variant="ghost"

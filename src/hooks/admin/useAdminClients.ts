@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +27,7 @@ export const useAdminClients = (
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [showEditClientDialog, setShowEditClientDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [clientToPermanentDelete, setClientToPermanentDelete] = useState<string | null>(null);
   const [newClientData, setNewClientData] = useState<AdminClientData>({
     nombre: "",
     email: "",
@@ -292,6 +292,26 @@ export const useAdminClients = (
     }
   });
 
+  const permanentDeleteClient = useMutation({
+    mutationFn: async (clientId: string) => {
+      const { data, error } = await supabase
+        .from("usuarios")
+        .delete()
+        .eq("id", clientId);
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Cliente eliminado permanentemente");
+      queryClient.invalidateQueries({ queryKey: ["admin-clients"] });
+      setClientToPermanentDelete(null);
+    },
+    onError: (error: any) => {
+      toast.error(`Error al eliminar permanentemente el cliente: ${error.message}`);
+    }
+  });
+
   return {
     clients: data?.clients || [],
     totalItems: data?.totalCount || 0,
@@ -308,9 +328,12 @@ export const useAdminClients = (
     setEditClientData,
     clientToDelete,
     setClientToDelete,
+    clientToPermanentDelete,
+    setClientToPermanentDelete,
     createClient: (data: AdminClientData) => createClient.mutate(data),
     updateClient: (data: AdminClientData) => updateClient.mutate(data),
     deleteClient: (id: string) => deleteClient.mutate(id),
-    restoreClient: (id: string) => restoreClient.mutate(id)
+    restoreClient: (id: string) => restoreClient.mutate(id),
+    permanentDeleteClient: (id: string) => permanentDeleteClient.mutate(id)
   };
 };

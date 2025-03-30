@@ -40,10 +40,13 @@ interface ClientsManagementProps {
   setEditClientData: (data: AdminClientData) => void;
   clientToDelete: string | null;
   setClientToDelete: (id: string | null) => void;
+  clientToPermanentDelete: string | null;
+  setClientToPermanentDelete: (id: string | null) => void;
   createClient: (data: AdminClientData) => void;
   updateClient: (data: AdminClientData) => void;
   deleteClient: (id: string) => void;
   restoreClient: (id: string) => void;
+  permanentDeleteClient: (id: string) => void;
 }
 
 export const ClientsManagement: React.FC<ClientsManagementProps> = ({
@@ -67,10 +70,13 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
   setEditClientData,
   clientToDelete,
   setClientToDelete,
+  clientToPermanentDelete,
+  setClientToPermanentDelete,
   createClient,
   updateClient,
   deleteClient,
   restoreClient,
+  permanentDeleteClient,
 }) => {
   const handleEdit = (client: AdminClientData) => {
     setEditClientData({
@@ -86,6 +92,10 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
 
   const handleRestore = (id: string) => {
     restoreClient(id);
+  };
+
+  const handlePermanentDelete = (id: string) => {
+    setClientToPermanentDelete(id);
   };
 
   return (
@@ -131,6 +141,7 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
         onEdit={handleEdit}
         onDelete={handleDelete}
         onRestore={handleRestore}
+        onPermanentDelete={handlePermanentDelete}
         showDeleted={showDeleted}
       />
 
@@ -169,6 +180,27 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!clientToPermanentDelete} onOpenChange={() => setClientToPermanentDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Está seguro de eliminar permanentemente este cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente al cliente y todos sus datos asociados.
+              Esta operación no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clientToPermanentDelete && permanentDeleteClient(clientToPermanentDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar Permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

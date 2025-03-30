@@ -1,34 +1,59 @@
 
 import React, { useState } from "react";
-import DashboardLayout from "@/components/layouts/DashboardLayout";
+import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { toast } from "sonner";
-import { useStats } from "@/hooks/admin/useStats";
-import { useRecentActivity } from "@/hooks/admin/useRecentActivity";
-import { useTrainers } from "@/hooks/admin/useTrainers";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RecentActivity } from "@/components/admin/RecentActivity";
-import { TrainersManagement } from "@/components/admin/TrainersManagement";
 import { ResetDataDialog } from "@/components/admin/ResetDataDialog";
-import { UserRole } from "@/types/index";
+import { Button } from "@/components/ui/button";
 import { ClientsManagement } from "@/components/admin/ClientsManagement";
+import { TrainersManagement } from "@/components/admin/TrainersManagement";
+import { useStats } from "@/hooks/admin/useStats";
+import { useRecentActivity } from "@/hooks/admin/useRecentActivity";
 import { useAdminClients } from "@/hooks/admin/useAdminClients";
+import { useTrainers } from "@/hooks/admin/useTrainers";
+import { Database, RefreshCw, Users } from "lucide-react";
 
-const AdminDashboard = () => {
-  const [currentTab, setCurrentTab] = useState("dashboard");
+const Dashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState("resumen");
   const [searchTerm, setSearchTerm] = useState("");
+  const [trainerSearchTerm, setTrainerSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [trainerPage, setTrainerPage] = useState(1);
   const [showDeleted, setShowDeleted] = useState(false);
-  const pageSize = 10;
+  const [showDeletedTrainers, setShowDeletedTrainers] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
 
-  const { stats, isLoading: statsLoading, refetch: refetchStats } = useStats();
-  const { activity, isLoading: activityLoading, refetch: refetchActivity } = useRecentActivity();
+  const { data: statsData, isLoading: isLoadingStats } = useStats();
+  const { data: activityData, isLoading: isLoadingActivity } = useRecentActivity();
+
   const { 
-    trainers, 
-    isLoading: trainersLoading, 
-    refetch: refetchTrainers,
+    clients, 
+    totalItems,
+    isLoading: isLoadingClients, 
+    trainers: trainersList,
+    showNewClientDialog,
+    setShowNewClientDialog,
+    showEditClientDialog,
+    setShowEditClientDialog,
+    newClientData,
+    setNewClientData,
+    editClientData,
+    setEditClientData,
+    clientToDelete,
+    setClientToDelete,
+    clientToPermanentDelete,
+    setClientToPermanentDelete,
+    createClient,
+    updateClient,
+    deleteClient,
+    restoreClient,
+    permanentDeleteClient
+  } = useAdminClients(page, searchTerm, showDeleted);
+
+  const {
+    trainers,
+    isLoading: isLoadingTrainers,
     showNewTrainerDialog,
     setShowNewTrainerDialog,
     showEditTrainerDialog,
@@ -46,130 +71,123 @@ const AdminDashboard = () => {
     createTrainer,
     updateTrainer,
     deleteTrainer,
-    permanentDeleteTrainer,
-    restoreTrainer
-  } = useTrainers(page, searchTerm, showDeleted, pageSize);
-
-  const {
-    clients,
-    isLoading: clientsLoading,
-    refetch: refetchClients,
-    showNewClientDialog,
-    setShowNewClientDialog,
-    showEditClientDialog,
-    setShowEditClientDialog,
-    newClientData,
-    setNewClientData,
-    editClientData, 
-    setEditClientData,
-    clientToDelete,
-    setClientToDelete,
-    createClient,
-    updateClient,
-    deleteClient,
-    restoreClient
-  } = useAdminClients(page, searchTerm, showDeleted, pageSize);
-
-  const refreshData = () => {
-    refetchStats();
-    refetchTrainers();
-    refetchClients();
-    refetchActivity();
-    toast.info("Datos actualizados");
-  };
+    restoreTrainer,
+    permanentDeleteTrainer
+  } = useTrainers(trainerPage, trainerSearchTerm, showDeletedTrainers);
 
   return (
-    <DashboardLayout allowedRoles={[UserRole.ADMIN]}>
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Panel de Administración</h1>
-          <div className="flex gap-2">
-            <ResetDataDialog onResetComplete={refreshData} />
-            <Button onClick={refreshData} size="sm" variant="outline">
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Actualizar datos
-            </Button>
-          </div>
-        </div>
-        
-        <Tabs defaultValue="dashboard" value={currentTab} onValueChange={setCurrentTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="trainers">Entrenadores</TabsTrigger>
-            <TabsTrigger value="clients">Clientes</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="dashboard">
-            <div className="space-y-6">
-              <DashboardStats stats={stats} isLoading={statsLoading} />
-              <RecentActivity activity={activity} isLoading={activityLoading} />
+    <DashboardLayout>
+      <div className="container mx-auto p-6">
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col md:flex-row justify-between gap-4">
+            <h1 className="text-3xl font-bold">Panel Administrativo</h1>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowResetDialog(true)}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reiniciar Datos
+              </Button>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="trainers">
-            <TrainersManagement
-              trainers={trainers}
-              isLoading={trainersLoading}
-              searchTerm={searchTerm}
-              page={page}
-              pageSize={pageSize}
-              showDeleted={showDeleted}
-              setSearchTerm={setSearchTerm}
-              setPage={setPage}
-              setShowDeleted={setShowDeleted}
-              showNewTrainerDialog={showNewTrainerDialog}
-              setShowNewTrainerDialog={setShowNewTrainerDialog}
-              showEditTrainerDialog={showEditTrainerDialog}
-              setShowEditTrainerDialog={setShowEditTrainerDialog}
-              newTrainerData={newTrainerData}
-              setNewTrainerData={setNewTrainerData}
-              editTrainerData={editTrainerData}
-              setEditTrainerData={setEditTrainerData}
-              trainerToDelete={trainerToDelete}
-              setTrainerToDelete={setTrainerToDelete}
-              trainerToPermanentDelete={trainerToPermanentDelete}
-              setTrainerToPermanentDelete={setTrainerToPermanentDelete}
-              trainerToRestore={trainerToRestore}
-              setTrainerToRestore={setTrainerToRestore}
-              createTrainer={createTrainer}
-              updateTrainer={updateTrainer}
-              deleteTrainer={deleteTrainer}
-              permanentDeleteTrainer={permanentDeleteTrainer}
-              restoreTrainer={restoreTrainer}
-            />
-          </TabsContent>
-          
-          <TabsContent value="clients">
-            <ClientsManagement
-              clients={clients}
-              isLoading={clientsLoading}
-              searchTerm={searchTerm}
-              page={page}
-              pageSize={pageSize}
-              showDeleted={showDeleted}
-              setSearchTerm={setSearchTerm}
-              setPage={setPage}
-              setShowDeleted={setShowDeleted}
-              showNewClientDialog={showNewClientDialog}
-              setShowNewClientDialog={setShowNewClientDialog}
-              showEditClientDialog={showEditClientDialog}
-              setShowEditClientDialog={setShowEditClientDialog}
-              newClientData={newClientData}
-              setNewClientData={setNewClientData}
-              editClientData={editClientData}
-              setEditClientData={setEditClientData}
-              clientToDelete={clientToDelete}
-              setClientToDelete={setClientToDelete}
-              createClient={createClient}
-              updateClient={updateClient}
-              deleteClient={deleteClient}
-              restoreClient={restoreClient}
-            />
-          </TabsContent>
-        </Tabs>
+          </div>
+
+          <Tabs 
+            defaultValue="resumen" 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="space-y-4"
+          >
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="resumen">Resumen</TabsTrigger>
+              <TabsTrigger value="entrenadores" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Entrenadores
+              </TabsTrigger>
+              <TabsTrigger value="clientes" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Clientes
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="resumen" className="space-y-4">
+              <DashboardStats data={statsData} isLoading={isLoadingStats} />
+              <RecentActivity data={activityData} isLoading={isLoadingActivity} />
+            </TabsContent>
+
+            <TabsContent value="entrenadores">
+              <TrainersManagement
+                trainers={trainers}
+                isLoading={isLoadingTrainers}
+                searchTerm={trainerSearchTerm}
+                setSearchTerm={setTrainerSearchTerm}
+                page={trainerPage}
+                setPage={setTrainerPage}
+                showDeleted={showDeletedTrainers}
+                setShowDeleted={setShowDeletedTrainers}
+                showNewTrainerDialog={showNewTrainerDialog}
+                setShowNewTrainerDialog={setShowNewTrainerDialog}
+                showEditTrainerDialog={showEditTrainerDialog}
+                setShowEditTrainerDialog={setShowEditTrainerDialog}
+                newTrainerData={newTrainerData}
+                setNewTrainerData={setNewTrainerData}
+                editTrainerData={editTrainerData}
+                setEditTrainerData={setEditTrainerData}
+                trainerToDelete={trainerToDelete}
+                setTrainerToDelete={setTrainerToDelete}
+                trainerToPermanentDelete={trainerToPermanentDelete}
+                setTrainerToPermanentDelete={setTrainerToPermanentDelete}
+                trainerToRestore={trainerToRestore}
+                setTrainerToRestore={setTrainerToRestore}
+                createTrainer={createTrainer}
+                updateTrainer={updateTrainer}
+                deleteTrainer={deleteTrainer}
+                restoreTrainer={restoreTrainer}
+                permanentDeleteTrainer={permanentDeleteTrainer}
+              />
+            </TabsContent>
+
+            <TabsContent value="clientes">
+              <ClientsManagement
+                clients={clients}
+                isLoading={isLoadingClients}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                page={page}
+                pageSize={10}
+                totalItems={totalItems}
+                showDeleted={showDeleted}
+                setShowDeleted={setShowDeleted}
+                showNewClientDialog={showNewClientDialog}
+                setShowNewClientDialog={setShowNewClientDialog}
+                showEditClientDialog={showEditClientDialog}
+                setShowEditClientDialog={setShowEditClientDialog}
+                newClientData={newClientData}
+                setNewClientData={setNewClientData}
+                editClientData={editClientData}
+                setEditClientData={setEditClientData}
+                clientToDelete={clientToDelete}
+                setClientToDelete={setClientToDelete}
+                clientToPermanentDelete={clientToPermanentDelete}
+                setClientToPermanentDelete={setClientToPermanentDelete}
+                createClient={createClient}
+                updateClient={updateClient}
+                deleteClient={deleteClient}
+                restoreClient={restoreClient}
+                permanentDeleteClient={permanentDeleteClient}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
+
+      <ResetDataDialog
+        open={showResetDialog}
+        onOpenChange={setShowResetDialog}
+      />
     </DashboardLayout>
   );
 };
 
-export default AdminDashboard;
+export default Dashboard;
