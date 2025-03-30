@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +44,8 @@ export type TodaySchedule = {
     title: string;
     time: string;
     duration: number;
+    status: string;
+    date: Date;
   }[];
 };
 
@@ -200,10 +201,9 @@ export const useClientDashboard = () => {
 
         const { data: appointments } = await supabase
           .from("citas")
-          .select("id, titulo, fecha, tipo, descripcion")
+          .select("id, titulo, fecha, duracion, estado, tipo")
           .eq("cliente_id", clientId)
-          .gte("fecha", startDateStr)
-          .lte("fecha", endDateStr)
+          .gte("fecha", currentDate.toISOString())
           .order("fecha", { ascending: true });
 
         const appointmentItems: ActivityItem[] = (appointments || []).map(apt => ({
@@ -356,10 +356,9 @@ export const useClientDashboard = () => {
 
         const { data: appointments } = await supabase
           .from("citas")
-          .select("id, titulo, fecha, duracion")
+          .select("id, titulo, fecha, duracion, estado, tipo")
           .eq("cliente_id", clientId)
           .gte("fecha", currentDate.toISOString())
-          .lt("fecha", tomorrow.toISOString())
           .order("fecha", { ascending: true });
 
         const appointmentItems: TodaySchedule["appointments"] = (appointments || []).map(apt => ({
@@ -367,6 +366,8 @@ export const useClientDashboard = () => {
           title: apt.titulo,
           time: format(new Date(apt.fecha), "HH:mm"),
           duration: apt.duracion,
+          status: apt.estado || "programada",
+          date: new Date(apt.fecha)
         }));
 
         return {
