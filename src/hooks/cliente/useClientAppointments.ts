@@ -13,7 +13,7 @@ export type ClientAppointment = {
   fecha: string;
   duracion: number;
   entrenador_id: string;
-  estado: "programada" | "completada" | "cancelada";
+  estado: "programada" | "completada" | "cancelada" | "pendiente";
   entrenador_nombre?: string;
   formattedDate?: string;
 };
@@ -85,11 +85,11 @@ export const useClientAppointments = () => {
       // Separamos en citas próximas y pasadas
       const now = new Date();
       const upcoming = processedAppointments.filter(
-        app => isAfter(parseISO(app.fecha), now) && app.estado === "programada"
+        app => isAfter(parseISO(app.fecha), now) && (app.estado === "programada" || app.estado === "pendiente")
       );
       
       const past = processedAppointments.filter(
-        app => isBefore(parseISO(app.fecha), now) || app.estado !== "programada"
+        app => isBefore(parseISO(app.fecha), now) || (app.estado !== "programada" && app.estado !== "pendiente")
       );
 
       setAppointments(processedAppointments);

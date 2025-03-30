@@ -66,6 +66,38 @@ const ClientAppointments = () => {
     }
   };
 
+  // Función para obtener la etiqueta de estado
+  const getStatusBadge = (estado: string) => {
+    switch (estado) {
+      case "pendiente":
+        return (
+          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+            Pendiente
+          </span>
+        );
+      case "programada":
+        return (
+          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+            Programada
+          </span>
+        );
+      case "completada":
+        return (
+          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+            Completada
+          </span>
+        );
+      case "cancelada":
+        return (
+          <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
+            Cancelada
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <DashboardLayout allowedRoles={[UserRole.CLIENT]}>
       <div className="space-y-4">
@@ -92,7 +124,10 @@ const ClientAppointments = () => {
                   {upcomingAppointments.map((appointment) => (
                     <div key={appointment.id} className="flex items-center justify-between border-b pb-2">
                       <div>
-                        <p className="font-medium">{appointment.titulo}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{appointment.titulo}</p>
+                          {getStatusBadge(appointment.estado)}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {appointment.formattedDate}
                         </p>
@@ -106,7 +141,9 @@ const ClientAppointments = () => {
                           </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
-                              <DialogTitle>{appointment.titulo}</DialogTitle>
+                              <DialogTitle className="flex items-center gap-2">
+                                {appointment.titulo} {getStatusBadge(appointment.estado)}
+                              </DialogTitle>
                               <DialogDescription>
                                 {appointment.formattedDate} - Duración: {appointment.duracion} minutos
                               </DialogDescription>
@@ -126,28 +163,30 @@ const ClientAppointments = () => {
                           </DialogContent>
                         </Dialog>
                         
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm" className="bg-destructive/10 hover:bg-destructive/20 border-destructive/20">
-                              <X className="h-4 w-4 mr-1" />
-                              Cancelar
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta acción no se puede deshacer. Cancelarás tu cita programada.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Volver</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => cancelAppointment(appointment.id)}>
-                                Sí, cancelar cita
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        {(appointment.estado === "programada" || appointment.estado === "pendiente") && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" className="bg-destructive/10 hover:bg-destructive/20 border-destructive/20">
+                                <X className="h-4 w-4 mr-1" />
+                                Cancelar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Cancelarás tu cita {appointment.estado === "pendiente" ? "solicitada" : "programada"}.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Volver</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => cancelAppointment(appointment.id)}>
+                                  Sí, cancelar cita
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -267,16 +306,7 @@ const ClientAppointments = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{appointment.titulo}</p>
-                          {appointment.estado === "cancelada" && (
-                            <span className="text-xs bg-destructive/10 text-destructive px-2 py-0.5 rounded-full">
-                              Cancelada
-                            </span>
-                          )}
-                          {appointment.estado === "completada" && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                              Completada
-                            </span>
-                          )}
+                          {getStatusBadge(appointment.estado)}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {appointment.formattedDate}
@@ -290,7 +320,9 @@ const ClientAppointments = () => {
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>{appointment.titulo}</DialogTitle>
+                            <DialogTitle className="flex items-center gap-2">
+                              {appointment.titulo} {getStatusBadge(appointment.estado)}
+                            </DialogTitle>
                             <DialogDescription>
                               {appointment.formattedDate} - Duración: {appointment.duracion} minutos
                             </DialogDescription>
@@ -311,7 +343,8 @@ const ClientAppointments = () => {
                             <h4 className="text-sm font-medium mb-2">Estado:</h4>
                             <p className="text-sm text-muted-foreground">
                               {appointment.estado === 'completada' ? 'Completada' : 
-                               appointment.estado === 'cancelada' ? 'Cancelada' : 'Pendiente'}
+                               appointment.estado === 'cancelada' ? 'Cancelada' : 
+                               appointment.estado === 'pendiente' ? 'Pendiente' : 'Programada'}
                             </p>
                           </div>
                         </DialogContent>
