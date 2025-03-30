@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, UserRole } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -34,31 +36,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       setLoading(true);
       
-      // TODO: Implementar la validación con Supabase
-      // Por ahora, simularemos un usuario para desarrollo
+      // Consultar a Supabase para encontrar al usuario
+      const { data, error } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('username', username)
+        .eq('password', password)
+        .single();
       
-      // En producción, esto se reemplazará con una consulta a Supabase
-      const mockUser: User = {
-        id: "1",
-        username,
+      if (error || !data) {
+        throw new Error("Credenciales inválidas");
+      }
+      
+      // Convertir el resultado de Supabase a nuestro tipo User
+      const loggedInUser: User = {
+        id: data.id,
+        username: data.username,
         password: "", // No almacenar contraseñas en el cliente
-        role: username.includes("admin") 
-          ? UserRole.ADMIN 
-          : username.includes("entrenador") 
-            ? UserRole.TRAINER 
-            : UserRole.CLIENT,
-        name: "Usuario de Prueba",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        role: data.role as UserRole,
+        name: data.nombre,
+        email: data.email || undefined,
+        phone: data.telefono || undefined,
+        createdAt: new Date(data.creado_en),
+        updatedAt: new Date(data.actualizado_en),
+        deleted: data.eliminado || false,
+        trainerId: data.entrenador_id || undefined
       };
       
-      setUser(mockUser);
-      localStorage.setItem("kraftUser", JSON.stringify(mockUser));
+      setUser(loggedInUser);
+      localStorage.setItem("kraftUser", JSON.stringify(loggedInUser));
       
       // Redirigir según el rol
-      if (mockUser.role === UserRole.ADMIN) {
+      if (loggedInUser.role === UserRole.ADMIN) {
         navigate("/admin/dashboard");
-      } else if (mockUser.role === UserRole.TRAINER) {
+      } else if (loggedInUser.role === UserRole.TRAINER) {
         navigate("/entrenador/dashboard");
       } else {
         navigate("/cliente/dashboard");
