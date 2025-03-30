@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,8 +34,7 @@ export const useProgress = () => {
 
         console.log("Consultando mediciones para usuario:", user.id);
         
-        // Check for measurements in the database using correct column names
-        // The error indicated 'created_at' doesn't exist, so let's remove it
+        // Check for measurements in the database using the right column names
         const { data, error } = await supabase
           .from("progreso")
           .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, cliente_id")
@@ -103,9 +101,7 @@ export const useProgress = () => {
     };
   };
 
-  const changes = calculateChanges();
-
-  // Mutación para añadir una nueva medición - Sin RLS
+  // Mutación para añadir una nueva medición
   const { mutate: addMeasurement, isPending: isAddingMeasurement } = useMutation({
     mutationFn: async (newMeasurement: NewMeasurement) => {
       try {
@@ -130,27 +126,20 @@ export const useProgress = () => {
         
         console.log("Fecha formateada:", currentDateString);
         
-        // Preparamos los datos a insertar
-        const measurementData = {
-          cliente_id: user.id,
-          peso: newMeasurement.peso,
-          grasa_corporal: newMeasurement.grasa_corporal || null,
-          masa_muscular: newMeasurement.masa_muscular || null,
-          notas: newMeasurement.notas || null,
-          fecha: currentDateString,
-        };
-        
-        console.log("Datos completos a insertar:", measurementData);
-        
-        // Usamos la función RPC para insertar sin restricciones de RLS
-        const { data, error } = await supabase.rpc('insertar_medicion_progreso', {
-          p_cliente_id: user.id,
-          p_peso: newMeasurement.peso,
-          p_grasa_corporal: newMeasurement.grasa_corporal || null,
-          p_masa_muscular: newMeasurement.masa_muscular || null,
-          p_notas: newMeasurement.notas || null,
-          p_fecha: currentDateString
-        });
+        // Ahora insertamos directamente en la tabla progreso
+        // Utilizaremos inserción directa en vez de RPC ya que hemos configurado RLS
+        const { data, error } = await supabase
+          .from('progreso')
+          .insert({
+            cliente_id: user.id,
+            peso: newMeasurement.peso,
+            grasa_corporal: newMeasurement.grasa_corporal || null,
+            masa_muscular: newMeasurement.masa_muscular || null,
+            notas: newMeasurement.notas || null,
+            fecha: currentDateString
+          })
+          .select()
+          .single();
         
         if (error) {
           console.error("Error al insertar medición:", error);
@@ -169,10 +158,7 @@ export const useProgress = () => {
       toast.success("Medición registrada correctamente");
       
       // Forzar una invalidación y recarga de los datos inmediatamente
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
-        queryClient.refetchQueries({ queryKey: ["progress", user?.id] });
-      }, 500);
+      queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
       
       setIsDialogOpen(false);
     },
@@ -206,12 +192,56 @@ export const useProgress = () => {
   return {
     measurements,
     isLoadingMeasurements,
-    latestMeasurement,
-    changes,
+    latestMeasurement: measurements && measurements.length > 0 ? measurements[0] : null,
+    changes: calculateChanges(),
     addMeasurement,
     isAddingMeasurement,
     chartData: formatChartData(),
     isDialogOpen,
     setIsDialogOpen
   };
+  
+  // Calcular cambios desde la primera medición
+  function calculateChanges() {
+    if (!measurements || measurements.length < 2) {
+      return {
+        pesoChange: null,
+        grasaChange: null,
+        musculoChange: null
+      };
+    }
+
+    const latestMeasurement = measurements[0];
+    const firstMeasurement = measurements[measurements.length - 1];
+
+    return {
+      pesoChange: +(latestMeasurement.peso - firstMeasurement.peso).toFixed(1),
+      grasaChange: latestMeasurement.grasa_corporal !== null && firstMeasurement.grasa_corporal !== null
+        ? +(latestMeasurement.grasa_corporal - firstMeasurement.grasa_corporal).toFixed(1)
+        : null,
+      musculoChange: latestMeasurement.masa_muscular !== null && firstMeasurement.masa_muscular !== null
+        ? +(latestMeasurement.masa_muscular - firstMeasurement.masa_muscular).toFixed(1)
+        : null
+    };
+  }
+  
+  // Formatear datos para gráficas
+  function formatChartData() {
+    if (!measurements || measurements.length === 0) return [];
+    
+    // Ordenar por fecha ascendente para gráficas
+    const sortedData = [...measurements].sort((a, b) => 
+      new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+    );
+    
+    return sortedData.map(m => ({
+      name: new Date(m.fecha).toLocaleDateString('es-ES', { 
+        day: '2-digit', 
+        month: 'short' 
+      }),
+      peso: m.peso,
+      grasa: m.grasa_corporal || undefined,
+      musculo: m.masa_muscular || undefined
+    }));
+  }
 };
