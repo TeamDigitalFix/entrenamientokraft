@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -160,6 +161,9 @@ export const CitaForm = ({
           <DialogTitle>
             {tipo === "crear" ? "Nueva Cita" : "Editar Cita"}
           </DialogTitle>
+          <DialogDescription>
+            Complete los detalles para {tipo === "crear" ? "crear una nueva cita" : "editar la cita"}
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

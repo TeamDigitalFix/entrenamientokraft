@@ -88,10 +88,16 @@ export const useCitas = (entrenadorId: string) => {
   // Crear una nueva cita
   const crearCita = async (nuevaCita: NuevaCita) => {
     try {
+      // Asegurarse de que el estado sea válido
+      const validatedCita = {
+        ...nuevaCita,
+        estado: validateCitaStatus(nuevaCita.estado)
+      };
+      
       // Primero hacemos la inserción básica
       const { data, error } = await supabase
         .from("citas")
-        .insert(nuevaCita)
+        .insert(validatedCita)
         .select()
         .single();
 
@@ -137,10 +143,16 @@ export const useCitas = (entrenadorId: string) => {
   // Actualizar una cita existente
   const actualizarCita = async (id: string, updates: Partial<Cita>) => {
     try {
+      // Asegurarse de que el estado sea válido si se está actualizando
+      const validatedUpdates = {
+        ...updates,
+        estado: updates.estado ? validateCitaStatus(updates.estado) : undefined
+      };
+      
       // Realizar la actualización
       const { data, error } = await supabase
         .from("citas")
-        .update(updates)
+        .update(validatedUpdates)
         .eq("id", id)
         .select()
         .single();
@@ -166,7 +178,7 @@ export const useCitas = (entrenadorId: string) => {
       const citaWithValidTypes = {
         ...data,
         estado: validateCitaStatus(data.estado),
-        cliente: clienteData ? { nombre: clienteData.nombre } : undefined
+        cliente: clienteData ? { nombre: clienteData.nombre } : updates.cliente
       } as Cita;
 
       setCitas((prevCitas) =>
