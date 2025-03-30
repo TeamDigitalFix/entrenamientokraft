@@ -11,7 +11,19 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Menu } from "lucide-react";
+import { 
+  Menu, 
+  Dumbbell, 
+  Utensils, 
+  Calendar, 
+  MessageSquare, 
+  FileText, 
+  Home, 
+  BarChart2, 
+  Users, 
+  Activity,
+  Pizza
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,9 +62,11 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
           {user.role === UserRole.ADMIN && (
             <>
               <Link to="/admin/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Home className="h-4 w-4 mr-2" />
                 Dashboard
               </Link>
               <Link to="/admin/entrenadores" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Users className="h-4 w-4 mr-2" />
                 Entrenadores
               </Link>
             </>
@@ -60,32 +74,62 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
           {user.role === UserRole.TRAINER && (
             <>
               <Link to="/entrenador/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Home className="h-4 w-4 mr-2" />
                 Dashboard
               </Link>
               <Link to="/entrenador/clientes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Users className="h-4 w-4 mr-2" />
                 Clientes
               </Link>
               <Link to="/entrenador/ejercicios" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Activity className="h-4 w-4 mr-2" />
                 Ejercicios
               </Link>
               <Link to="/entrenador/alimentos" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Pizza className="h-4 w-4 mr-2" />
                 Alimentos
               </Link>
               <Link to="/entrenador/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Calendar className="h-4 w-4 mr-2" />
                 Citas
               </Link>
               <Link to="/entrenador/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <MessageSquare className="h-4 w-4 mr-2" />
                 Mensajes
               </Link>
               <Link to="/entrenador/informes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <FileText className="h-4 w-4 mr-2" />
                 Informes
               </Link>
             </>
           )}
           {user.role === UserRole.CLIENT && (
-            <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-              Dashboard
-            </Link>
+            <>
+              <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Home className="h-4 w-4 mr-2" />
+                Dashboard
+              </Link>
+              <Link to="/cliente/rutina" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Dumbbell className="h-4 w-4 mr-2" />
+                Mi Rutina
+              </Link>
+              <Link to="/cliente/dieta" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Utensils className="h-4 w-4 mr-2" />
+                Mi Dieta
+              </Link>
+              <Link to="/cliente/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <Calendar className="h-4 w-4 mr-2" />
+                Mis Citas
+              </Link>
+              <Link to="/cliente/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Mensajes
+              </Link>
+              <Link to="/cliente/progreso" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                <BarChart2 className="h-4 w-4 mr-2" />
+                Mi Progreso
+              </Link>
+            </>
           )}
         </nav>
         <div className="p-4">
@@ -114,9 +158,11 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
             {user.role === UserRole.ADMIN && (
               <>
                 <Link to="/admin/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Home className="h-4 w-4 mr-2" />
                   Dashboard
                 </Link>
                 <Link to="/admin/entrenadores" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Users className="h-4 w-4 mr-2" />
                   Entrenadores
                 </Link>
               </>
@@ -124,32 +170,62 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
             {user.role === UserRole.TRAINER && (
               <>
                 <Link to="/entrenador/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Home className="h-4 w-4 mr-2" />
                   Dashboard
                 </Link>
                 <Link to="/entrenador/clientes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Users className="h-4 w-4 mr-2" />
                   Clientes
                 </Link>
                 <Link to="/entrenador/ejercicios" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Activity className="h-4 w-4 mr-2" />
                   Ejercicios
                 </Link>
                 <Link to="/entrenador/alimentos" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Pizza className="h-4 w-4 mr-2" />
                   Alimentos
                 </Link>
                 <Link to="/entrenador/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Calendar className="h-4 w-4 mr-2" />
                   Citas
                 </Link>
                 <Link to="/entrenador/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <MessageSquare className="h-4 w-4 mr-2" />
                   Mensajes
                 </Link>
                 <Link to="/entrenador/informes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <FileText className="h-4 w-4 mr-2" />
                   Informes
                 </Link>
               </>
             )}
             {user.role === UserRole.CLIENT && (
-              <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                Dashboard
-              </Link>
+              <>
+                <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Home className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Link>
+                <Link to="/cliente/rutina" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Dumbbell className="h-4 w-4 mr-2" />
+                  Mi Rutina
+                </Link>
+                <Link to="/cliente/dieta" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Utensils className="h-4 w-4 mr-2" />
+                  Mi Dieta
+                </Link>
+                <Link to="/cliente/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Mis Citas
+                </Link>
+                <Link to="/cliente/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Mensajes
+                </Link>
+                <Link to="/cliente/progreso" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+                  <BarChart2 className="h-4 w-4 mr-2" />
+                  Mi Progreso
+                </Link>
+              </>
             )}
           </nav>
           <div className="p-4">

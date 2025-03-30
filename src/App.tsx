@@ -25,10 +25,15 @@ import TrainerReports from "./pages/entrenador/Reports";
 
 // Páginas de cliente
 import ClientDashboard from "./pages/cliente/Dashboard";
+import ClientRoutine from "./pages/cliente/Routine";
+import ClientDiet from "./pages/cliente/Diet";
+import ClientAppointments from "./pages/cliente/Appointments";
+import ClientMessages from "./pages/cliente/Messages";
+import ClientProgress from "./pages/cliente/Progress";
 
 // Páginas de gestión de clientes
-import ClientRoutine from "./pages/entrenador/ClientRoutine";
-import ClientDiet from "./pages/entrenador/ClientDiet";
+import TrainerClientRoutine from "./pages/entrenador/ClientRoutine";
+import TrainerClientDiet from "./pages/entrenador/ClientDiet";
 
 // Página de 404
 import NotFound from "./pages/NotFound";
@@ -64,11 +69,16 @@ const App = () => (
               <Route path="/entrenador/informes" element={<TrainerReports />} />
               
               {/* Rutas de gestión de clientes específicos */}
-              <Route path="/entrenador/cliente/:clientId/rutina" element={<ClientRoutine />} />
-              <Route path="/entrenador/cliente/:clientId/dieta" element={<ClientDiet />} />
+              <Route path="/entrenador/cliente/:clientId/rutina" element={<TrainerClientRoutine />} />
+              <Route path="/entrenador/cliente/:clientId/dieta" element={<TrainerClientDiet />} />
               
               {/* Rutas de cliente */}
               <Route path="/cliente/dashboard" element={<ClientDashboard />} />
+              <Route path="/cliente/rutina" element={<ClientRoutine />} />
+              <Route path="/cliente/dieta" element={<ClientDiet />} />
+              <Route path="/cliente/citas" element={<ClientAppointments />} />
+              <Route path="/cliente/mensajes" element={<ClientMessages />} />
+              <Route path="/cliente/progreso" element={<ClientProgress />} />
               
               {/* Ruta 404 */}
               <Route path="*" element={<NotFound />} />
