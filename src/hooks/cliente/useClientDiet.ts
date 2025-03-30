@@ -17,7 +17,7 @@ export type ClientMeal = {
   fat: number;
   quantity: number;
   mealType: string;
-  date: string; // Changed from day (number) to date (string)
+  date: string; // Changed to be consistently a string (YYYY-MM-DD format)
   completed?: boolean;
   imageUrl?: string | null;
 };
@@ -91,8 +91,8 @@ export const useClientDiet = (): ClientDietHook => {
 
         if (mealsError) throw mealsError;
 
-        // Format meals by day and convert day number to formatted date
-        const transformedMeals = meals?.map(meal => ({
+        // Format meals by date
+        const transformedMeals: ClientMeal[] = meals?.map(meal => ({
           id: meal.id,
           foodName: meal.alimentos?.nombre || "Alimento sin nombre",
           foodCategory: meal.alimentos?.categoria || "Sin categoría",
@@ -102,17 +102,17 @@ export const useClientDiet = (): ClientDietHook => {
           fat: Math.round((meal.alimentos?.grasas || 0) * meal.cantidad / 100),
           quantity: meal.cantidad,
           mealType: meal.tipo_comida,
-          date: meal.dia, // We'll continue using the dia field for backward compatibility 
+          date: meal.dia.toString(), // Ensure it's always a string
           imageUrl: meal.alimentos?.imagen_url
-        })) as ClientMeal[];
+        }));
 
-        // Group meals by formatted date
+        // Group meals by date
         const mealsByDate: { [key: string]: ClientMeal[] } = {};
-        const uniqueDates = [...new Set(transformedMeals.map(meal => meal.date.toString()))].sort();
+        const uniqueDates = [...new Set(transformedMeals.map(meal => meal.date))].sort();
         
         uniqueDates.forEach(date => {
           mealsByDate[date] = transformedMeals.filter(
-            meal => meal.date.toString() === date
+            meal => meal.date === date
           );
         });
 

@@ -15,7 +15,7 @@ export type ClientRoutineExercise = {
   weight?: number;
   muscleGroup: string;
   notes?: string;
-  date: string; // Changed from day (number) to date (string)
+  date: string; // Changed to be consistently a string (YYYY-MM-DD format)
   completed: boolean;
   imageUrl?: string | null;
   videoUrl?: string | null;
@@ -98,7 +98,7 @@ export const useClientRoutine = () => {
         const completedIds = new Set(completedExercises?.map(e => e.rutina_ejercicio_id) || []);
 
         // Format exercises by date
-        const transformedExercises = exercises?.map(exercise => ({
+        const transformedExercises: ClientRoutineExercise[] = exercises?.map(exercise => ({
           id: exercise.id,
           name: exercise.ejercicios?.nombre || "Ejercicio sin nombre",
           sets: exercise.series,
@@ -106,11 +106,11 @@ export const useClientRoutine = () => {
           weight: exercise.peso,
           muscleGroup: exercise.ejercicios?.grupo_muscular || "Sin grupo",
           notes: exercise.notas,
-          date: exercise.dia.toString(), // We'll continue using the dia field for backward compatibility
+          date: exercise.dia.toString(), // Ensure it's always a string
           completed: completedIds.has(exercise.id),
           imageUrl: exercise.ejercicios?.imagen_url,
           videoUrl: exercise.ejercicios?.video_url
-        })) as ClientRoutineExercise[];
+        }));
 
         // Group exercises by date
         const exercisesByDate: ExercisesByDate = {};
