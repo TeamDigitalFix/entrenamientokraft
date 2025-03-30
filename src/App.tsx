@@ -15,6 +15,12 @@ import TrainersPage from "./pages/admin/Trainers";
 
 // Páginas de entrenador
 import TrainerDashboard from "./pages/entrenador/Dashboard";
+import TrainerClients from "./pages/entrenador/Clients";
+import TrainerExercises from "./pages/entrenador/Exercises";
+import TrainerFoods from "./pages/entrenador/Foods";
+import TrainerAppointments from "./pages/entrenador/Appointments";
+import TrainerMessages from "./pages/entrenador/Messages";
+import TrainerReports from "./pages/entrenador/Reports";
 
 // Páginas de cliente
 import ClientDashboard from "./pages/cliente/Dashboard";
@@ -44,6 +50,12 @@ const App = () => (
             
             {/* Rutas de entrenador */}
             <Route path="/entrenador/dashboard" element={<TrainerDashboard />} />
+            <Route path="/entrenador/clientes" element={<TrainerClients />} />
+            <Route path="/entrenador/ejercicios" element={<TrainerExercises />} />
+            <Route path="/entrenador/alimentos" element={<TrainerFoods />} />
+            <Route path="/entrenador/citas" element={<TrainerAppointments />} />
+            <Route path="/entrenador/mensajes" element={<TrainerMessages />} />
+            <Route path="/entrenador/informes" element={<TrainerReports />} />
             
             {/* Rutas de cliente */}
             <Route path="/cliente/dashboard" element={<ClientDashboard />} />
