@@ -12,6 +12,27 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useExerciseToggle } from "@/hooks/cliente/useExerciseToggle";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
+// Función auxiliar para extraer el ID de video de YouTube
+const extractYouTubeVideoId = (url: string): string | null => {
+  if (!url) return null;
+  
+  // Patrones comunes de URL de YouTube
+  const patterns = [
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)/i,
+    /(?:https?:\/\/)?(?:www\.)?youtu\.be\/([^?]+)/i,
+    /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  return null;
+};
+
 const ClientRoutine = () => {
   const { routine, isLoading, activeDay, setActiveDay, dayNames } = useClientRoutine();
   const { toggleExerciseCompletion, isPending } = useExerciseToggle();
@@ -113,21 +134,31 @@ const ClientRoutine = () => {
                                       <div className="relative">
                                         <p className="text-sm font-medium mb-1">Video tutorial</p>
                                         <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
-                                          <div className="absolute inset-0 flex items-center justify-center">
-                                            <a 
-                                              href={exercise.videoUrl} 
-                                              target="_blank" 
-                                              rel="noopener noreferrer"
-                                              className="bg-primary text-white rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
-                                            >
-                                              <Play className="h-5 w-5" />
-                                            </a>
-                                          </div>
-                                          <img 
-                                            src={exercise.imageUrl || "/placeholder.svg"} 
-                                            alt={`Video de ${exercise.name}`}
-                                            className="object-cover w-full h-full opacity-70"
-                                          />
+                                          {extractYouTubeVideoId(exercise.videoUrl) ? (
+                                            <iframe
+                                              src={`https://www.youtube.com/embed/${extractYouTubeVideoId(exercise.videoUrl)}`}
+                                              title={`Video de ${exercise.name}`}
+                                              className="w-full h-full border-0"
+                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                              allowFullScreen
+                                            ></iframe>
+                                          ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                              <a 
+                                                href={exercise.videoUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="bg-primary text-white rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
+                                              >
+                                                <Play className="h-5 w-5" />
+                                              </a>
+                                              <img 
+                                                src={exercise.imageUrl || "/placeholder.svg"} 
+                                                alt={`Video de ${exercise.name}`}
+                                                className="object-cover w-full h-full opacity-70"
+                                              />
+                                            </div>
+                                          )}
                                         </AspectRatio>
                                       </div>
                                     )}
