@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -57,7 +56,6 @@ const TrainerClients = () => {
     recoverClient
   } = useClients(searchTerm);
 
-  // Limpia los estados al montar y desmontar el componente
   useEffect(() => {
     setShowNewClientDialog(false);
     setShowEditClientDialog(false);
@@ -252,7 +250,6 @@ const TrainerClients = () => {
         </Card>
       </div>
 
-      {/* Diálogo de Creación de Cliente */}
       <ClientForm
         open={showNewClientDialog}
         onOpenChange={setShowNewClientDialog}
@@ -262,7 +259,6 @@ const TrainerClients = () => {
         onSubmit={handleCreateClient}
       />
 
-      {/* Diálogo de Edición de Cliente */}
       <ClientForm
         open={showEditClientDialog}
         onOpenChange={setShowEditClientDialog}
@@ -273,7 +269,6 @@ const TrainerClients = () => {
         isEdit={true}
       />
 
-      {/* Diálogo de Confirmación de Eliminación */}
       <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

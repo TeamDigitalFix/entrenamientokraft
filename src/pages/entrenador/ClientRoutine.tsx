@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -12,29 +13,13 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import RutinaEjercicioForm from "@/components/entrenador/RutinaEjercicioForm";
+import { Ejercicio } from "@/types/ejercicios";
 
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 const mapDiaNumeroANombre = (diaNumero: number): string => {
   return diasSemana[diaNumero - 1] || "Desconocido";
 };
-
-interface Ejercicio {
-  id: string;
-  nombre: string;
-  series: number;
-  repeticiones: number;
-  dia: number;
-  notas?: string | null;
-  peso?: string | number | null;
-  rutina_id: string;
-  ejercicio_id: string;
-  ejercicios?: {
-    nombre: string;
-    grupo_muscular: string;
-    descripcion?: string | null;
-  };
-}
 
 interface Rutina {
   id: string;
@@ -63,9 +48,10 @@ const ClientRoutine = () => {
       try {
         setLoading(true);
         
+        // Only select 'nombre' since 'ultimo_ingreso' might not exist in the table
         const { data: clientData, error: clientError } = await supabase
           .from("usuarios")
-          .select("nombre, ultimo_ingreso")
+          .select("nombre")
           .eq("id", clientId)
           .single();
         
@@ -263,10 +249,10 @@ const ClientRoutine = () => {
                                     </div>
                                   )}
                                   
-                                  {ejercicio.ejercicio && (
+                                  {ejercicio.ejercicios && (
                                     <div>
                                       <h4 className="text-sm font-medium mb-1">Grupo muscular</h4>
-                                      <Badge variant="outline">{ejercicio.ejercicio.grupo_muscular}</Badge>
+                                      <Badge variant="outline">{ejercicio.ejercicios.grupo_muscular}</Badge>
                                     </div>
                                   )}
                                   
@@ -277,10 +263,10 @@ const ClientRoutine = () => {
                                     </div>
                                   )}
                                   
-                                  {ejercicio.ejercicio?.descripcion && (
+                                  {ejercicio.ejercicios?.descripcion && (
                                     <div className="col-span-full">
                                       <h4 className="text-sm font-medium mb-1">Descripción</h4>
-                                      <p className="text-sm text-muted-foreground">{ejercicio.ejercicio.descripcion}</p>
+                                      <p className="text-sm text-muted-foreground">{ejercicio.ejercicios.descripcion}</p>
                                     </div>
                                   )}
                                 </div>
