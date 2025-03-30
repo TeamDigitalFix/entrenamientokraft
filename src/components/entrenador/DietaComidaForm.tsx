@@ -117,7 +117,7 @@ const DietaComidaForm = ({
           .insert({
             cliente_id: clienteId,
             nombre: "Plan alimenticio personalizado",
-            fecha_inicio: new Date().toISOString().split('T')[0],
+            fecha_inicio: format(new Date(), "yyyy-MM-dd"),
           })
           .select()
           .single();
@@ -128,7 +128,7 @@ const DietaComidaForm = ({
       }
 
       // Convert date to YYYY-MM-DD format
-      // Asegurarnos que la fecha esté en formato ISO sin la parte de tiempo
+      // Aseguramos que la fecha se guarde en formato correcto para Supabase
       const formattedDate = format(values.fecha, "yyyy-MM-dd");
       
       // Insert the meal into the diet
@@ -263,7 +263,7 @@ const DietaComidaForm = ({
                       onSelect={field.onChange}
                       disabled={loading}
                       locale={es}
-                      className={cn("p-3 pointer-events-auto")}
+                      className="p-3"
                     />
                   </PopoverContent>
                 </Popover>
