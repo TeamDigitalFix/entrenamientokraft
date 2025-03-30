@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { format, isToday, parseISO, subDays } from "date-fns";
+import { format, isToday, parseISO, subDays, startOfWeek, eachDayOfInterval } from "date-fns";
 import { es } from "date-fns/locale";
 
 export type DashboardStats = {
@@ -94,24 +94,22 @@ export const useDashboard = () => {
         if (messagesError) throw messagesError;
 
         // Ejercicios completados hoy
-        const { data: exercisesData, error: exercisesError } = await supabase
-          .from("ejercicios_diarios")
-          .select("cantidad")
-          .eq("entrenador_id", user.id)
-          .eq("fecha", format(new Date(), "yyyy-MM-dd"));
+        const today = new Date().toISOString().split('T')[0];
+        
+        const { data: completedExercisesData, error: completedExercisesError } = await supabase
+          .from("ejercicios_completados")
+          .select("id")
+          .eq("fecha_completado::date", today)
+          .in("cliente_id", clientsData.map(client => client.id));
           
-        if (exercisesError) throw exercisesError;
-
-        const completedToday = exercisesData.length > 0 
-          ? exercisesData.reduce((sum, item) => sum + item.cantidad, 0) 
-          : 0;
+        if (completedExercisesError) throw completedExercisesError;
 
         return {
           totalClients: clientsData.length,
           activeClients: activeClients.length,
           upcomingAppointments: appointmentsData.length,
           unreadMessages: messagesData.length,
-          completedToday
+          completedToday: completedExercisesData.length
         } as DashboardStats;
       } catch (error) {
         console.error("Error al cargar estadísticas del dashboard:", error);
@@ -277,65 +275,88 @@ export const useDashboard = () => {
         if (!user?.id) return [];
 
         const today = new Date();
-        const sevenDaysAgo = subDays(today, 6); // Para tener 7 días completos
+        const startDate = startOfWeek(today, { weekStartsOn: 1 }); // Lunes como inicio de semana
         
-        // Formatear fechas para la consulta
-        const startDate = format(sevenDaysAgo, "yyyy-MM-dd");
-        const endDate = format(today, "yyyy-MM-dd");
+        // Obtener todos los días de la semana actual
+        const weekDates = eachDayOfInterval({
+          start: startDate,
+          end: today
+        });
         
-        // Obtener sesiones diarias
-        const { data: sessionsData, error: sessionsError } = await supabase
-          .from("sesiones_diarias")
-          .select("dia_semana, completada")
+        // Formatear fechas para consultas
+        const formattedDates = weekDates.map(date => format(date, 'yyyy-MM-dd'));
+        
+        // Obtener IDs de clientes del entrenador
+        const { data: clientsData, error: clientsError } = await supabase
+          .from("usuarios")
+          .select("id")
           .eq("entrenador_id", user.id)
-          .gte("fecha", startDate)
-          .lte("fecha", endDate)
-          .order("fecha", { ascending: true });
+          .eq("role", "cliente")
+          .eq("eliminado", false);
           
-        if (sessionsError) throw sessionsError;
+        if (clientsError) throw clientsError;
         
-        // Obtener ejercicios diarios
-        const { data: exercisesData, error: exercisesError } = await supabase
-          .from("ejercicios_diarios")
-          .select("dia_semana, cantidad")
-          .eq("entrenador_id", user.id)
-          .gte("fecha", startDate)
-          .lte("fecha", endDate)
-          .order("fecha", { ascending: true });
+        const clientIds = clientsData.map(c => c.id);
+        
+        // Obtener ejercicios completados por día
+        const { data: completedExercises, error: exercisesError } = await supabase
+          .from("ejercicios_completados")
+          .select("fecha_completado")
+          .in("cliente_id", clientIds)
+          .gte("fecha_completado", formattedDates[0]);
           
         if (exercisesError) throw exercisesError;
         
-        // Crear objeto para los días de la semana
+        // Obtener sesiones diarias
+        const { data: dailySessions, error: sessionsError } = await supabase
+          .from("sesiones_diarias")
+          .select("fecha, completada")
+          .in("cliente_id", clientIds)
+          .gte("fecha", formattedDates[0])
+          .eq("completada", true);
+          
+        if (sessionsError) throw sessionsError;
+        
+        // Crear mapa para contar ejercicios y clientes activos por día
         const diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-        const activityMap: Record<string, { clientes: number, ejercicios: number }> = {};
+        const activityMap = new Map(diasSemana.map(day => [day, { clientes: 0, ejercicios: 0 }]));
         
-        // Inicializar todos los días
-        diasSemana.forEach(dia => {
-          activityMap[dia] = { clientes: 0, ejercicios: 0 };
-        });
-        
-        // Llenar con datos de sesiones
-        sessionsData.forEach(session => {
-          if (session.dia_semana in activityMap && session.completada) {
-            activityMap[session.dia_semana].clientes += 1;
+        // Contar ejercicios por día
+        completedExercises.forEach(exercise => {
+          const date = parseISO(exercise.fecha_completado);
+          const dayOfWeek = format(date, 'EEE', { locale: es });
+          const dayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1, 3);
+          
+          if (activityMap.has(dayName)) {
+            const currentStats = activityMap.get(dayName)!;
+            activityMap.set(dayName, { 
+              ...currentStats, 
+              ejercicios: currentStats.ejercicios + 1 
+            });
           }
         });
         
-        // Llenar con datos de ejercicios
-        exercisesData.forEach(exercise => {
-          if (exercise.dia_semana in activityMap) {
-            activityMap[exercise.dia_semana].ejercicios += exercise.cantidad;
+        // Contar clientes activos por día
+        dailySessions.forEach(session => {
+          const date = parseISO(session.fecha);
+          const dayOfWeek = format(date, 'EEE', { locale: es });
+          const dayName = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1, 3);
+          
+          if (activityMap.has(dayName) && session.completada) {
+            const currentStats = activityMap.get(dayName)!;
+            activityMap.set(dayName, { 
+              ...currentStats, 
+              clientes: currentStats.clientes + 1 
+            });
           }
         });
         
-        // Convertir a array para el gráfico
-        const activityData: WeeklyActivity[] = diasSemana.map(dia => ({
-          day: dia,
-          clientes: activityMap[dia].clientes,
-          ejercicios: activityMap[dia].ejercicios
+        // Convertir mapa a array para el gráfico
+        return diasSemana.map(day => ({
+          day,
+          clientes: activityMap.get(day)?.clientes || 0,
+          ejercicios: activityMap.get(day)?.ejercicios || 0
         }));
-        
-        return activityData;
       } catch (error) {
         console.error("Error al cargar actividad semanal:", error);
         toast.error("No se pudieron cargar los datos de actividad semanal");
