@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -26,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
 import { Calendar } from "@/components/ui/calendar";
@@ -133,7 +132,7 @@ const RutinaEjercicioForm = ({
           repeticiones: values.repeticiones,
           peso: values.peso || null,
           notas: values.notas || null,
-          dia: formattedDate, // Store the date in YYYY-MM-DD format as text
+          dia: formattedDate // Store the date in YYYY-MM-DD format as text
         });
 
       if (ejercicioError) throw ejercicioError;
@@ -228,6 +227,7 @@ const RutinaEjercicioForm = ({
                       onSelect={field.onChange}
                       disabled={loading}
                       locale={es}
+                      className={cn("p-3 pointer-events-auto")}
                     />
                   </PopoverContent>
                 </Popover>

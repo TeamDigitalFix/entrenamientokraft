@@ -14,11 +14,24 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import RutinaEjercicioForm from "@/components/entrenador/RutinaEjercicioForm";
 import { Ejercicio } from "@/types/ejercicios";
+import { parseISO, format } from "date-fns";
+import { es } from "date-fns/locale";
 
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-const mapDiaNumeroANombre = (diaNumero: number): string => {
-  return diasSemana[diaNumero - 1] || "Desconocido";
+// Función para obtener el día de la semana a partir de una fecha en formato YYYY-MM-DD
+const obtenerDiaSemana = (fechaStr: string): string => {
+  try {
+    // Parsear la fecha
+    const fecha = parseISO(fechaStr);
+    // Obtener el día de la semana (0 = domingo, 1 = lunes, etc.)
+    // Ajustamos para que 0 = lunes (formato español)
+    const diaSemanaNum = format(fecha, "i", { locale: es }) - 1;
+    return diasSemana[diaSemanaNum] || "Desconocido";
+  } catch (error) {
+    console.error("Error al procesar la fecha:", fechaStr, error);
+    return "Desconocido";
+  }
 };
 
 interface Rutina {
@@ -92,7 +105,7 @@ const ClientRoutine = () => {
             const ejerciciosTransformados = ejerciciosData.map(ej => ({
               ...ej,
               nombre: ej.ejercicios?.nombre || "Ejercicio sin nombre",
-              dia: ej.dia,
+              dia: ej.dia, // Ahora dia es una fecha en formato YYYY-MM-DD
             }));
             
             setEjercicios(ejerciciosTransformados as unknown as Ejercicio[]);
@@ -150,9 +163,12 @@ const ClientRoutine = () => {
     }
   };
 
-  const ejerciciosPorDia = diasSemana.reduce((acc, dia, index) => {
-    const diaNumero = index + 1;
-    acc[dia] = ejercicios.filter(ejercicio => ejercicio.dia === diaNumero);
+  // Agrupar ejercicios por día de la semana basado en la fecha (formato texto YYYY-MM-DD)
+  const ejerciciosPorDia = diasSemana.reduce((acc, dia) => {
+    acc[dia] = ejercicios.filter(ejercicio => {
+      const diaEjercicio = obtenerDiaSemana(ejercicio.dia);
+      return diaEjercicio === dia;
+    });
     return acc;
   }, {} as Record<string, Ejercicio[]>);
 
@@ -166,6 +182,15 @@ const ClientRoutine = () => {
       }
     }
   }, [loading, ejercicios]);
+
+  // Función para mostrar la fecha formateada
+  const formatearFecha = (fechaStr: string) => {
+    try {
+      return format(parseISO(fechaStr), "d 'de' MMMM", { locale: es });
+    } catch (error) {
+      return fechaStr;
+    }
+  };
 
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
@@ -234,6 +259,7 @@ const ClientRoutine = () => {
                                   <span className="font-medium">{ejercicio.nombre}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-xs">{formatearFecha(ejercicio.dia)}</Badge>
                                   <Badge variant="outline">{ejercicio.series} series</Badge>
                                   <Badge variant="outline">{ejercicio.repeticiones} reps</Badge>
                                 </div>

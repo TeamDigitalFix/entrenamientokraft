@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -138,7 +137,7 @@ const DietaComidaForm = ({
           alimento_id: values.alimento_id,
           tipo_comida: values.tipo_comida,
           cantidad: values.cantidad,
-          dia: formattedDate, // Store the date in YYYY-MM-DD format as text
+          dia: formattedDate // Store the date in YYYY-MM-DD format as text
         });
 
       if (comidaError) throw comidaError;
@@ -262,6 +261,7 @@ const DietaComidaForm = ({
                       onSelect={field.onChange}
                       disabled={loading}
                       locale={es}
+                      className={cn("p-3 pointer-events-auto")}
                     />
                   </PopoverContent>
                 </Popover>
