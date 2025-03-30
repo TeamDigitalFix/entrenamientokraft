@@ -81,21 +81,25 @@ const AdminDashboard = () => {
         
         if (clientsError) throw clientsError;
         
-        // Contar clientes con dietas
-        const { data: clientsWithDiets, error: dietsError } = await supabase
+        // Contar clientes con dietas (usando un enfoque diferente sin .distinct())
+        const { data: dietas, error: dietsError } = await supabase
           .from('dietas')
-          .select('cliente_id')
-          .distinct();
+          .select('cliente_id');
         
         if (dietsError) throw dietsError;
         
-        // Contar clientes con rutinas
-        const { data: clientsWithRoutines, error: routinesError } = await supabase
+        // Obtener una lista única de clientes con dietas
+        const clientesConDietas = [...new Set(dietas?.map(d => d.cliente_id))];
+        
+        // Contar clientes con rutinas (usando un enfoque diferente sin .distinct())
+        const { data: rutinas, error: routinesError } = await supabase
           .from('rutinas')
-          .select('cliente_id')
-          .distinct();
+          .select('cliente_id');
         
         if (routinesError) throw routinesError;
+        
+        // Obtener una lista única de clientes con rutinas
+        const clientesConRutinas = [...new Set(rutinas?.map(r => r.cliente_id))];
         
         // Contar ejercicios
         const { data: exercises, error: exercisesError } = await supabase
@@ -115,8 +119,8 @@ const AdminDashboard = () => {
           totalTrainers: trainers?.length || 0,
           activeTrainers: trainers?.length || 0, // Todos los no eliminados se consideran activos
           totalClients: clients?.length || 0,
-          clientsWithDiets: clientsWithDiets?.length || 0,
-          clientsWithRoutines: clientsWithRoutines?.length || 0,
+          clientsWithDiets: clientesConDietas.length || 0,
+          clientsWithRoutines: clientesConRutinas.length || 0,
           totalExercises: exercises?.length || 0,
           totalFoods: foods?.length || 0
         };
