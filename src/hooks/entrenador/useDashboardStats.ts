@@ -61,27 +61,20 @@ export const useDashboardStats = () => {
         // Ejercicios completados hoy
         const today = new Date().toISOString().split('T')[0];
         
-        // Extract client IDs safely
-        const clientIds: string[] = [];
-        if (clientsData && clientsData.length > 0) {
-          clientsData.forEach(client => {
-            if (client && client.id) {
-              clientIds.push(client.id);
-            }
-          });
-        }
+        // Extract client IDs and explicitly type as string array to avoid deep type inference
+        const clientIds: string[] = clientsData.map(client => client.id);
         
         // Only proceed if we have client IDs
         let completedExercisesData: any[] = [];
         let completedExercisesError = null;
         
         if (clientIds.length > 0) {
-          // Use explicit parameter types to avoid type inference issues
+          // Use explicit string array type to avoid inference issues
           const { data, error } = await supabase
             .from("ejercicios_completados")
             .select("id")
             .eq("fecha_completado::date", today)
-            .in("cliente_id", clientIds as unknown as string[]);
+            .in("cliente_id", clientIds as string[]);
             
           completedExercisesData = data || [];
           completedExercisesError = error;
