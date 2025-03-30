@@ -88,6 +88,8 @@ export const useCitas = (entrenadorId: string) => {
   // Crear una nueva cita
   const crearCita = async (nuevaCita: NuevaCita) => {
     try {
+      console.log("Creando cita con datos:", nuevaCita);
+      
       // Asegurarse de que el estado sea válido
       const validatedCita = {
         ...nuevaCita,
@@ -101,7 +103,10 @@ export const useCitas = (entrenadorId: string) => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error al crear cita:", error);
+        throw error;
+      }
 
       // Ahora hacemos una consulta adicional para obtener el nombre del cliente
       // ya que la respuesta de insert no incluye los joins

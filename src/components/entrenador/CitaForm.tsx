@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,7 +42,6 @@ import {
 import { CalendarIcon, Clock } from "lucide-react";
 import { NuevaCita, Cita } from "@/hooks/entrenador/useCitas";
 
-// Definir el esquema de validación
 const citaSchema = z.object({
   cliente_id: z.string().min(1, "El cliente es requerido"),
   titulo: z.string().min(3, "El título debe tener al menos 3 caracteres"),
@@ -80,7 +78,6 @@ export const CitaForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Configurar el formulario
   const form = useForm<z.infer<typeof citaSchema>>({
     resolver: zodResolver(citaSchema),
     defaultValues: {
@@ -94,7 +91,6 @@ export const CitaForm = ({
     },
   });
 
-  // Cargar clientes del entrenador
   useEffect(() => {
     const fetchClientes = async () => {
       try {
@@ -120,11 +116,9 @@ export const CitaForm = ({
     fetchClientes();
   }, [entrenadorId, toast]);
 
-  // Manejar el envío del formulario
   const handleSubmit = async (values: z.infer<typeof citaSchema>) => {
     setIsLoading(true);
     try {
-      // Combinar fecha y hora
       const fechaHora = new Date(values.fecha);
       const [horas, minutos] = values.hora.split(":");
       fechaHora.setHours(parseInt(horas), parseInt(minutos));
