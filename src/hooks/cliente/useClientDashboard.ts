@@ -16,12 +16,12 @@ export type ActivityItem = {
 };
 
 export type ProgressSummary = {
-  initialWeight?: number;
-  currentWeight?: number;
-  weightChange?: number;
-  bodyFatChange?: number;
-  muscleMassChange?: number;
-  lastMeasurementDate?: Date;
+  initialWeight?: number | null;
+  currentWeight?: number | null;
+  weightChange?: number | null;
+  bodyFatChange?: number | null;
+  muscleMassChange?: number | null;
+  lastMeasurementDate?: Date | null;
 };
 
 export type TodaySchedule = {

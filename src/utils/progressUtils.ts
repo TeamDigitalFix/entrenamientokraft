@@ -17,10 +17,12 @@ export const calculateChanges = (
   // Ensure we're using the correct data types and round to 1 decimal place
   return {
     pesoChange: +(latestMeasurement.peso - firstMeasurement.peso).toFixed(1),
-    grasaChange: latestMeasurement.grasa_corporal !== null && firstMeasurement.grasa_corporal !== null
+    grasaChange: latestMeasurement.grasa_corporal !== null && latestMeasurement.grasa_corporal !== undefined && 
+                firstMeasurement.grasa_corporal !== null && firstMeasurement.grasa_corporal !== undefined
       ? +(latestMeasurement.grasa_corporal - firstMeasurement.grasa_corporal).toFixed(1)
       : null,
-    musculoChange: latestMeasurement.masa_muscular !== null && firstMeasurement.masa_muscular !== null
+    musculoChange: latestMeasurement.masa_muscular !== null && latestMeasurement.masa_muscular !== undefined && 
+                  firstMeasurement.masa_muscular !== null && firstMeasurement.masa_muscular !== undefined
       ? +(latestMeasurement.masa_muscular - firstMeasurement.masa_muscular).toFixed(1)
       : null
   };

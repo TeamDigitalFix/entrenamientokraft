@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -267,7 +268,7 @@ const ClientDashboard = () => {
                       <p className="font-medium">Peso actual:</p>
                       <div className="flex items-center">
                         <p>{progressSummary.currentWeight} kg</p>
-                        {progressSummary.weightChange !== null && (
+                        {progressSummary.weightChange !== null && progressSummary.weightChange !== undefined && (
                           <span className={`ml-2 text-xs flex items-center ${progressSummary.weightChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
                             {progressSummary.weightChange < 0 ? '' : '+'}
                             {progressSummary.weightChange.toFixed(1)} kg
@@ -276,7 +277,7 @@ const ClientDashboard = () => {
                       </div>
                     </div>
                   )}
-                  {progressSummary.muscleMassChange !== null && (
+                  {progressSummary.muscleMassChange !== null && progressSummary.muscleMassChange !== undefined && (
                     <div className="flex justify-between border-b pb-2">
                       <p className="font-medium">Masa muscular:</p>
                       <div className="flex items-center">
@@ -288,7 +289,7 @@ const ClientDashboard = () => {
                       </div>
                     </div>
                   )}
-                  {progressSummary.bodyFatChange !== null && (
+                  {progressSummary.bodyFatChange !== null && progressSummary.bodyFatChange !== undefined && (
                     <div className="flex justify-between border-b pb-2">
                       <p className="font-medium">Grasa corporal:</p>
                       <div className="flex items-center">
