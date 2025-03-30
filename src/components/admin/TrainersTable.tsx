@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2 } from "lucide-react";
+import { AlertTriangle, Edit, RotateCcw, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   AlertDialog,
@@ -24,26 +24,40 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { Trainer } from "@/types/admin";
+import { Trainer, DeletedTrainer } from "@/types/admin";
 
 interface TrainersTableProps {
-  trainers: Trainer[] | undefined;
+  trainers: (Trainer | DeletedTrainer)[] | undefined;
   isLoading: boolean;
   searchTerm: string;
+  showDeleted: boolean;
   trainerToDelete: Trainer | null;
+  trainerToPermanentDelete: DeletedTrainer | null;
+  trainerToRestore: DeletedTrainer | null;
   setTrainerToDelete: (trainer: Trainer | null) => void;
+  setTrainerToPermanentDelete: (trainer: DeletedTrainer | null) => void;
+  setTrainerToRestore: (trainer: DeletedTrainer | null) => void;
   onEditTrainer: (trainer: Trainer) => void;
   onDeleteTrainer: () => void;
+  onPermanentDeleteTrainer: () => void;
+  onRestoreTrainer: () => void;
 }
 
 export const TrainersTable = ({
   trainers,
   isLoading,
   searchTerm,
+  showDeleted,
   trainerToDelete,
+  trainerToPermanentDelete,
+  trainerToRestore,
   setTrainerToDelete,
+  setTrainerToPermanentDelete,
+  setTrainerToRestore,
   onEditTrainer,
-  onDeleteTrainer
+  onDeleteTrainer,
+  onPermanentDeleteTrainer,
+  onRestoreTrainer
 }: TrainersTableProps) => {
   return (
     <div className="rounded-md border">
@@ -71,8 +85,16 @@ export const TrainersTable = ({
             </TableRow>
           ) : trainers && trainers.length > 0 ? (
             trainers.map((trainer) => (
-              <TableRow key={trainer.id}>
-                <TableCell className="font-medium">{trainer.name}</TableCell>
+              <TableRow key={trainer.id} className={trainer.deleted ? "bg-red-50" : ""}>
+                <TableCell className="font-medium">
+                  {trainer.name}
+                  {trainer.deleted && (
+                    <Badge variant="destructive" className="ml-2">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      Eliminado
+                    </Badge>
+                  )}
+                </TableCell>
                 <TableCell>{trainer.username}</TableCell>
                 <TableCell>{trainer.email || "-"}</TableCell>
                 <TableCell>{trainer.phone || "-"}</TableCell>
@@ -81,37 +103,92 @@ export const TrainersTable = ({
                 </TableCell>
                 <TableCell>{trainer.createdAt.toLocaleDateString()}</TableCell>
                 <TableCell className="text-right flex justify-end space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEditTrainer(trainer)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  {!showDeleted ? (
+                    <>
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
-                        onClick={() => setTrainerToDelete(trainer)}
+                        onClick={() => onEditTrainer(trainer as Trainer)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Edit className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>¿Eliminar entrenador?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta acción eliminará al entrenador {trainerToDelete?.name}. 
-                          Sus clientes quedarán sin entrenador asignado.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={onDeleteTrainer}>Eliminar</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setTrainerToDelete(trainer as Trainer)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Enviar entrenador a papelera?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción moverá al entrenador {trainerToDelete?.name} a la papelera. 
+                              Sus clientes quedarán sin entrenador asignado.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={onDeleteTrainer}>Enviar a papelera</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  ) : (
+                    <>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setTrainerToRestore(trainer as DeletedTrainer)}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Restaurar entrenador?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción restaurará al entrenador {trainerToRestore?.name}.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={onRestoreTrainer}>Restaurar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setTrainerToPermanentDelete(trainer as DeletedTrainer)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar permanentemente?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción eliminará permanentemente al entrenador {trainerToPermanentDelete?.name}. 
+                              Esta acción no se puede deshacer.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={onPermanentDeleteTrainer}>Eliminar permanentemente</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))
@@ -120,6 +197,7 @@ export const TrainersTable = ({
               <TableCell colSpan={7} className="text-center py-8">
                 No se encontraron entrenadores
                 {searchTerm && " con la búsqueda actual"}
+                {showDeleted && " en la papelera"}
               </TableCell>
             </TableRow>
           )}

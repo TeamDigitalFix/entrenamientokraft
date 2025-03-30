@@ -1,13 +1,10 @@
 
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Dialog } from "@/components/ui/dialog";
 import { useStats } from "@/hooks/admin/useStats";
 import { useRecentActivity } from "@/hooks/admin/useRecentActivity";
 import { useTrainers } from "@/hooks/admin/useTrainers";
@@ -19,6 +16,7 @@ const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
+  const [showDeleted, setShowDeleted] = useState(false);
   const pageSize = 10;
 
   // Hooks para cada sección del dashboard
@@ -38,10 +36,16 @@ const AdminDashboard = () => {
     setEditTrainerData,
     trainerToDelete,
     setTrainerToDelete,
+    trainerToPermanentDelete,
+    setTrainerToPermanentDelete,
+    trainerToRestore,
+    setTrainerToRestore,
     createTrainer,
     updateTrainer,
-    deleteTrainer
-  } = useTrainers(page, searchTerm, pageSize);
+    deleteTrainer,
+    permanentDeleteTrainer,
+    restoreTrainer
+  } = useTrainers(page, searchTerm, showDeleted, pageSize);
 
   // Refrescar todos los datos
   const refreshData = () => {
@@ -87,8 +91,10 @@ const AdminDashboard = () => {
               searchTerm={searchTerm}
               page={page}
               pageSize={pageSize}
+              showDeleted={showDeleted}
               setSearchTerm={setSearchTerm}
               setPage={setPage}
+              setShowDeleted={setShowDeleted}
               showNewTrainerDialog={showNewTrainerDialog}
               setShowNewTrainerDialog={setShowNewTrainerDialog}
               showEditTrainerDialog={showEditTrainerDialog}
@@ -99,9 +105,15 @@ const AdminDashboard = () => {
               setEditTrainerData={setEditTrainerData}
               trainerToDelete={trainerToDelete}
               setTrainerToDelete={setTrainerToDelete}
+              trainerToPermanentDelete={trainerToPermanentDelete}
+              setTrainerToPermanentDelete={setTrainerToPermanentDelete}
+              trainerToRestore={trainerToRestore}
+              setTrainerToRestore={setTrainerToRestore}
               createTrainer={createTrainer}
               updateTrainer={updateTrainer}
               deleteTrainer={deleteTrainer}
+              permanentDeleteTrainer={permanentDeleteTrainer}
+              restoreTrainer={restoreTrainer}
             />
           </TabsContent>
         </Tabs>

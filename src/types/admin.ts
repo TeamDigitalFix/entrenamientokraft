@@ -7,6 +7,7 @@ export interface Trainer {
   phone: string | null;
   clientCount: number;
   createdAt: Date;
+  deleted?: boolean;
 }
 
 export interface Stats {
@@ -24,4 +25,8 @@ export interface Activity {
   title: string;
   description: string;
   date: Date;
+}
+
+export interface DeletedTrainer extends Trainer {
+  deletedAt?: Date;
 }

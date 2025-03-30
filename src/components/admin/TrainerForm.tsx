@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,10 +16,10 @@ interface TrainerFormProps {
   type: "create" | "edit";
   data: {
     username: string;
-    password: string;
+    password?: string;
     name: string;
-    email: string;
-    phone: string;
+    email: string | null;
+    phone: string | null;
   } | Trainer;
   onCancel: () => void;
   onSubmit: () => void;
@@ -39,41 +39,51 @@ export const TrainerForm = ({
     ? "Completa el formulario para agregar un nuevo entrenador al sistema."
     : "Actualiza la información del entrenador.";
   const submitLabel = isCreating ? "Crear Entrenador" : "Guardar Cambios";
+  
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <DialogContent>
+    <DialogContent className="sm:max-w-md">
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        {isCreating && (
-          <>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="username" className="text-right">
-                Username*
-              </Label>
-              <Input
-                id="username"
-                value={data.username}
-                onChange={(e) => onChange("username", e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="password" className="text-right">
-                Contraseña*
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={(data as any).password}
-                onChange={(e) => onChange("password", e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-          </>
-        )}
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="username" className="text-right">
+            Username*
+          </Label>
+          <Input
+            id="username"
+            value={data.username}
+            onChange={(e) => onChange("username", e.target.value)}
+            className="col-span-3"
+          />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="password" className="text-right">
+            {isCreating ? "Contraseña*" : "Nueva Contraseña"}
+          </Label>
+          <div className="col-span-3 relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={(data as any).password || ""}
+              onChange={(e) => onChange("password", e.target.value)}
+              className="pr-12"
+              placeholder={isCreating ? "" : "Dejar en blanco para no cambiar"}
+            />
+            <Button 
+              type="button" 
+              variant="ghost" 
+              size="sm"
+              className="absolute right-0 top-0 h-full px-3"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? "Ocultar" : "Mostrar"}
+            </Button>
+          </div>
+        </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="name" className="text-right">
             Nombre*

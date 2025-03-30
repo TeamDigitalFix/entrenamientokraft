@@ -3,9 +3,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Trainer } from "@/types/admin";
+import { Trainer, DeletedTrainer } from "@/types/admin";
 
-export const useTrainers = (page: number, searchTerm: string, pageSize: number = 10) => {
+export const useTrainers = (page: number, searchTerm: string, showDeleted: boolean = false, pageSize: number = 10) => {
   const [showNewTrainerDialog, setShowNewTrainerDialog] = useState(false);
   const [showEditTrainerDialog, setShowEditTrainerDialog] = useState(false);
   const [newTrainerData, setNewTrainerData] = useState({
@@ -17,18 +17,20 @@ export const useTrainers = (page: number, searchTerm: string, pageSize: number =
   });
   const [editTrainerData, setEditTrainerData] = useState<Trainer | null>(null);
   const [trainerToDelete, setTrainerToDelete] = useState<Trainer | null>(null);
+  const [trainerToPermanentDelete, setTrainerToPermanentDelete] = useState<DeletedTrainer | null>(null);
+  const [trainerToRestore, setTrainerToRestore] = useState<DeletedTrainer | null>(null);
 
   // Consulta de entrenadores
   const { data: trainers, isLoading, refetch } = useQuery({
-    queryKey: ['admin-trainers', page, searchTerm],
+    queryKey: ['admin-trainers', page, searchTerm, showDeleted],
     queryFn: async () => {
       try {
         // Consulta básica de entrenadores
         let query = supabase
           .from('usuarios')
-          .select('id, username, nombre, email, telefono, creado_en')
+          .select('id, username, nombre, email, telefono, creado_en, eliminado')
           .eq('role', 'entrenador')
-          .eq('eliminado', false);
+          .eq('eliminado', showDeleted);
         
         // Aplicar búsqueda si hay término
         if (searchTerm) {
@@ -62,7 +64,8 @@ export const useTrainers = (page: number, searchTerm: string, pageSize: number =
                 email: trainer.email,
                 phone: trainer.telefono,
                 clientCount: 0,
-                createdAt: new Date(trainer.creado_en)
+                createdAt: new Date(trainer.creado_en),
+                deleted: trainer.eliminado
               };
             }
             
@@ -73,7 +76,8 @@ export const useTrainers = (page: number, searchTerm: string, pageSize: number =
               email: trainer.email,
               phone: trainer.telefono,
               clientCount: clients?.length || 0,
-              createdAt: new Date(trainer.creado_en)
+              createdAt: new Date(trainer.creado_en),
+              deleted: trainer.eliminado
             };
           })
         );
@@ -152,13 +156,41 @@ export const useTrainers = (page: number, searchTerm: string, pageSize: number =
     if (!editTrainerData) return;
     
     try {
+      // Construir objeto de actualización
+      const updateData: any = {
+        nombre: editTrainerData.name,
+        email: editTrainerData.email,
+        telefono: editTrainerData.phone
+      };
+
+      // Si se está cambiando el username, verificar que no exista
+      if ('username' in editTrainerData && editTrainerData.username) {
+        // Verificar si el username ya existe para otro usuario
+        const { data: existingUser, error: checkError } = await supabase
+          .from('usuarios')
+          .select('id')
+          .eq('username', editTrainerData.username)
+          .neq('id', editTrainerData.id)
+          .maybeSingle();
+        
+        if (checkError) throw checkError;
+        
+        if (existingUser) {
+          toast.error("El nombre de usuario ya está en uso");
+          return;
+        }
+        
+        updateData.username = editTrainerData.username;
+      }
+      
+      // Si se está cambiando la contraseña
+      if ('password' in editTrainerData && editTrainerData.password) {
+        updateData.password = editTrainerData.password;
+      }
+      
       const { data, error } = await supabase
         .from('usuarios')
-        .update({
-          nombre: editTrainerData.name,
-          email: editTrainerData.email,
-          telefono: editTrainerData.phone
-        })
+        .update(updateData)
         .eq('id', editTrainerData.id)
         .select();
       
@@ -194,14 +226,60 @@ export const useTrainers = (page: number, searchTerm: string, pageSize: number =
       
       if (deleteError) throw deleteError;
       
-      toast.success("Entrenador eliminado exitosamente");
+      toast.success("Entrenador movido a la papelera");
       setTrainerToDelete(null);
       
       // Refrescar datos
       refetch();
     } catch (error) {
       console.error("Error al eliminar entrenador:", error);
-      toast.error("Error al eliminar el entrenador");
+      toast.error("Error al mover el entrenador a la papelera");
+    }
+  };
+
+  // Función para restaurar un entrenador eliminado
+  const restoreTrainer = async () => {
+    if (!trainerToRestore) return;
+    
+    try {
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ eliminado: false })
+        .eq('id', trainerToRestore.id);
+      
+      if (error) throw error;
+      
+      toast.success("Entrenador restaurado exitosamente");
+      setTrainerToRestore(null);
+      
+      // Refrescar datos
+      refetch();
+    } catch (error) {
+      console.error("Error al restaurar entrenador:", error);
+      toast.error("Error al restaurar el entrenador");
+    }
+  };
+
+  // Función para eliminar permanentemente un entrenador
+  const permanentDeleteTrainer = async () => {
+    if (!trainerToPermanentDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('usuarios')
+        .delete()
+        .eq('id', trainerToPermanentDelete.id);
+      
+      if (error) throw error;
+      
+      toast.success("Entrenador eliminado permanentemente");
+      setTrainerToPermanentDelete(null);
+      
+      // Refrescar datos
+      refetch();
+    } catch (error) {
+      console.error("Error al eliminar permanentemente entrenador:", error);
+      toast.error("Error al eliminar permanentemente el entrenador");
     }
   };
 
@@ -219,8 +297,14 @@ export const useTrainers = (page: number, searchTerm: string, pageSize: number =
     setEditTrainerData,
     trainerToDelete,
     setTrainerToDelete,
+    trainerToPermanentDelete, 
+    setTrainerToPermanentDelete,
+    trainerToRestore,
+    setTrainerToRestore,
     createTrainer,
     updateTrainer,
-    deleteTrainer
+    deleteTrainer,
+    restoreTrainer,
+    permanentDeleteTrainer
   };
 };
