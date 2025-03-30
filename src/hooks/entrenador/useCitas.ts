@@ -88,6 +88,7 @@ export const useCitas = (entrenadorId: string) => {
   // Crear una nueva cita
   const crearCita = async (nuevaCita: NuevaCita) => {
     try {
+      // Primero hacemos la inserción básica
       const { data, error } = await supabase
         .from("citas")
         .insert(nuevaCita)
@@ -96,10 +97,23 @@ export const useCitas = (entrenadorId: string) => {
 
       if (error) throw error;
 
+      // Ahora hacemos una consulta adicional para obtener el nombre del cliente
+      // ya que la respuesta de insert no incluye los joins
+      const { data: clienteData, error: clienteError } = await supabase
+        .from("usuarios")
+        .select("nombre")
+        .eq("id", nuevaCita.cliente_id)
+        .single();
+
+      if (clienteError) {
+        console.warn("No se pudo obtener el nombre del cliente:", clienteError);
+      }
+
+      // Crear objeto completo con cliente si está disponible
       const citaWithValidTypes = {
         ...data,
         estado: validateCitaStatus(data.estado),
-        cliente: validateCliente(data.cliente)
+        cliente: clienteData ? { nombre: clienteData.nombre } : undefined
       } as Cita;
 
       setCitas((prevCitas) => [...prevCitas, citaWithValidTypes]);
@@ -123,6 +137,7 @@ export const useCitas = (entrenadorId: string) => {
   // Actualizar una cita existente
   const actualizarCita = async (id: string, updates: Partial<Cita>) => {
     try {
+      // Realizar la actualización
       const { data, error } = await supabase
         .from("citas")
         .update(updates)
@@ -132,10 +147,26 @@ export const useCitas = (entrenadorId: string) => {
 
       if (error) throw error;
 
+      // Obtener información del cliente (si es necesario)
+      let clienteData;
+      // Solo consultamos el cliente si no cambiamos el cliente_id o si no hay cliente en la actualización
+      if (!updates.cliente) {
+        const { data: cliente, error: clienteError } = await supabase
+          .from("usuarios")
+          .select("nombre")
+          .eq("id", data.cliente_id)
+          .single();
+        
+        if (!clienteError) {
+          clienteData = cliente;
+        }
+      }
+
+      // Objeto completo con validación
       const citaWithValidTypes = {
         ...data,
         estado: validateCitaStatus(data.estado),
-        cliente: validateCliente(data.cliente)
+        cliente: clienteData ? { nombre: clienteData.nombre } : undefined
       } as Cita;
 
       setCitas((prevCitas) =>
