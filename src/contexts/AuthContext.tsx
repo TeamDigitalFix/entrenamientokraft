@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(loggedInUser);
       localStorage.setItem("kraftUser", JSON.stringify(loggedInUser));
       
+      toast.success(`Bienvenido, ${loggedInUser.name}`);
+      
       // Redirigir según el rol
       if (loggedInUser.role === UserRole.ADMIN) {
         navigate("/admin/dashboard");
@@ -76,6 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch (error) {
       console.error("Error de inicio de sesión:", error);
+      toast.error("Usuario o contraseña incorrectos");
       throw new Error("Credenciales inválidas");
     } finally {
       setLoading(false);
@@ -85,6 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUser(null);
     localStorage.removeItem("kraftUser");
+    toast.info("Sesión cerrada correctamente");
     navigate("/login");
   };
 
