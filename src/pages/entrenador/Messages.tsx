@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,13 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Send, Paperclip } from "lucide-react";
+import { UserRole } from "@/types/index";
 
 const TrainerMessages = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedConversation, setSelectedConversation] = useState<number | null>(1);
   const [newMessage, setNewMessage] = useState("");
   
-  // Datos de ejemplo (en producción, vendrían de Supabase)
   const conversations = [
     { id: 1, clientName: "Ana Martínez", lastMessage: "Tengo una duda sobre el ejercicio de...", time: "10:30", unread: true, avatar: null },
     { id: 2, clientName: "Carlos Rodríguez", lastMessage: "Gracias por la sesión de hoy", time: "Ayer", unread: false, avatar: null },
@@ -27,7 +26,6 @@ const TrainerMessages = () => {
     conversation.clientName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Mensajes de la conversación seleccionada
   const messages = [
     { id: 1, sender: "client", text: "Hola, tengo una duda sobre el ejercicio de press de banca", time: "10:15" },
     { id: 2, sender: "trainer", text: "Hola Ana, claro. ¿Qué duda tienes?", time: "10:20" },
@@ -37,8 +35,6 @@ const TrainerMessages = () => {
 
   const handleSendMessage = () => {
     if (newMessage.trim()) {
-      // Aquí iría la lógica para enviar el mensaje a Supabase
-      // Por ahora solo limpiamos el input
       setNewMessage("");
     }
   };
@@ -52,12 +48,11 @@ const TrainerMessages = () => {
   };
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <h1 className="text-3xl font-bold">Mensajes</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[calc(100vh-200px)]">
-          {/* Lista de conversaciones */}
           <Card className="md:col-span-1 flex flex-col">
             <CardContent className="p-4 flex-1 flex flex-col">
               <div className="relative mb-4">
@@ -101,11 +96,9 @@ const TrainerMessages = () => {
             </CardContent>
           </Card>
           
-          {/* Ventana de chat */}
           <Card className="md:col-span-2 flex flex-col">
             {selectedConversation ? (
               <CardContent className="p-4 flex-1 flex flex-col h-full">
-                {/* Cabecera del chat */}
                 <div className="flex items-center gap-3 border-b pb-4 mb-4">
                   <Avatar>
                     <AvatarFallback>
@@ -120,7 +113,6 @@ const TrainerMessages = () => {
                   </div>
                 </div>
                 
-                {/* Mensajes */}
                 <ScrollArea className="flex-1 pr-4">
                   <div className="space-y-4">
                     {messages.map((message) => (
@@ -149,7 +141,6 @@ const TrainerMessages = () => {
                   </div>
                 </ScrollArea>
                 
-                {/* Input de mensaje */}
                 <div className="flex items-center gap-2 mt-4">
                   <Button variant="outline" size="icon" type="button">
                     <Paperclip className="h-4 w-4" />

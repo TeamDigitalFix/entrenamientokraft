@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,11 +14,11 @@ import {
   RefreshCw,
   Eye
 } from "lucide-react";
+import { UserRole } from "@/types/index";
 
 const TrainerFoods = () => {
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Datos de ejemplo (en producción, vendrían de Supabase)
   const foods = [
     { id: 1, name: "Pechuga de pollo", category: "Proteínas", calories: 165, protein: 31, carbs: 0, fat: 3.6 },
     { id: 2, name: "Arroz integral", category: "Carbohidratos", calories: 112, protein: 2.6, carbs: 23, fat: 0.9 },
@@ -43,7 +42,7 @@ const TrainerFoods = () => {
   };
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Biblioteca de Alimentos</h1>

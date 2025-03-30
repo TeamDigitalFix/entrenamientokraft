@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +20,12 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { UserRole } from "@/types/index";
 
 const TrainerReports = () => {
   const [selectedClient, setSelectedClient] = useState<string>("all");
   const [dateRange, setDateRange] = useState<string>("month");
   
-  // Datos de ejemplo para los gráficos
   const clientActivityData = [
     { name: "Lun", sesiones: 3, ejercicios: 24 },
     { name: "Mar", sesiones: 2, ejercicios: 16 },
@@ -64,7 +63,7 @@ const TrainerReports = () => {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h1 className="text-3xl font-bold">Informes y Estadísticas</h1>

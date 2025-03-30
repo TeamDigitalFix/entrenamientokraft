@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { useTrainers } from "@/hooks/admin/useTrainers";
@@ -6,6 +5,7 @@ import { TrainersManagement } from "@/components/admin/TrainersManagement";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { UserRole } from "@/types/index";
 
 const TrainersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -38,14 +38,13 @@ const TrainersPage = () => {
     restoreTrainer
   } = useTrainers(page, searchTerm, showDeleted, pageSize);
 
-  // Refrescar todos los datos
   const refreshData = () => {
     refetchTrainers();
     toast.info("Datos actualizados");
   };
 
   return (
-    <DashboardLayout allowedRoles={["admin"]}>
+    <DashboardLayout allowedRoles={[UserRole.ADMIN]}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Gestión de Entrenadores</h1>

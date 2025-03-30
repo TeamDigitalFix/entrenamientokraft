@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,11 +15,11 @@ import {
   RefreshCw,
   Dumbbell
 } from "lucide-react";
+import { UserRole } from "@/types/index";
 
 const TrainerClients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Datos de ejemplo (en producción, vendrían de Supabase)
   const clients = [
     { id: 1, name: "Ana Martínez", email: "ana@example.com", phone: "123-456-789", status: "active", lastActive: "Hace 2 días" },
     { id: 2, name: "Carlos Rodríguez", email: "carlos@example.com", phone: "987-654-321", status: "active", lastActive: "Hoy" },
@@ -35,7 +34,7 @@ const TrainerClients = () => {
   );
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Gestión de Clientes</h1>

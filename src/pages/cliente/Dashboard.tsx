@@ -1,9 +1,9 @@
-
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, Utensils, Calendar, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { UserRole } from "@/types/index";
 
 const ClientDashboard = () => {
   // Datos de ejemplo (en producción, vendrían de Supabase)
@@ -30,7 +30,7 @@ const ClientDashboard = () => {
   };
 
   return (
-    <DashboardLayout allowedRoles={["cliente"]}>
+    <DashboardLayout allowedRoles={[UserRole.CLIENT]}>
       <div className="space-y-4">
         <h1 className="text-3xl font-bold">Mi Panel</h1>
         <p className="text-muted-foreground">Bienvenido a tu panel personal de Kraft Training</p>

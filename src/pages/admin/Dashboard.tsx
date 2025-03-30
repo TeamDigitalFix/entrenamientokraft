@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +10,7 @@ import { useTrainers } from "@/hooks/admin/useTrainers";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RecentActivity } from "@/components/admin/RecentActivity";
 import { TrainersManagement } from "@/components/admin/TrainersManagement";
+import { UserRole } from "@/types/index";
 
 const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState("dashboard");
@@ -19,7 +19,6 @@ const AdminDashboard = () => {
   const [showDeleted, setShowDeleted] = useState(false);
   const pageSize = 10;
 
-  // Hooks para cada sección del dashboard
   const { stats, isLoading: statsLoading, refetch: refetchStats } = useStats();
   const { activity, isLoading: activityLoading, refetch: refetchActivity } = useRecentActivity();
   const { 
@@ -47,7 +46,6 @@ const AdminDashboard = () => {
     restoreTrainer
   } = useTrainers(page, searchTerm, showDeleted, pageSize);
 
-  // Refrescar todos los datos
   const refreshData = () => {
     refetchStats();
     refetchTrainers();
@@ -56,7 +54,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <DashboardLayout allowedRoles={["admin"]}>
+    <DashboardLayout allowedRoles={[UserRole.ADMIN]}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Panel de Administración</h1>
@@ -72,18 +70,13 @@ const AdminDashboard = () => {
             <TabsTrigger value="trainers">Entrenadores</TabsTrigger>
           </TabsList>
           
-          {/* Dashboard */}
           <TabsContent value="dashboard">
             <div className="space-y-6">
-              {/* Estadísticas */}
               <DashboardStats stats={stats} isLoading={statsLoading} />
-              
-              {/* Actividad Reciente */}
               <RecentActivity activity={activity} isLoading={activityLoading} />
             </div>
           </TabsContent>
           
-          {/* Gestión de Entrenadores */}
           <TabsContent value="trainers">
             <TrainersManagement
               trainers={trainers}

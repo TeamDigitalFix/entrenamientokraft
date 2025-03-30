@@ -1,4 +1,3 @@
-
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Users, Calendar, MessageSquare, Activity, Clock, ArrowUpRight } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Link } from "react-router-dom";
+import { UserRole } from "@/types/index";
 
 const TrainerDashboard = () => {
   // Datos de ejemplo (en producción, vendrían de Supabase)
@@ -32,7 +32,7 @@ const TrainerDashboard = () => {
   ];
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>

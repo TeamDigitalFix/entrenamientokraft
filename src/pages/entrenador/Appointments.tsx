@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +17,12 @@ import {
   XCircle,
   Clock
 } from "lucide-react";
+import { UserRole } from "@/types/index";
 
 const TrainerAppointments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   
-  // Datos de ejemplo (en producción, vendrían de Supabase)
   const appointments = [
     { id: 1, clientName: "Ana Martínez", date: "2023-11-15", time: "14:30", status: "scheduled", type: "Evaluación mensual" },
     { id: 2, clientName: "Carlos Rodríguez", date: "2023-11-15", time: "16:00", status: "scheduled", type: "Ajuste de rutina" },
@@ -51,7 +50,7 @@ const TrainerAppointments = () => {
   };
 
   return (
-    <DashboardLayout allowedRoles={["entrenador"]}>
+    <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Gestión de Citas</h1>
