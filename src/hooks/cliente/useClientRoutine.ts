@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 export type ClientRoutineExercise = {
   id: string;
@@ -13,7 +15,7 @@ export type ClientRoutineExercise = {
   weight?: number;
   muscleGroup: string;
   notes?: string;
-  day: number;
+  date: string; // Changed from day (number) to date (string)
   completed: boolean;
   imageUrl?: string | null;
   videoUrl?: string | null;
@@ -28,16 +30,14 @@ export type ClientRoutine = {
   exercises: ClientRoutineExercise[];
 };
 
-type ExercisesByDay = {
+type ExercisesByDate = {
   [key: string]: ClientRoutineExercise[];
 };
-
-const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 export const useClientRoutine = () => {
   const { user } = useAuth();
   const clientId = user?.id;
-  const [activeDay, setActiveDay] = useState<string>("Lunes");
+  const [activeDate, setActiveDate] = useState<string>("");
 
   const { data: routine, isLoading } = useQuery({
     queryKey: ["client-routine", clientId],
@@ -97,7 +97,7 @@ export const useClientRoutine = () => {
         // Map completed exercise IDs
         const completedIds = new Set(completedExercises?.map(e => e.rutina_ejercicio_id) || []);
 
-        // Format exercises by day
+        // Format exercises by date
         const transformedExercises = exercises?.map(exercise => ({
           id: exercise.id,
           name: exercise.ejercicios?.nombre || "Ejercicio sin nombre",
@@ -106,26 +106,25 @@ export const useClientRoutine = () => {
           weight: exercise.peso,
           muscleGroup: exercise.ejercicios?.grupo_muscular || "Sin grupo",
           notes: exercise.notas,
-          day: exercise.dia,
+          date: exercise.dia.toString(), // We'll continue using the dia field for backward compatibility
           completed: completedIds.has(exercise.id),
           imageUrl: exercise.ejercicios?.imagen_url,
           videoUrl: exercise.ejercicios?.video_url
         })) as ClientRoutineExercise[];
 
-        // Group exercises by day
-        const exercisesByDay: ExercisesByDay = {};
-        dayNames.forEach((day, index) => {
-          exercisesByDay[day] = transformedExercises.filter(
-            exercise => exercise.day === index + 1
+        // Group exercises by date
+        const exercisesByDate: ExercisesByDate = {};
+        const uniqueDates = [...new Set(transformedExercises.map(ex => ex.date))].sort();
+        
+        uniqueDates.forEach(date => {
+          exercisesByDate[date] = transformedExercises.filter(
+            exercise => exercise.date === date
           );
         });
 
-        // Find the first day with exercises
-        if (!exercisesByDay[activeDay]?.length) {
-          const firstDayWithExercises = dayNames.find(day => exercisesByDay[day]?.length > 0);
-          if (firstDayWithExercises) {
-            setActiveDay(firstDayWithExercises);
-          }
+        // Set initial active date if not set already
+        if (!activeDate && uniqueDates.length > 0) {
+          setActiveDate(uniqueDates[0]);
         }
 
         return {
@@ -135,7 +134,7 @@ export const useClientRoutine = () => {
           startDate: new Date(routineData.fecha_inicio),
           endDate: routineData.fecha_fin ? new Date(routineData.fecha_fin) : null,
           exercises: transformedExercises,
-          exercisesByDay,
+          exercisesByDate,
         };
       } catch (error) {
         console.error("Error fetching routine:", error);
@@ -146,11 +145,13 @@ export const useClientRoutine = () => {
     enabled: !!clientId
   });
 
+  const availableDates = routine ? Object.keys(routine.exercisesByDate).sort() : [];
+
   return {
     routine,
     isLoading,
-    activeDay,
-    setActiveDay,
-    dayNames
+    activeDate: activeDate || (availableDates.length > 0 ? availableDates[0] : ""),
+    setActiveDate,
+    availableDates
   };
 };

@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 export type ClientMeal = {
   id: string;
@@ -15,7 +17,7 @@ export type ClientMeal = {
   fat: number;
   quantity: number;
   mealType: string;
-  day: number;
+  date: string; // Changed from day (number) to date (string)
   completed?: boolean;
   imageUrl?: string | null;
 };
@@ -30,19 +32,17 @@ export type ClientDiet = {
 };
 
 export interface ClientDietHook {
-  diet: ClientDiet & { mealsByDay: { [key: string]: ClientMeal[] } } | null;
+  diet: ClientDiet & { mealsByDate: { [key: string]: ClientMeal[] } } | null;
   isLoading: boolean;
-  activeDay: string;
-  setActiveDay: (day: string) => void;
-  dayNames: string[];
+  activeDate: string;
+  setActiveDate: (date: string) => void;
+  availableDates: string[];
 }
-
-const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
 export const useClientDiet = (): ClientDietHook => {
   const { user } = useAuth();
   const clientId = user?.id;
-  const [activeDay, setActiveDay] = useState<string>("Lunes");
+  const [activeDate, setActiveDate] = useState<string>("");
 
   const { data: diet, isLoading } = useQuery({
     queryKey: ["client-diet", clientId],
@@ -91,7 +91,7 @@ export const useClientDiet = (): ClientDietHook => {
 
         if (mealsError) throw mealsError;
 
-        // Format meals by day
+        // Format meals by day and convert day number to formatted date
         const transformedMeals = meals?.map(meal => ({
           id: meal.id,
           foodName: meal.alimentos?.nombre || "Alimento sin nombre",
@@ -102,24 +102,23 @@ export const useClientDiet = (): ClientDietHook => {
           fat: Math.round((meal.alimentos?.grasas || 0) * meal.cantidad / 100),
           quantity: meal.cantidad,
           mealType: meal.tipo_comida,
-          day: meal.dia,
+          date: meal.dia, // We'll continue using the dia field for backward compatibility 
           imageUrl: meal.alimentos?.imagen_url
         })) as ClientMeal[];
 
-        // Group meals by day
-        const mealsByDay: { [key: string]: ClientMeal[] } = {};
-        dayNames.forEach((day, index) => {
-          mealsByDay[day] = transformedMeals.filter(
-            meal => meal.day === index + 1
+        // Group meals by formatted date
+        const mealsByDate: { [key: string]: ClientMeal[] } = {};
+        const uniqueDates = [...new Set(transformedMeals.map(meal => meal.date.toString()))].sort();
+        
+        uniqueDates.forEach(date => {
+          mealsByDate[date] = transformedMeals.filter(
+            meal => meal.date.toString() === date
           );
         });
 
-        // Find the first day with meals
-        if (!mealsByDay[activeDay]?.length) {
-          const firstDayWithMeals = dayNames.find(day => mealsByDay[day]?.length > 0);
-          if (firstDayWithMeals) {
-            setActiveDay(firstDayWithMeals);
-          }
+        // Set initial active date if not set already
+        if (!activeDate && uniqueDates.length > 0) {
+          setActiveDate(uniqueDates[0]);
         }
 
         return {
@@ -129,7 +128,7 @@ export const useClientDiet = (): ClientDietHook => {
           startDate: new Date(dietData.fecha_inicio),
           endDate: dietData.fecha_fin ? new Date(dietData.fecha_fin) : null,
           meals: transformedMeals,
-          mealsByDay,
+          mealsByDate,
         };
       } catch (error) {
         console.error("Error fetching diet:", error);
@@ -140,11 +139,13 @@ export const useClientDiet = (): ClientDietHook => {
     enabled: !!clientId
   });
 
+  const availableDates = diet ? Object.keys(diet.mealsByDate).sort() : [];
+
   return {
     diet,
     isLoading,
-    activeDay,
-    setActiveDay,
-    dayNames
+    activeDate: activeDate || (availableDates.length > 0 ? availableDates[0] : ""),
+    setActiveDate,
+    availableDates
   };
 };

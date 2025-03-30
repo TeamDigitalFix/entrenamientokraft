@@ -1,15 +1,18 @@
+
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, Loader2, Play } from "lucide-react";
+import { Dumbbell, Loader2, Play, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { useClientRoutine } from "@/hooks/cliente/useClientRoutine";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useExerciseToggle } from "@/hooks/cliente/useExerciseToggle";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 // Función auxiliar para extraer el ID de video de YouTube
 const extractYouTubeVideoId = (url: string): string | null => {
@@ -32,8 +35,27 @@ const extractYouTubeVideoId = (url: string): string | null => {
   return null;
 };
 
+// Format date for display
+const formatDate = (dateString: string) => {
+  // Check if dateString is a valid date
+  if (!dateString) return "Sin fecha";
+  
+  try {
+    // If it's already a date string, just format it
+    if (dateString.includes("-") || dateString.includes("/")) {
+      return format(new Date(dateString), "d 'de' MMMM", { locale: es });
+    }
+    
+    // If it's just a number (old day format), return it as is
+    return dateString;
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return dateString;
+  }
+};
+
 const ClientRoutine = () => {
-  const { routine, isLoading, activeDay, setActiveDay, dayNames } = useClientRoutine();
+  const { routine, isLoading, activeDate, setActiveDate, availableDates } = useClientRoutine();
   const { toggleExerciseCompletion, isToggling } = useExerciseToggle();
 
   const handleExerciseToggle = (id: string, currentStatus: boolean) => {
@@ -68,152 +90,146 @@ const ClientRoutine = () => {
                 </p>
               </div>
             ) : (
-              <Tabs value={activeDay} onValueChange={setActiveDay} className="w-full">
-                <TabsList className="w-full mb-4 flex overflow-x-auto">
-                  {dayNames.map(day => (
-                    <TabsTrigger
-                      key={day}
-                      value={day}
-                      className="flex-1"
-                      disabled={!routine.exercisesByDay[day]?.length}
-                    >
-                      {day}
-                      {routine.exercisesByDay[day]?.length > 0 && (
-                        <Badge variant="secondary" className="ml-2">
-                          {routine.exercisesByDay[day].length}
-                        </Badge>
-                      )}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <Select value={activeDate} onValueChange={setActiveDate}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecciona una fecha" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableDates.map(date => (
+                        <SelectItem key={date} value={date}>
+                          {formatDate(date)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 
-                {dayNames.map(day => (
-                  <TabsContent key={day} value={day} className="space-y-4">
-                    {routine.exercisesByDay[day]?.length > 0 ? (
-                      <Accordion type="single" collapsible className="w-full">
-                        {routine.exercisesByDay[day].map((exercise) => (
-                          <AccordionItem key={exercise.id} value={exercise.id}>
-                            <AccordionTrigger className="hover:no-underline py-3 px-4 data-[state=open]:bg-accent/50 rounded-t-md">
-                              <div className="flex justify-between w-full items-center">
-                                <div className="flex items-center">
-                                  <span className="font-medium">{exercise.name}</span>
-                                  <Badge variant="outline" className="ml-2">
-                                    {exercise.muscleGroup}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                  <Badge variant="outline">{exercise.sets} series</Badge>
-                                  <Badge variant="outline">{exercise.reps} reps</Badge>
-                                </div>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="bg-accent/20 rounded-b-md px-4 pb-4 pt-2">
-                              <div className="space-y-3">
-                                {/* Media Section */}
-                                {(exercise.imageUrl || exercise.videoUrl) && (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                                    {exercise.imageUrl && (
-                                      <div className="relative">
-                                        <p className="text-sm font-medium mb-1">Imagen de referencia</p>
-                                        <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
-                                          <img 
-                                            src={exercise.imageUrl} 
-                                            alt={`Imagen de ${exercise.name}`}
-                                            className="object-cover w-full h-full"
-                                            onError={(e) => {
-                                              const target = e.target as HTMLImageElement;
-                                              target.src = "/placeholder.svg";
-                                            }}
-                                          />
-                                        </AspectRatio>
-                                      </div>
-                                    )}
-                                    
-                                    {exercise.videoUrl && (
-                                      <div className="relative">
-                                        <p className="text-sm font-medium mb-1">Video tutorial</p>
-                                        <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
-                                          {extractYouTubeVideoId(exercise.videoUrl) ? (
-                                            <iframe
-                                              src={`https://www.youtube.com/embed/${extractYouTubeVideoId(exercise.videoUrl)}`}
-                                              title={`Video de ${exercise.name}`}
-                                              className="w-full h-full border-0"
-                                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                              allowFullScreen
-                                            ></iframe>
-                                          ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                              <a 
-                                                href={exercise.videoUrl} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="bg-primary text-white rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
-                                              >
-                                                <Play className="h-5 w-5" />
-                                              </a>
-                                              <img 
-                                                src={exercise.imageUrl || "/placeholder.svg"} 
-                                                alt={`Video de ${exercise.name}`}
-                                                className="object-cover w-full h-full opacity-70"
-                                              />
-                                            </div>
-                                          )}
-                                        </AspectRatio>
-                                      </div>
-                                    )}
+                {activeDate && routine.exercisesByDate[activeDate]?.length > 0 ? (
+                  <Accordion type="single" collapsible className="w-full">
+                    {routine.exercisesByDate[activeDate].map((exercise) => (
+                      <AccordionItem key={exercise.id} value={exercise.id}>
+                        <AccordionTrigger className="hover:no-underline py-3 px-4 data-[state=open]:bg-accent/50 rounded-t-md">
+                          <div className="flex justify-between w-full items-center">
+                            <div className="flex items-center">
+                              <span className="font-medium">{exercise.name}</span>
+                              <Badge variant="outline" className="ml-2">
+                                {exercise.muscleGroup}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline">{exercise.sets} series</Badge>
+                              <Badge variant="outline">{exercise.reps} reps</Badge>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="bg-accent/20 rounded-b-md px-4 pb-4 pt-2">
+                          <div className="space-y-3">
+                            {/* Media Section */}
+                            {(exercise.imageUrl || exercise.videoUrl) && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                {exercise.imageUrl && (
+                                  <div className="relative">
+                                    <p className="text-sm font-medium mb-1">Imagen de referencia</p>
+                                    <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
+                                      <img 
+                                        src={exercise.imageUrl} 
+                                        alt={`Imagen de ${exercise.name}`}
+                                        className="object-cover w-full h-full"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = "/placeholder.svg";
+                                        }}
+                                      />
+                                    </AspectRatio>
                                   </div>
                                 )}
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {exercise.weight && (
-                                    <div>
-                                      <h4 className="text-sm font-medium mb-1">Peso</h4>
-                                      <Badge variant="secondary">{exercise.weight} kg</Badge>
-                                    </div>
-                                  )}
-                                  
-                                  {exercise.notes && (
-                                    <div className="col-span-full">
-                                      <h4 className="text-sm font-medium mb-1">Notas</h4>
-                                      <p className="text-sm text-muted-foreground">{exercise.notes}</p>
-                                    </div>
-                                  )}
-                                </div>
                                 
-                                <div className="flex justify-end">
-                                  <Button 
-                                    variant={exercise.completed ? "default" : "outline"}
-                                    className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
-                                    size="sm"
-                                    onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
-                                    disabled={isToggling}
-                                  >
-                                    {isToggling ? (
-                                      <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Actualizando...
-                                      </>
-                                    ) : exercise.completed ? (
-                                      "Completado"
-                                    ) : (
-                                      "Marcar como completado"
-                                    )}
-                                  </Button>
-                                </div>
+                                {exercise.videoUrl && (
+                                  <div className="relative">
+                                    <p className="text-sm font-medium mb-1">Video tutorial</p>
+                                    <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
+                                      {extractYouTubeVideoId(exercise.videoUrl) ? (
+                                        <iframe
+                                          src={`https://www.youtube.com/embed/${extractYouTubeVideoId(exercise.videoUrl)}`}
+                                          title={`Video de ${exercise.name}`}
+                                          className="w-full h-full border-0"
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                          allowFullScreen
+                                        ></iframe>
+                                      ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                          <a 
+                                            href={exercise.videoUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="bg-primary text-white rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
+                                          >
+                                            <Play className="h-5 w-5" />
+                                          </a>
+                                          <img 
+                                            src={exercise.imageUrl || "/placeholder.svg"} 
+                                            alt={`Video de ${exercise.name}`}
+                                            className="object-cover w-full h-full opacity-70"
+                                          />
+                                        </div>
+                                      )}
+                                    </AspectRatio>
+                                  </div>
+                                )}
                               </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        ))}
-                      </Accordion>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                        <p className="text-muted-foreground">No hay ejercicios programados para {day}</p>
-                      </div>
-                    )}
-                  </TabsContent>
-                ))}
-              </Tabs>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {exercise.weight && (
+                                <div>
+                                  <h4 className="text-sm font-medium mb-1">Peso</h4>
+                                  <Badge variant="secondary">{exercise.weight} kg</Badge>
+                                </div>
+                              )}
+                              
+                              {exercise.notes && (
+                                <div className="col-span-full">
+                                  <h4 className="text-sm font-medium mb-1">Notas</h4>
+                                  <p className="text-sm text-muted-foreground">{exercise.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex justify-end">
+                              <Button 
+                                variant={exercise.completed ? "default" : "outline"}
+                                className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
+                                size="sm"
+                                onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
+                                disabled={isToggling}
+                              >
+                                {isToggling ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Actualizando...
+                                  </>
+                                ) : exercise.completed ? (
+                                  "Completado"
+                                ) : (
+                                  "Marcar como completado"
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <div className="text-center py-8">
+                    <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No hay ejercicios programados para esta fecha</p>
+                  </div>
+                )}
+              </div>
             )}
           </CardContent>
         </Card>

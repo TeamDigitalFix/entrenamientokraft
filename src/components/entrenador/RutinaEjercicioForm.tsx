@@ -29,17 +29,16 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
-
-// Días de la semana para el selector
-const diasSemana = [
-  { value: "Lunes", label: "Lunes" },
-  { value: "Martes", label: "Martes" },
-  { value: "Miércoles", label: "Miércoles" },
-  { value: "Jueves", label: "Jueves" },
-  { value: "Viernes", label: "Viernes" },
-  { value: "Sábado", label: "Sábado" },
-  { value: "Domingo", label: "Domingo" },
-];
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface RutinaEjercicioFormProps {
   clienteId: string;
@@ -68,7 +67,7 @@ const RutinaEjercicioForm = ({
   const form = useForm({
     defaultValues: {
       ejercicio_id: "",
-      dia: "Lunes",
+      fecha: new Date(),
       series: 3,
       repeticiones: 10,
       peso: "",
@@ -121,10 +120,10 @@ const RutinaEjercicioForm = ({
         setCreatingRutina(false);
       }
 
-      // Mapear el día de la semana a un número para la base de datos
-      const diaNumero = diasSemana.findIndex(d => d.value === values.dia) + 1;
+      // Format the date as a string (YYYY-MM-DD)
+      const formattedDate = format(values.fecha, "yyyy-MM-dd");
 
-      // Insertar el ejercicio en la rutina
+      // Insertar el ejercicio en la rutina usando la fecha
       const { error: ejercicioError } = await supabase
         .from("rutina_ejercicios")
         .insert({
@@ -134,7 +133,7 @@ const RutinaEjercicioForm = ({
           repeticiones: values.repeticiones,
           peso: values.peso || null,
           notas: values.notas || null,
-          dia: diaNumero,
+          dia: formattedDate, // Store the date as a string
         });
 
       if (ejercicioError) throw ejercicioError;
@@ -198,28 +197,40 @@ const RutinaEjercicioForm = ({
 
           <FormField
             control={form.control}
-            name="dia"
+            name="fecha"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Día de la semana*</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={loading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un día" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {diasSemana.map((dia) => (
-                      <SelectItem key={dia.value} value={dia.value}>
-                        {dia.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <FormItem className="flex flex-col">
+                <FormLabel>Fecha*</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        disabled={loading}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: es })
+                        ) : (
+                          <span>Selecciona una fecha</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={loading}
+                      locale={es}
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}

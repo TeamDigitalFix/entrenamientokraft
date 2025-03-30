@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -28,27 +27,25 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-// Días de la semana para el selector
-const diasSemana = [
-  { value: "Lunes", label: "Lunes" },
-  { value: "Martes", label: "Martes" },
-  { value: "Miércoles", label: "Miércoles" },
-  { value: "Jueves", label: "Jueves" },
-  { value: "Viernes", label: "Viernes" },
-  { value: "Sábado", label: "Sábado" },
-  { value: "Domingo", label: "Domingo" },
-];
-
-// Tipos de comida
 const tiposComida = [
   { value: "Desayuno", label: "Desayuno" },
   { value: "Media mañana", label: "Media mañana" },
   { value: "Almuerzo", label: "Almuerzo" },
   { value: "Merienda", label: "Merienda" },
   { value: "Cena", label: "Cena" },
-  { value: "Post-entrenamiento", label: "Post-entrenamiento" },
   { value: "Pre-entrenamiento", label: "Pre-entrenamiento" },
+  { value: "Post-entrenamiento", label: "Post-entrenamiento" },
 ];
 
 interface DietaComidaFormProps {
@@ -74,16 +71,15 @@ const DietaComidaForm = ({
   const { toast } = useToast();
   const [alimentos, setAlimentos] = useState<AlimentoOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [creandoDieta, setCreandoDieta] = useState(false);
-  const [selectedFoodCalories, setSelectedFoodCalories] = useState<number | null>(null);
+  const [creatingDieta, setCreatingDieta] = useState(false);
+  const [selectedAlimento, setSelectedAlimento] = useState<AlimentoOption | null>(null);
 
   const form = useForm({
     defaultValues: {
       alimento_id: "",
+      fecha: new Date(),
       tipo_comida: "Desayuno",
-      dia: "Lunes",
-      cantidad: 100, // en gramos por defecto
-      hora: "08:00",
+      cantidad: 100,
     },
   });
 
@@ -109,14 +105,10 @@ const DietaComidaForm = ({
     fetchAlimentos();
   }, [toast]);
 
-  // Actualizar calorías cuando se selecciona un alimento
+  // Actualizar información del alimento cuando se selecciona
   const handleAlimentoChange = (alimentoId: string) => {
     const alimento = alimentos.find(a => a.id === alimentoId);
-    if (alimento) {
-      setSelectedFoodCalories(alimento.calorias);
-    } else {
-      setSelectedFoodCalories(null);
-    }
+    setSelectedAlimento(alimento || null);
     form.setValue("alimento_id", alimentoId);
   };
 
@@ -127,7 +119,7 @@ const DietaComidaForm = ({
 
       // Si no existe una dieta, crear una nueva
       if (!dieta_id) {
-        setCreandoDieta(true);
+        setCreatingDieta(true);
         const { data: nuevaDieta, error: dietaError } = await supabase
           .from("dietas")
           .insert({
@@ -140,11 +132,11 @@ const DietaComidaForm = ({
 
         if (dietaError) throw dietaError;
         dieta_id = nuevaDieta.id;
-        setCreandoDieta(false);
+        setCreatingDieta(false);
       }
 
-      // Mapear el día de la semana a un número para la base de datos
-      const diaNumero = diasSemana.findIndex(d => d.value === values.dia) + 1;
+      // Format the date as a string (YYYY-MM-DD)
+      const formattedDate = format(values.fecha, "yyyy-MM-dd");
 
       // Insertar la comida en la dieta
       const { error: comidaError } = await supabase
@@ -154,7 +146,7 @@ const DietaComidaForm = ({
           alimento_id: values.alimento_id,
           tipo_comida: values.tipo_comida,
           cantidad: values.cantidad,
-          dia: diaNumero,
+          dia: formattedDate, // Store the date as a string
         });
 
       if (comidaError) throw comidaError;
@@ -176,17 +168,12 @@ const DietaComidaForm = ({
     }
   };
 
-  // Calcular calorías totales según la cantidad
-  const calculatedCalories = selectedFoodCalories 
-    ? Math.round((selectedFoodCalories * form.watch("cantidad")) / 100) 
-    : null;
-
   return (
     <DialogContent className="sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Añadir comida a la dieta</DialogTitle>
         <DialogDescription>
-          Selecciona un alimento y completa la información para añadirlo a la dieta del cliente.
+          Selecciona un alimento y completa la información para añadirlo al plan alimenticio del cliente.
         </DialogDescription>
       </DialogHeader>
 
@@ -211,7 +198,7 @@ const DietaComidaForm = ({
                   <SelectContent>
                     {alimentos.map((alimento) => (
                       <SelectItem key={alimento.id} value={alimento.id}>
-                        {alimento.nombre} - {alimento.categoria} ({alimento.calorias} kcal/100g)
+                        {alimento.nombre} - {alimento.categoria}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -221,61 +208,53 @@ const DietaComidaForm = ({
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="tipo_comida"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tipo de comida*</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    disabled={loading}
-                  >
+          <FormField
+            control={form.control}
+            name="fecha"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Fecha*</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona tipo" />
-                      </SelectTrigger>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                        disabled={loading}
+                      >
+                        {field.value ? (
+                          format(field.value, "PPP", { locale: es })
+                        ) : (
+                          <span>Selecciona una fecha</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
                     </FormControl>
-                    <SelectContent>
-                      {tiposComida.map((tipo) => (
-                        <SelectItem key={tipo.value} value={tipo.value}>
-                          {tipo.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="hora"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Hora</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="time"
-                      {...field}
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
                       disabled={loading}
+                      locale={es}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
-            name="dia"
+            name="tipo_comida"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Día de la semana*</FormLabel>
+                <FormLabel>Tipo de comida*</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -283,13 +262,13 @@ const DietaComidaForm = ({
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un día" />
+                      <SelectValue placeholder="Selecciona un tipo" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {diasSemana.map((dia) => (
-                      <SelectItem key={dia.value} value={dia.value}>
-                        {dia.label}
+                    {tiposComida.map((tipo) => (
+                      <SelectItem key={tipo.value} value={tipo.value}>
+                        {tipo.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -304,9 +283,9 @@ const DietaComidaForm = ({
             name="cantidad"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cantidad (gramos)*</FormLabel>
-                <div className="flex items-center gap-2">
-                  <FormControl>
+                <FormLabel>Cantidad (g)*</FormLabel>
+                <FormControl>
+                  <div className="flex items-center space-x-4">
                     <Input
                       type="number"
                       {...field}
@@ -314,13 +293,13 @@ const DietaComidaForm = ({
                       disabled={loading}
                       min={1}
                     />
-                  </FormControl>
-                  {calculatedCalories && (
-                    <span className="text-sm text-muted-foreground">
-                      {calculatedCalories} kcal
-                    </span>
-                  )}
-                </div>
+                    {selectedAlimento && (
+                      <div className="text-sm text-muted-foreground whitespace-nowrap">
+                        {Math.round((selectedAlimento.calorias * field.value) / 100)} kcal
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -336,7 +315,7 @@ const DietaComidaForm = ({
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (creandoDieta ? "Creando dieta..." : "Añadiendo...") : "Añadir comida"}
+              {loading ? (creatingDieta ? "Creando dieta..." : "Añadiendo...") : "Añadir comida"}
             </Button>
           </DialogFooter>
         </form>

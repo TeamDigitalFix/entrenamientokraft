@@ -51,7 +51,7 @@ export interface RoutineExercise {
   weight?: number;
   restTime?: number;
   notes?: string;
-  day: number; // Día de la semana (1-7)
+  date: Date; // Changed from day (number) to date (Date)
 }
 
 export interface Routine {
@@ -71,7 +71,7 @@ export interface DietMeal {
   foodId: string;
   quantity: number; // en gramos
   mealType: string; // desayuno, almuerzo, cena, etc.
-  day: number; // Día de la semana (1-7)
+  date: Date; // Changed from day (number) to date (Date)
 }
 
 export interface Diet {
