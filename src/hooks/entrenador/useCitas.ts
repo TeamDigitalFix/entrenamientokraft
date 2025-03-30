@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,6 +128,8 @@ export const useCitas = (entrenadorId: string) => {
         ...nuevaCita,
         estado: validateCitaStatus(nuevaCita.estado)
       };
+      
+      console.log("Cita validada para inserción:", validatedCita);
       
       // Inserción de la cita
       const { data, error } = await supabase

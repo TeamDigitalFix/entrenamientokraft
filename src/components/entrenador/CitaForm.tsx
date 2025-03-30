@@ -146,8 +146,12 @@ export const CitaForm = ({
       };
 
       console.log("Enviando cita a crear:", nuevaCita);
-      await onSubmit(nuevaCita);
-      onCancel();
+      const resultado = await onSubmit(nuevaCita);
+      console.log("Resultado de la creación:", resultado);
+      
+      if (resultado) {
+        onCancel();
+      }
     } catch (error) {
       console.error("Error al guardar cita:", error);
       toast({
