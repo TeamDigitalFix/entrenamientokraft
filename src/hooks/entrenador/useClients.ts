@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +48,6 @@ export const useClients = (searchTerm: string = "") => {
     ultimo_ingreso: null
   });
 
-  // Fetching clients for the current trainer
   const { data: clients = [], isLoading, refetch } = useQuery({
     queryKey: ["clients", searchTerm],
     queryFn: async () => {
@@ -77,7 +75,6 @@ export const useClients = (searchTerm: string = "") => {
     enabled: !!user?.id
   });
 
-  // Check if username already exists
   const checkUsernameExists = async (username: string, excludeId?: string): Promise<boolean> => {
     let query = supabase
       .from("usuarios")
@@ -93,10 +90,8 @@ export const useClients = (searchTerm: string = "") => {
     return data && data.length > 0;
   };
 
-  // Create new client
   const createClient = useMutation({
     mutationFn: async (clientData: ClientData) => {
-      // Check if username exists first
       const usernameExists = await checkUsernameExists(clientData.username);
       
       if (usernameExists) {
@@ -110,7 +105,7 @@ export const useClients = (searchTerm: string = "") => {
           email: clientData.email,
           telefono: clientData.telefono,
           username: clientData.username,
-          password: clientData.password, // En producción debe cifrarse
+          password: clientData.password,
           role: "cliente",
           entrenador_id: user?.id
         }])
@@ -144,10 +139,8 @@ export const useClients = (searchTerm: string = "") => {
     }
   });
 
-  // Update client
   const updateClient = useMutation({
     mutationFn: async (clientData: ClientData) => {
-      // Check if username exists (excluding this client)
       if (clientData.username) {
         const usernameExists = await checkUsernameExists(clientData.username, clientData.id);
         
@@ -163,7 +156,6 @@ export const useClients = (searchTerm: string = "") => {
         username: clientData.username
       };
       
-      // Solo incluir password si se ha proporcionado uno nuevo
       if (clientData.password) {
         updateData.password = clientData.password;
       }
@@ -191,7 +183,6 @@ export const useClients = (searchTerm: string = "") => {
     }
   });
 
-  // Delete client (soft delete)
   const deleteClient = useMutation({
     mutationFn: async (clientId: string) => {
       const { data, error } = await supabase
@@ -213,7 +204,6 @@ export const useClients = (searchTerm: string = "") => {
     }
   });
 
-  // Recover client
   const recoverClient = useMutation({
     mutationFn: async (clientId: string) => {
       const { data, error } = await supabase
@@ -234,13 +224,33 @@ export const useClients = (searchTerm: string = "") => {
     }
   });
 
-  // Reset client data
   const resetClientData = useMutation({
     mutationFn: async (clientId: string) => {
       try {
-        // Delete in correct order to respect foreign key constraints
+        const { data: rutinas, error: rutinasQueryError } = await supabase
+          .from("rutinas")
+          .select("id")
+          .eq("cliente_id", clientId);
         
-        // 1. First delete records from ejercicios_completados (references rutina_ejercicios)
+        if (rutinasQueryError) {
+          console.error("Error fetching routines:", rutinasQueryError);
+          throw rutinasQueryError;
+        }
+        
+        const rutinaIds = rutinas?.map(r => r.id) || [];
+        
+        const { data: dietas, error: dietasQueryError } = await supabase
+          .from("dietas")
+          .select("id")
+          .eq("cliente_id", clientId);
+        
+        if (dietasQueryError) {
+          console.error("Error fetching diets:", dietasQueryError);
+          throw dietasQueryError;
+        }
+        
+        const dietaIds = dietas?.map(d => d.id) || [];
+        
         const { error: completedExercisesError } = await supabase
           .from("ejercicios_completados")
           .delete()
@@ -250,24 +260,17 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting completed exercises:", completedExercisesError);
         }
         
-        // 2. Now delete records from rutina_ejercicios
-        const { error: rutinasEjerciciosError } = await supabase
-          .from("rutina_ejercicios")
-          .delete()
-          .eq("rutina_id", function(b) {
-            b.in(
-              supabase
-                .from("rutinas")
-                .select("id")
-                .eq("cliente_id", clientId)
-            );
-          });
-        
-        if (rutinasEjerciciosError) {
-          console.error("Error deleting rutina exercises:", rutinasEjerciciosError);
+        if (rutinaIds.length > 0) {
+          const { error: rutinasEjerciciosError } = await supabase
+            .from("rutina_ejercicios")
+            .delete()
+            .in("rutina_id", rutinaIds);
+          
+          if (rutinasEjerciciosError) {
+            console.error("Error deleting rutina exercises:", rutinasEjerciciosError);
+          }
         }
 
-        // 3. Delete records from rutinas
         const { error: rutinasError } = await supabase
           .from("rutinas")
           .delete()
@@ -277,7 +280,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting routines:", rutinasError);
         }
 
-        // 4. Delete records from comidas_completadas
         const { error: completedMealsError } = await supabase
           .from("comidas_completadas")
           .delete()
@@ -287,24 +289,17 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting completed meals:", completedMealsError);
         }
 
-        // 5. Delete records from dieta_comidas linked to this client's diets
-        const { error: dietaComidasError } = await supabase
-          .from("dieta_comidas")
-          .delete()
-          .eq("dieta_id", function(b) {
-            b.in(
-              supabase
-                .from("dietas")
-                .select("id")
-                .eq("cliente_id", clientId)
-            );
-          });
-        
-        if (dietaComidasError) {
-          console.error("Error deleting diet meals:", dietaComidasError);
+        if (dietaIds.length > 0) {
+          const { error: dietaComidasError } = await supabase
+            .from("dieta_comidas")
+            .delete()
+            .in("dieta_id", dietaIds);
+          
+          if (dietaComidasError) {
+            console.error("Error deleting diet meals:", dietaComidasError);
+          }
         }
 
-        // 6. Delete records from dietas
         const { error: dietasError } = await supabase
           .from("dietas")
           .delete()
@@ -314,7 +309,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting diets:", dietasError);
         }
 
-        // 7. Delete records from citas
         const { error: appointmentsError } = await supabase
           .from("citas")
           .delete()
@@ -324,7 +318,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting appointments:", appointmentsError);
         }
 
-        // 8. Delete records from progreso
         const { error: progressError } = await supabase
           .from("progreso")
           .delete()
@@ -334,7 +327,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting progress records:", progressError);
         }
 
-        // 9. Delete records from mensajes where client is receiver
         const { error: receivedMessagesError } = await supabase
           .from("mensajes")
           .delete()
@@ -344,7 +336,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting received messages:", receivedMessagesError);
         }
 
-        // 10. Delete records from mensajes where client is sender
         const { error: sentMessagesError } = await supabase
           .from("mensajes")
           .delete()
@@ -354,7 +345,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting sent messages:", sentMessagesError);
         }
 
-        // 11. Delete records from sesiones_diarias
         const { error: dailySessionsError } = await supabase
           .from("sesiones_diarias")
           .delete()
@@ -364,7 +354,6 @@ export const useClients = (searchTerm: string = "") => {
           console.error("Error deleting daily sessions:", dailySessionsError);
         }
 
-        // 12. Delete records from ejercicios_diarios
         const { error: dailyExercisesError } = await supabase
           .from("ejercicios_diarios")
           .delete()
