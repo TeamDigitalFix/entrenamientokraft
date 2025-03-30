@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useDashboardStats, DashboardStats } from "./useDashboardStats";
 import { useDashboardAppointments } from "./useDashboardAppointments";
 import { useDashboardMessages } from "./useDashboardMessages";
-import { useDashboardActivity } from "./useDashboardActivity";
+import { useDashboardActivity, WeeklyActivity } from "./useDashboardActivity";
 
 // Re-export the types from each hook
 export type { DashboardStats } from "./useDashboardStats";

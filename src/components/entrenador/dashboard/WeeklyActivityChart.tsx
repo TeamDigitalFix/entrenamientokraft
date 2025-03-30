@@ -6,11 +6,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
-import { WeeklyActivity } from "@/hooks/entrenador/useDashboard";
+import { WeeklyActivity } from "@/hooks/entrenador/useDashboardActivity";
 
 interface WeeklyActivityChartProps {
   isLoading: boolean;
-  weeklyActivity: WeeklyActivity[] | undefined;
+  weeklyActivity: WeeklyActivity | undefined;
 }
 
 interface CustomTooltipProps {
@@ -45,16 +45,16 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityChartProps> = ({ isLoad
       <CardContent>
         {isLoading ? (
           <Skeleton className="h-[300px] w-full" />
-        ) : weeklyActivity && weeklyActivity.length > 0 ? (
-          <Tabs defaultValue="clientes">
+        ) : weeklyActivity && weeklyActivity.workouts.length > 0 ? (
+          <Tabs defaultValue="workouts">
             <TabsList className="mb-4">
-              <TabsTrigger value="clientes">Clientes</TabsTrigger>
-              <TabsTrigger value="ejercicios">Ejercicios</TabsTrigger>
+              <TabsTrigger value="workouts">Ejercicios</TabsTrigger>
+              <TabsTrigger value="meals">Comidas</TabsTrigger>
             </TabsList>
-            <TabsContent value="clientes">
+            <TabsContent value="workouts">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weeklyActivity}>
+                  <LineChart data={weeklyActivity.workouts}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis dataKey="day" stroke="#6B7280" />
                     <YAxis stroke="#6B7280" />
@@ -62,8 +62,8 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityChartProps> = ({ isLoad
                     <Legend />
                     <Line 
                       type="monotone" 
-                      dataKey="clientes" 
-                      name="Clientes Activos"
+                      dataKey="count" 
+                      name="Ejercicios Completados"
                       stroke="#8884d8" 
                       strokeWidth={2}
                       activeDot={{ r: 8 }}
@@ -72,10 +72,10 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityChartProps> = ({ isLoad
                 </ResponsiveContainer>
               </div>
             </TabsContent>
-            <TabsContent value="ejercicios">
+            <TabsContent value="meals">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={weeklyActivity}>
+                  <LineChart data={weeklyActivity.meals}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                     <XAxis dataKey="day" stroke="#6B7280" />
                     <YAxis stroke="#6B7280" />
@@ -83,8 +83,8 @@ export const WeeklyActivityChart: React.FC<WeeklyActivityChartProps> = ({ isLoad
                     <Legend />
                     <Line 
                       type="monotone" 
-                      dataKey="ejercicios" 
-                      name="Ejercicios Completados"
+                      dataKey="count" 
+                      name="Comidas Completadas"
                       stroke="#82ca9d" 
                       strokeWidth={2}
                       activeDot={{ r: 8 }}
