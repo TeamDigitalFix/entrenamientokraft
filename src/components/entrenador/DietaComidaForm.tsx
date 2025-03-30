@@ -127,8 +127,7 @@ const DietaComidaForm = ({
         setCreandoDieta(false);
       }
 
-      // Convert date to day number (1-7, representing days of the week)
-      // Since we're storing the date as text in the database, we'll convert it to YYYY-MM-DD format
+      // Convert date to YYYY-MM-DD format
       const formattedDate = format(values.fecha, "yyyy-MM-dd");
       
       // Insert the meal into the diet
@@ -139,7 +138,7 @@ const DietaComidaForm = ({
           alimento_id: values.alimento_id,
           tipo_comida: values.tipo_comida,
           cantidad: values.cantidad,
-          dia: formattedDate, // Store the date in YYYY-MM-DD format
+          dia: formattedDate, // Store the date in YYYY-MM-DD format as text
         });
 
       if (comidaError) throw comidaError;

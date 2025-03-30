@@ -123,7 +123,7 @@ const RutinaEjercicioForm = ({
       // Format the date as a string (YYYY-MM-DD)
       const formattedDate = format(values.fecha, "yyyy-MM-dd");
 
-      // Insertar el ejercicio en la rutina usando la fecha
+      // Insertar el ejercicio en la rutina usando la fecha como texto
       const { error: ejercicioError } = await supabase
         .from("rutina_ejercicios")
         .insert({
@@ -133,7 +133,7 @@ const RutinaEjercicioForm = ({
           repeticiones: values.repeticiones,
           peso: values.peso || null,
           notas: values.notas || null,
-          dia: formattedDate, // Store the date in YYYY-MM-DD format
+          dia: formattedDate, // Store the date in YYYY-MM-DD format as text
         });
 
       if (ejercicioError) throw ejercicioError;
