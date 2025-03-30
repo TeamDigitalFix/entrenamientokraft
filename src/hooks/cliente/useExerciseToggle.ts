@@ -45,6 +45,7 @@ export const useExerciseToggle = () => {
       return { exerciseId, completed: !completed };
     },
     onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["client-routine", clientId] });
       queryClient.invalidateQueries({ queryKey: ["client-dashboard", "exercises"] });
       toast.success(
         data.completed 

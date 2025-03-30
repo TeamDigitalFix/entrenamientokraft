@@ -83,13 +83,6 @@ export const useClientRoutine = () => {
         if (exercisesError) throw exercisesError;
 
         // Get completed exercises
-        const today = new Date();
-        const todayStart = new Date(today);
-        todayStart.setHours(0, 0, 0, 0);
-        
-        const todayEnd = new Date(today);
-        todayEnd.setHours(23, 59, 59, 999);
-
         const { data: completedExercises, error: completedError } = await supabase
           .from("ejercicios_completados")
           .select("rutina_ejercicio_id")
