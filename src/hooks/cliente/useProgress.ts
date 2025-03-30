@@ -34,6 +34,8 @@ export const useProgress = () => {
         if (!user?.id) return [];
 
         console.log("Consultando mediciones para usuario:", user.id);
+        
+        // Check for measurements in the database
         const { data, error } = await supabase
           .from("progreso")
           .select("*")
@@ -45,8 +47,16 @@ export const useProgress = () => {
           throw error;
         }
 
-        console.log("Mediciones obtenidas:", data);
-        return data as ProgressMeasurement[];
+        console.log("Mediciones obtenidas desde la BD:", data);
+        
+        // If we have data, return it
+        if (data && data.length > 0) {
+          return data as ProgressMeasurement[];
+        }
+        
+        // If no data found, log it
+        console.log("No se encontraron mediciones para el usuario");
+        return [];
       } catch (error) {
         console.error("Error al cargar mediciones:", error);
         toast.error("No se pudieron cargar las mediciones");
@@ -54,6 +64,10 @@ export const useProgress = () => {
       }
     },
     enabled: !!user?.id,
+    // Add these options to ensure we always get fresh data
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   // Obtener la medición más reciente
@@ -126,7 +140,7 @@ export const useProgress = () => {
         
         console.log("Datos completos a insertar:", measurementData);
         
-        // Usamos la opción de inserción directa
+        // Usamos la función RPC para insertar sin restricciones de RLS
         const { data, error } = await supabase.rpc('insertar_medicion_progreso', {
           p_cliente_id: user.id,
           p_peso: newMeasurement.peso,
@@ -151,7 +165,11 @@ export const useProgress = () => {
     onSuccess: (data) => {
       console.log("Medición registrada con éxito:", data);
       toast.success("Medición registrada correctamente");
+      
+      // Forzar una invalidación y recarga de los datos
       queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
+      queryClient.refetchQueries({ queryKey: ["progress", user?.id] });
+      
       setIsDialogOpen(false);
     },
     onError: (error: any) => {
