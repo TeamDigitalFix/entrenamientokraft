@@ -1,25 +1,13 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Search, 
-  Filter, 
-  UserPlus, 
-  Edit, 
-  Trash2, 
-  RefreshCw,
-  Dumbbell,
-  Undo
-} from "lucide-react";
-import { UserRole } from "@/types/index";
-import { useClients, ClientData } from "@/hooks/entrenador/useClients";
-import { ClientForm } from "@/components/entrenador/ClientForm";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -27,14 +15,28 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle
+  AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, formatDistanceToNow } from "date-fns";
+import { 
+  Search, 
+  Filter, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  RefreshCw,
+  RotateCcw,
+  Dumbbell,
+  Utensils
+} from "lucide-react";
+import { UserRole } from "@/types/index";
+import { useClients, ClientData } from "@/hooks/entrenador/useClients";
+import { ClientForm } from "@/components/entrenador/ClientForm";
+import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
 const TrainerClients = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  
   const {
     clients,
     isLoading,
@@ -55,25 +57,64 @@ const TrainerClients = () => {
     recoverClient
   } = useClients(searchTerm);
 
+  // Limpia los estados al montar y desmontar el componente
+  useEffect(() => {
+    setShowNewClientDialog(false);
+    setShowEditClientDialog(false);
+    setClientToDelete(null);
+    
+    return () => {
+      setShowNewClientDialog(false);
+      setShowEditClientDialog(false);
+      setClientToDelete(null);
+    };
+  }, [setShowNewClientDialog, setShowEditClientDialog, setClientToDelete]);
+
+  const handleCreateClient = (data: ClientData) => {
+    createClient(data);
+  };
+
+  const handleUpdateClient = (data: ClientData) => {
+    updateClient(data);
+  };
+
   const handleOpenEditDialog = (client: ClientData) => {
-    // Reseteamos la contraseña en el diálogo de edición para que no se envíe
-    // a menos que el usuario introduzca una nueva
     setEditClientData({
       ...client,
-      password: ""
+      password: "" // No enviamos la contraseña actual para que tenga que escribir una nueva si quiere cambiarla
     });
     setShowEditClientDialog(true);
   };
 
-  // Formatear la fecha de último ingreso
-  const formatLastActive = (dateString: string | null) => {
-    if (!dateString) return "Nunca";
+  const handleDeleteClient = (clientId: string) => {
+    setClientToDelete(clientId);
+  };
+
+  const confirmDeleteClient = () => {
+    if (clientToDelete) {
+      deleteClient(clientToDelete);
+    }
+  };
+
+  const handleRecoverClient = (clientId: string) => {
+    recoverClient(clientId);
+  };
+
+  const navigateToRoutine = (clientId: string) => {
+    navigate(`/entrenador/cliente/${clientId}/rutina`);
+  };
+
+  const navigateToDiet = (clientId: string) => {
+    navigate(`/entrenador/cliente/${clientId}/dieta`);
+  };
+
+  const formatLastLogin = (date: string | null) => {
+    if (!date) return "Nunca";
     
     try {
-      const date = new Date(dateString);
-      return formatDistanceToNow(date, { addSuffix: true, locale: es });
+      return `hace ${formatDistanceToNow(new Date(date), { locale: es })}`;
     } catch (error) {
-      return dateString;
+      return "Fecha inválida";
     }
   };
 
@@ -83,7 +124,7 @@ const TrainerClients = () => {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">Gestión de Clientes</h1>
           <Button onClick={() => setShowNewClientDialog(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-2" />
             Nuevo Cliente
           </Button>
         </div>
@@ -120,39 +161,60 @@ const TrainerClients = () => {
                     <TableHead>Teléfono</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Último Ingreso</TableHead>
-                    <TableHead className="w-[120px]">Acciones</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">Cargando clientes...</TableCell>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        Cargando clientes...
+                      </TableCell>
                     </TableRow>
                   ) : clients.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">No se encontraron clientes</TableCell>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        No se encontraron clientes
+                      </TableCell>
                     </TableRow>
                   ) : (
                     clients.map((client) => (
-                      <TableRow key={client.id} className={client.eliminado ? "bg-muted/40" : ""}>
+                      <TableRow key={client.id}>
                         <TableCell className="font-medium">{client.nombre}</TableCell>
-                        <TableCell>{client.email || "-"}</TableCell>
-                        <TableCell>{client.telefono || "-"}</TableCell>
+                        <TableCell>{client.email || "—"}</TableCell>
+                        <TableCell>{client.telefono || "—"}</TableCell>
                         <TableCell>
-                          <Badge variant={client.eliminado ? "secondary" : "success"}>
-                            {client.eliminado ? "Eliminado" : "Activo"}
-                          </Badge>
+                          {client.eliminado ? (
+                            <Badge variant="destructive">Eliminado</Badge>
+                          ) : (
+                            <Badge variant="success">Activo</Badge>
+                          )}
                         </TableCell>
-                        <TableCell>{formatLastActive(client.actualizado_en)}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
+                          {formatLastLogin(client.ultimo_ingreso)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-2">
                             {!client.eliminado ? (
                               <>
-                                <Button variant="ghost" size="icon" title="Rutina">
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  title="Rutina"
+                                  onClick={() => navigateToRoutine(client.id!)}
+                                >
                                   <Dumbbell className="h-4 w-4" />
                                 </Button>
                                 <Button 
-                                  variant="ghost" 
+                                  variant="outline" 
+                                  size="icon" 
+                                  title="Dieta"
+                                  onClick={() => navigateToDiet(client.id!)}
+                                >
+                                  <Utensils className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
                                   size="icon" 
                                   title="Editar"
                                   onClick={() => handleOpenEditDialog(client)}
@@ -160,22 +222,22 @@ const TrainerClients = () => {
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button 
-                                  variant="ghost" 
+                                  variant="outline" 
                                   size="icon" 
                                   title="Eliminar"
-                                  onClick={() => setClientToDelete(client.id as string)}
+                                  onClick={() => handleDeleteClient(client.id!)}
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </>
                             ) : (
                               <Button 
-                                variant="ghost" 
+                                variant="outline" 
                                 size="icon" 
                                 title="Recuperar"
-                                onClick={() => recoverClient(client.id as string)}
+                                onClick={() => handleRecoverClient(client.id!)}
                               >
-                                <Undo className="h-4 w-4 text-green-600" />
+                                <RotateCcw className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
@@ -190,39 +252,39 @@ const TrainerClients = () => {
         </Card>
       </div>
 
-      {/* Formulario para nuevo cliente */}
-      <ClientForm 
+      {/* Diálogo de Creación de Cliente */}
+      <ClientForm
         open={showNewClientDialog}
         onOpenChange={setShowNewClientDialog}
-        title="Nuevo Cliente"
+        title="Crear Nuevo Cliente"
         clientData={newClientData}
         setClientData={setNewClientData}
-        onSubmit={createClient}
+        onSubmit={handleCreateClient}
       />
 
-      {/* Formulario para editar cliente */}
-      <ClientForm 
+      {/* Diálogo de Edición de Cliente */}
+      <ClientForm
         open={showEditClientDialog}
         onOpenChange={setShowEditClientDialog}
         title="Editar Cliente"
         clientData={editClientData}
         setClientData={setEditClientData}
-        onSubmit={updateClient}
-        isEdit
+        onSubmit={handleUpdateClient}
+        isEdit={true}
       />
 
-      {/* Diálogo de confirmación para eliminar cliente */}
+      {/* Diálogo de Confirmación de Eliminación */}
       <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará al cliente. Podrás recuperarlo más adelante si es necesario.
+              Esta acción eliminará al cliente seleccionado. Podrás recuperarlo después si es necesario.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => clientToDelete && deleteClient(clientToDelete)}>
+            <AlertDialogAction onClick={confirmDeleteClient} className="bg-destructive text-destructive-foreground">
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -26,6 +26,10 @@ import TrainerReports from "./pages/entrenador/Reports";
 // Páginas de cliente
 import ClientDashboard from "./pages/cliente/Dashboard";
 
+// Páginas de gestión de clientes
+import ClientRoutine from "./pages/entrenador/ClientRoutine";
+import ClientDiet from "./pages/entrenador/ClientDiet";
+
 // Página de 404
 import NotFound from "./pages/NotFound";
 
@@ -58,6 +62,10 @@ const App = () => (
               <Route path="/entrenador/citas" element={<TrainerAppointments />} />
               <Route path="/entrenador/mensajes" element={<TrainerMessages />} />
               <Route path="/entrenador/informes" element={<TrainerReports />} />
+              
+              {/* Rutas de gestión de clientes específicos */}
+              <Route path="/entrenador/cliente/:clientId/rutina" element={<ClientRoutine />} />
+              <Route path="/entrenador/cliente/:clientId/dieta" element={<ClientDiet />} />
               
               {/* Rutas de cliente */}
               <Route path="/cliente/dashboard" element={<ClientDashboard />} />
