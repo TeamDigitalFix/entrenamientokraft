@@ -22,6 +22,7 @@ import TrainerFoods from "./pages/entrenador/Foods";
 import TrainerAppointments from "./pages/entrenador/Appointments";
 import TrainerMessages from "./pages/entrenador/Messages";
 import TrainerReports from "./pages/entrenador/Reports";
+import TrainerPayments from "./pages/entrenador/Pagos";
 
 // Páginas de cliente
 import ClientDashboard from "./pages/cliente/Dashboard";
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/entrenador/citas" element={<TrainerAppointments />} />
               <Route path="/entrenador/mensajes" element={<TrainerMessages />} />
               <Route path="/entrenador/informes" element={<TrainerReports />} />
+              <Route path="/entrenador/pagos" element={<TrainerPayments />} />
               
               {/* Rutas de gestión de clientes específicos */}
               <Route path="/entrenador/cliente/:clientId/rutina" element={<TrainerClientRoutine />} />

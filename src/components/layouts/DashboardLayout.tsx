@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +23,8 @@ import {
   Users, 
   Activity,
   Pizza,
-  LogOut
+  LogOut,
+  DollarSign
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/ui/mode-toggle";
@@ -169,6 +171,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Mensajes
               </Link>
+              <Link to="/entrenador/pagos" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 my-1">
+                <DollarSign className="h-4 w-4 mr-2" />
+                Pagos
+              </Link>
               <Link to="/entrenador/informes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 my-1">
                 <FileText className="h-4 w-4 mr-2" />
                 Informes
@@ -239,6 +245,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
                 <Link to="/entrenador/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 my-1">
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Mensajes
+                </Link>
+                <Link to="/entrenador/pagos" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 my-1">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Pagos
                 </Link>
                 <Link to="/entrenador/informes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-2 my-1">
                   <FileText className="h-4 w-4 mr-2" />

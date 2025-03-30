@@ -530,6 +530,83 @@ export type Database = {
           },
         ]
       }
+      pagos: {
+        Row: {
+          creado_en: string | null
+          estado: string
+          fecha_pago: string | null
+          fecha_programada: string
+          id: string
+          metodo_pago: string | null
+          monto: number
+          notas: string | null
+          suscripcion_id: string
+        }
+        Insert: {
+          creado_en?: string | null
+          estado: string
+          fecha_pago?: string | null
+          fecha_programada: string
+          id?: string
+          metodo_pago?: string | null
+          monto: number
+          notas?: string | null
+          suscripcion_id: string
+        }
+        Update: {
+          creado_en?: string | null
+          estado?: string
+          fecha_pago?: string | null
+          fecha_programada?: string
+          id?: string
+          metodo_pago?: string | null
+          monto?: number
+          notas?: string | null
+          suscripcion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_suscripcion_id_fkey"
+            columns: ["suscripcion_id"]
+            isOneToOne: false
+            referencedRelation: "suscripciones_cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      planes_pago: {
+        Row: {
+          activo: boolean
+          creado_en: string | null
+          creado_por: string
+          descripcion: string | null
+          id: string
+          intervalo_dias: number
+          nombre: string
+          precio: number
+        }
+        Insert: {
+          activo?: boolean
+          creado_en?: string | null
+          creado_por: string
+          descripcion?: string | null
+          id?: string
+          intervalo_dias: number
+          nombre: string
+          precio: number
+        }
+        Update: {
+          activo?: boolean
+          creado_en?: string | null
+          creado_por?: string
+          descripcion?: string | null
+          id?: string
+          intervalo_dias?: number
+          nombre?: string
+          precio?: number
+        }
+        Relationships: []
+      }
       progreso: {
         Row: {
           altura: number | null
@@ -749,6 +826,54 @@ export type Database = {
           id?: string
         }
         Relationships: []
+      }
+      suscripciones_cliente: {
+        Row: {
+          activo: boolean
+          cliente_id: string
+          creado_en: string | null
+          fecha_fin: string | null
+          fecha_inicio: string
+          id: string
+          notas: string | null
+          plan_id: string
+        }
+        Insert: {
+          activo?: boolean
+          cliente_id: string
+          creado_en?: string | null
+          fecha_fin?: string | null
+          fecha_inicio: string
+          id?: string
+          notas?: string | null
+          plan_id: string
+        }
+        Update: {
+          activo?: boolean
+          cliente_id?: string
+          creado_en?: string | null
+          fecha_fin?: string | null
+          fecha_inicio?: string
+          id?: string
+          notas?: string | null
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suscripciones_cliente_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "suscripciones_cliente_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "planes_pago"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usuarios: {
         Row: {

@@ -12,6 +12,7 @@ import { useDashboard } from "@/hooks/entrenador/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCards } from "@/components/entrenador/dashboard/StatCards";
 import { WeeklyActivityChart } from "@/components/entrenador/dashboard/WeeklyActivityChart";
+import { PaymentAlerts } from "@/components/entrenador/dashboard/PaymentAlerts";
 
 const TrainerDashboard = () => {
   const { dashboardStats, todayAppointments, recentMessages, weeklyActivity, isLoading } = useDashboard();
@@ -40,7 +41,7 @@ const TrainerDashboard = () => {
         
         <StatCards isLoading={isLoading} stats={dashboardStats} />
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Citas de Hoy */}
           <Card className="col-span-1">
             <CardHeader>
@@ -107,6 +108,11 @@ const TrainerDashboard = () => {
                 </div>
               )}
             </CardContent>
+          </Card>
+          
+          {/* Alertas de Pagos */}
+          <Card className="col-span-1">
+            <PaymentAlerts />
           </Card>
           
           {/* Mensajes Recientes */}
