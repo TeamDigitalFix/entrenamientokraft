@@ -25,6 +25,8 @@ const ClientProgress = () => {
     isLoadingMeasurements,
     addMeasurement,
     isAddingMeasurement,
+    deleteMeasurement,
+    isDeletingMeasurement,
     isDialogOpen,
     setIsDialogOpen
   } = useProgress();
@@ -32,6 +34,10 @@ const ClientProgress = () => {
   const handleAddMeasurement = (data: NewMeasurement) => {
     console.log("Formulario enviado con datos:", data);
     addMeasurement(data);
+  };
+
+  const handleDeleteMeasurement = (id: string) => {
+    deleteMeasurement(id);
   };
 
   const openDialog = () => {
@@ -166,9 +172,11 @@ const ClientProgress = () => {
         </div>
         
         <Card>
-          <CardHeader>
-            <CardTitle>Historial de Mediciones</CardTitle>
-            <CardDescription>Registro completo de todas tus mediciones</CardDescription>
+          <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+            <div>
+              <CardTitle>Historial de Mediciones</CardTitle>
+              <CardDescription>Registro completo de todas tus mediciones</CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoadingMeasurements ? (
@@ -176,7 +184,11 @@ const ClientProgress = () => {
                 <p>Cargando historial...</p>
               </div>
             ) : measurements && measurements.length > 0 ? (
-              <MeasurementTable measurements={measurements} />
+              <MeasurementTable 
+                measurements={measurements} 
+                onDelete={handleDeleteMeasurement}
+                isDeleting={isDeletingMeasurement}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center p-8 space-y-3 border rounded-md">
                 <Info className="h-12 w-12 text-muted-foreground opacity-20" />

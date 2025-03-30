@@ -222,6 +222,47 @@ export const useProgress = () => {
     },
   });
 
+  // Mutation to delete a measurement
+  const { mutate: deleteMeasurement, isPending: isDeletingMeasurement } = useMutation({
+    mutationFn: async (measurementId: string) => {
+      try {
+        if (!user?.id) {
+          throw new Error("Usuario no autenticado");
+        }
+
+        console.log("Eliminando medición con ID:", measurementId);
+        
+        const { error } = await supabase
+          .from("progreso")
+          .delete()
+          .eq("id", measurementId)
+          .eq("cliente_id", user.id); // Seguridad adicional para asegurar que solo elimine mediciones propias
+
+        if (error) {
+          console.error("Error al eliminar medición:", error);
+          throw error;
+        }
+
+        return measurementId;
+      } catch (error) {
+        console.error("Error al eliminar medición:", error);
+        throw error;
+      }
+    },
+    onSuccess: (measurementId) => {
+      console.log("Medición eliminada con éxito:", measurementId);
+      toast.success("Medición eliminada correctamente");
+      
+      // Force invalidation and immediate reload of data
+      queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
+    },
+    onError: (error: any) => {
+      console.error("Error al eliminar medición:", error);
+      const errorMessage = error?.message || "Error desconocido";
+      toast.error(`No se pudo eliminar la medición: ${errorMessage}`);
+    },
+  });
+
   return {
     measurements,
     isLoadingMeasurements,
@@ -229,6 +270,8 @@ export const useProgress = () => {
     changes: calculateChanges(latestMeasurement, firstMeasurement),
     addMeasurement,
     isAddingMeasurement,
+    deleteMeasurement,
+    isDeletingMeasurement,
     chartData: formatChartData(measurements || []),
     isDialogOpen,
     setIsDialogOpen
