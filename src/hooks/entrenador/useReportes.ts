@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
 export type ClientActivity = {
@@ -97,26 +97,38 @@ export const useReportes = (clienteId: string = "all", periodo: string = "month"
         const { fechaInicio, fechaFin } = getFechasByRange(dateRange);
         
         // Obtener sesiones diarias
-        const { data: sesionesData, error: sesionesError } = await supabase
+        let sesionesQuery = supabase
           .from('sesiones_diarias')
           .select('*')
           .gte('fecha', fechaInicio)
-          .lte('fecha', fechaFin)
-          .eq(clienteId !== "all" ? 'cliente_id' : 'entrenador_id', 
-               clienteId !== "all" ? clienteId : user?.id);
+          .lte('fecha', fechaFin);
+        
+        if (clienteId !== "all") {
+          sesionesQuery = sesionesQuery.eq('cliente_id', clienteId);
+        } else {
+          sesionesQuery = sesionesQuery.eq('entrenador_id', user?.id);
+        }
+        
+        const { data: sesionesData, error: sesionesError } = await sesionesQuery;
         
         if (sesionesError) {
           throw new Error(sesionesError.message);
         }
           
         // Obtener ejercicios diarios
-        const { data: ejerciciosData, error: ejerciciosError } = await supabase
+        let ejerciciosQuery = supabase
           .from('ejercicios_diarios')
           .select('*')
           .gte('fecha', fechaInicio)
-          .lte('fecha', fechaFin)
-          .eq(clienteId !== "all" ? 'cliente_id' : 'entrenador_id', 
-               clienteId !== "all" ? clienteId : user?.id);
+          .lte('fecha', fechaFin);
+          
+        if (clienteId !== "all") {
+          ejerciciosQuery = ejerciciosQuery.eq('cliente_id', clienteId);
+        } else {
+          ejerciciosQuery = ejerciciosQuery.eq('entrenador_id', user?.id);
+        }
+        
+        const { data: ejerciciosData, error: ejerciciosError } = await ejerciciosQuery;
           
         if (ejerciciosError) {
           throw new Error(ejerciciosError.message);
@@ -130,31 +142,90 @@ export const useReportes = (clienteId: string = "all", periodo: string = "month"
           
           return {
             name: dia,
-            sesiones: sesionesDia.length > 0 ? (sesionesDia[0].completada ? 1 : 0) : 0,
-            ejercicios: ejerciciosDia.length > 0 ? ejerciciosDia[0].cantidad : 0
+            sesiones: sesionesDia.filter(s => s.completada).length,
+            ejercicios: ejerciciosDia.reduce((sum, curr) => sum + curr.cantidad, 0)
           };
         });
         
-        // Calcular estadísticas
+        // Calcular estadísticas actuales
+        const totalSesiones = sesionesData?.filter(s => s.completada).length || 0;
+        const totalEjercicios = ejerciciosData?.reduce((sum, curr) => sum + curr.cantidad, 0) || 0;
+        const porcentajeAsistencia = sesionesData?.length 
+          ? Math.round((sesionesData.filter(s => s.completada).length / sesionesData.length) * 100) 
+          : 0;
+        
+        // Obtener estadísticas del período anterior para comparar
+        const periodoAnteriorFechaFin = new Date(fechaInicio);
+        periodoAnteriorFechaFin.setDate(periodoAnteriorFechaFin.getDate() - 1);
+        
+        const periodoAnteriorFechaInicio = new Date(periodoAnteriorFechaFin);
+        const duracionPeriodo = new Date(fechaFin).getTime() - new Date(fechaInicio).getTime();
+        periodoAnteriorFechaInicio.setTime(periodoAnteriorFechaInicio.getTime() - duracionPeriodo);
+        
+        // Consultar sesiones del período anterior
+        let sesionesAnterioresQuery = supabase
+          .from('sesiones_diarias')
+          .select('*')
+          .gte('fecha', periodoAnteriorFechaInicio.toISOString().split('T')[0])
+          .lte('fecha', periodoAnteriorFechaFin.toISOString().split('T')[0]);
+        
+        if (clienteId !== "all") {
+          sesionesAnterioresQuery = sesionesAnterioresQuery.eq('cliente_id', clienteId);
+        } else {
+          sesionesAnterioresQuery = sesionesAnterioresQuery.eq('entrenador_id', user?.id);
+        }
+        
+        const { data: sesionesAnteriores, error: errorSesionesAnteriores } = await sesionesAnterioresQuery;
+        
+        if (errorSesionesAnteriores) {
+          console.error("Error al obtener sesiones anteriores:", errorSesionesAnteriores);
+        }
+        
+        // Consultar ejercicios del período anterior
+        let ejerciciosAnterioresQuery = supabase
+          .from('ejercicios_diarios')
+          .select('*')
+          .gte('fecha', periodoAnteriorFechaInicio.toISOString().split('T')[0])
+          .lte('fecha', periodoAnteriorFechaFin.toISOString().split('T')[0]);
+          
+        if (clienteId !== "all") {
+          ejerciciosAnterioresQuery = ejerciciosAnterioresQuery.eq('cliente_id', clienteId);
+        } else {
+          ejerciciosAnterioresQuery = ejerciciosAnterioresQuery.eq('entrenador_id', user?.id);
+        }
+        
+        const { data: ejerciciosAnteriores, error: errorEjerciciosAnteriores } = await ejerciciosAnterioresQuery;
+        
+        if (errorEjerciciosAnteriores) {
+          console.error("Error al obtener ejercicios anteriores:", errorEjerciciosAnteriores);
+        }
+        
+        // Calcular estadísticas anteriores
+        const totalSesionesAnterior = sesionesAnteriores?.filter(s => s.completada).length || 0;
+        const totalEjerciciosAnterior = ejerciciosAnteriores?.reduce((sum, curr) => sum + curr.cantidad, 0) || 0;
+        const porcentajeAsistenciaAnterior = sesionesAnteriores?.length 
+          ? Math.round((sesionesAnteriores.filter(s => s.completada).length / sesionesAnteriores.length) * 100) 
+          : 0;
+        
+        // Calcular cambios porcentuales
+        const calcularCambioPorcentual = (actual: number, anterior: number) => {
+          if (anterior === 0) return actual > 0 ? 100 : 0;
+          return Math.round(((actual - anterior) / anterior) * 100);
+        };
+        
         const stats: StatsData = {
-          totalSesiones: sesionesData?.filter(s => s.completada).length || 0,
-          totalEjercicios: ejerciciosData?.reduce((sum, curr) => sum + curr.cantidad, 0) || 0,
-          porcentajeAsistencia: sesionesData?.length 
-            ? Math.round(sesionesData.filter(s => s.completada).length / sesionesData.length * 100) 
-            : 0,
-          cambioSesiones: 12, // Datos que deberían calcularse con períodos anteriores
-          cambioEjercicios: 8,
-          cambioAsistencia: -3
+          totalSesiones,
+          totalEjercicios,
+          porcentajeAsistencia,
+          cambioSesiones: calcularCambioPorcentual(totalSesiones, totalSesionesAnterior),
+          cambioEjercicios: calcularCambioPorcentual(totalEjercicios, totalEjerciciosAnterior),
+          cambioAsistencia: calcularCambioPorcentual(porcentajeAsistencia, porcentajeAsistenciaAnterior)
         };
         
         return { actividadSemanal, stats };
       } catch (error) {
         console.error("Error al cargar datos de actividad:", error);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos de actividad",
-          variant: "destructive"
-        });
+        toast.error("No se pudieron cargar los datos de actividad");
         return { actividadSemanal: [], stats: null };
       }
     },
@@ -167,43 +238,109 @@ export const useReportes = (clienteId: string = "all", periodo: string = "month"
     queryFn: async () => {
       try {
         // Obtener datos de progreso
-        const { data, error } = await supabase
-          .from('progreso_periodo')
+        let progresoQuery = supabase
+          .from('progreso')
           .select('*')
-          .eq(clienteId !== "all" ? 'cliente_id' : 'entrenador_id', 
-               clienteId !== "all" ? clienteId : user?.id)
-          .order('fecha_inicio', { ascending: true });
+          .order('fecha', { ascending: true });
+        
+        if (clienteId !== "all") {
+          progresoQuery = progresoQuery.eq('cliente_id', clienteId);
+        } else {
+          // Para todos los clientes, necesitamos relacionar con la tabla de usuarios
+          // para obtener solo los clientes del entrenador actual
+          const { data: clientesData, error: clientesError } = await supabase
+            .from('usuarios')
+            .select('id')
+            .eq('entrenador_id', user?.id)
+            .eq('role', 'cliente')
+            .eq('eliminado', false);
+          
+          if (clientesError) {
+            throw new Error(clientesError.message);
+          }
+          
+          const clientesIds = clientesData.map(c => c.id);
+          if (clientesIds.length > 0) {
+            progresoQuery = progresoQuery.in('cliente_id', clientesIds);
+          } else {
+            // Si no hay clientes, devolvemos un arreglo vacío
+            return { progresoCliente: [], progressStats: null };
+          }
+        }
+        
+        const { data, error } = await progresoQuery;
           
         if (error) {
           throw new Error(error.message);
         }
         
-        // Convertir a formato para gráficos
-        const progresoCliente: ClientProgress[] = data.map(item => ({
-          name: item.periodo,
-          peso: item.peso || 0,
-          grasa: item.porcentaje_grasa || 0
-        }));
+        // Si no hay datos de progreso, retornar vacío
+        if (!data || data.length === 0) {
+          return { progresoCliente: [], progressStats: null };
+        }
+        
+        // Si hay datos de progreso, procesarlos
+        const sortedData = [...data].sort((a, b) => 
+          new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
+        );
+        
+        // Crear formato para gráficos agrupando por mes si hay muchos datos
+        let progresoCliente: ClientProgress[] = [];
+        
+        if (sortedData.length > 12) {
+          // Agrupar por mes si hay más de 12 mediciones
+          const progressByMonth: Record<string, { peso: number, grasa: number, count: number }> = {};
+          
+          sortedData.forEach(item => {
+            const month = new Date(item.fecha).toLocaleDateString('es-ES', { 
+              year: 'numeric', 
+              month: 'short' 
+            });
+            
+            if (!progressByMonth[month]) {
+              progressByMonth[month] = { peso: 0, grasa: 0, count: 0 };
+            }
+            
+            progressByMonth[month].peso += item.peso || 0;
+            progressByMonth[month].grasa += item.grasa_corporal || 0;
+            progressByMonth[month].count += 1;
+          });
+          
+          progresoCliente = Object.entries(progressByMonth).map(([name, values]) => ({
+            name,
+            peso: Math.round((values.peso / values.count) * 10) / 10,
+            grasa: Math.round((values.grasa / values.count) * 10) / 10
+          }));
+        } else {
+          // Usar valores individuales si hay pocos datos
+          progresoCliente = sortedData.map(item => ({
+            name: new Date(item.fecha).toLocaleDateString('es-ES', { 
+              day: '2-digit', 
+              month: 'short' 
+            }),
+            peso: item.peso || 0,
+            grasa: item.grasa_corporal || 0
+          }));
+        }
         
         // Estadísticas de progreso
+        const firstMeasurement = sortedData[0];
+        const lastMeasurement = sortedData[sortedData.length - 1];
+        
         const progressStats: ProgressStats = {
-          reduccionPeso: data.length > 1 
-            ? Math.round((data[0].peso - data[data.length - 1].peso) * 10) / 10 
+          reduccionPeso: Math.round((firstMeasurement.peso - lastMeasurement.peso) * 10) / 10,
+          reduccionGrasa: firstMeasurement.grasa_corporal !== null && lastMeasurement.grasa_corporal !== null
+            ? Math.round((firstMeasurement.grasa_corporal - lastMeasurement.grasa_corporal) * 10) / 10
             : 0,
-          reduccionGrasa: data.length > 1 
-            ? Math.round((data[0].porcentaje_grasa - data[data.length - 1].porcentaje_grasa) * 10) / 10 
-            : 0,
-          aumentoMuscular: 2.2 // Dato que debería calcularse de la base de datos
+          aumentoMuscular: firstMeasurement.masa_muscular !== null && lastMeasurement.masa_muscular !== null
+            ? Math.round((lastMeasurement.masa_muscular - firstMeasurement.masa_muscular) * 10) / 10
+            : 0
         };
         
         return { progresoCliente, progressStats };
       } catch (error) {
         console.error("Error al cargar datos de progreso:", error);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos de progreso",
-          variant: "destructive"
-        });
+        toast.error("No se pudieron cargar los datos de progreso");
         return { progresoCliente: [], progressStats: null };
       }
     },
@@ -215,61 +352,201 @@ export const useReportes = (clienteId: string = "all", periodo: string = "month"
     queryKey: ['reportes', 'distribution', clienteId],
     queryFn: async () => {
       try {
-        // Obtener distribución de clientes
-        const { data: clientesData, error: clientesError } = await supabase
-          .from('distribucion_clientes')
-          .select('*')
-          .eq('entrenador_id', user?.id);
+        if (!user?.id) {
+          throw new Error("Usuario no autenticado");
+        }
+        
+        // Si estamos filtrando por un cliente específico, no mostrar distribución
+        if (clienteId !== "all") {
+          return { 
+            distribucionClientes: [], 
+            distribucionEjercicios: [],
+            topPerformers: null
+          };
+        }
+        
+        // Obtener lista de clientes del entrenador
+        const { data: clientes, error: clientesError } = await supabase
+          .from('usuarios')
+          .select('id, nombre')
+          .eq('entrenador_id', user?.id)
+          .eq('role', 'cliente')
+          .eq('eliminado', false);
           
         if (clientesError) {
           throw new Error(clientesError.message);
         }
         
-        // Obtener distribución de ejercicios
-        const { data: ejerciciosData, error: ejerciciosError } = await supabase
-          .from('distribucion_ejercicios')
-          .select('*')
-          .eq('entrenador_id', user?.id);
+        // Distribución por categorías (podemos usar tipos de ejercicios o dietas)
+        const clientesIds = clientes.map(c => c.id);
+        
+        // Obtener rutinas
+        const { data: rutinas, error: rutinasError } = await supabase
+          .from('rutinas')
+          .select('*, rutina_ejercicios(*, ejercicios(*))')
+          .in('cliente_id', clientesIds);
           
-        if (ejerciciosError) {
-          throw new Error(ejerciciosError.message);
+        if (rutinasError) {
+          throw new Error(rutinasError.message);
         }
         
-        // Convertir a formato para gráficos
-        const distribucionClientes: ClientDistribution[] = clientesData.map(item => ({
-          name: item.categoria,
-          value: item.cantidad
-        }));
+        // Contar ejercicios por grupo muscular
+        const gruposMusculares: Record<string, number> = {};
         
-        const distribucionEjercicios: ExerciseDistribution[] = ejerciciosData.map(item => ({
-          name: item.grupo_muscular,
-          value: item.cantidad
-        }));
+        rutinas.forEach(rutina => {
+          const ejercicios = rutina.rutina_ejercicios || [];
+          ejercicios.forEach((item: any) => {
+            if (item.ejercicios?.grupo_muscular) {
+              const grupo = item.ejercicios.grupo_muscular;
+              gruposMusculares[grupo] = (gruposMusculares[grupo] || 0) + 1;
+            }
+          });
+        });
         
-        // Top performers - Datos de ejemplo
+        const distribucionEjercicios: ExerciseDistribution[] = Object.entries(gruposMusculares)
+          .map(([name, value]) => ({ name, value }))
+          .sort((a, b) => b.value - a.value);
+        
+        // Distribución de clientes (por actividad)
+        const { data: sesiones, error: sesionesError } = await supabase
+          .from('sesiones_diarias')
+          .select('cliente_id, completada')
+          .eq('entrenador_id', user?.id);
+          
+        if (sesionesError) {
+          throw new Error(sesionesError.message);
+        }
+        
+        // Contar sesiones completadas por cliente
+        const sesionesCompletadasPorCliente: Record<string, number> = {};
+        
+        sesiones.forEach(sesion => {
+          if (sesion.completada) {
+            const clienteId = sesion.cliente_id;
+            sesionesCompletadasPorCliente[clienteId] = (sesionesCompletadasPorCliente[clienteId] || 0) + 1;
+          }
+        });
+        
+        // Categorizar clientes por nivel de actividad
+        const niveles = {
+          'Muy activos': 0,
+          'Activos': 0,
+          'Moderados': 0,
+          'Ocasionales': 0,
+          'Inactivos': 0
+        };
+        
+        Object.values(sesionesCompletadasPorCliente).forEach(count => {
+          if (count >= 20) niveles['Muy activos']++;
+          else if (count >= 10) niveles['Activos']++;
+          else if (count >= 5) niveles['Moderados']++;
+          else if (count >= 1) niveles['Ocasionales']++;
+          else niveles['Inactivos']++;
+        });
+        
+        // Agregar clientes sin sesiones al grupo "Inactivos"
+        niveles['Inactivos'] += clientes.length - Object.keys(sesionesCompletadasPorCliente).length;
+        
+        const distribucionClientes: ClientDistribution[] = Object.entries(niveles)
+          .filter(([_, value]) => value > 0) // Solo incluir categorías con valores
+          .map(([name, value]) => ({ name, value }));
+        
+        // Encontrar cliente más activo
+        let clienteMasActivoId = '';
+        let maxSesiones = 0;
+        
+        Object.entries(sesionesCompletadasPorCliente).forEach(([clienteId, count]) => {
+          if (count > maxSesiones) {
+            maxSesiones = count;
+            clienteMasActivoId = clienteId;
+          }
+        });
+        
+        const clienteMasActivo = clientes.find(c => c.id === clienteMasActivoId) || { nombre: 'N/A' };
+        
+        // Encontrar ejercicio más popular
+        let ejercicioMasPopularNombre = 'N/A';
+        let ejercicioMasPopularCount = 0;
+        
+        if (distribucionEjercicios.length > 0) {
+          ejercicioMasPopularNombre = distribucionEjercicios[0].name;
+          ejercicioMasPopularCount = distribucionEjercicios[0].value;
+        }
+        
+        // Calcular porcentaje del ejercicio más popular
+        const totalEjercicios = distribucionEjercicios.reduce((sum, item) => sum + item.value, 0);
+        const porcentajeEjercicioPopular = totalEjercicios > 0 
+          ? Math.round((ejercicioMasPopularCount / totalEjercicios) * 100) 
+          : 0;
+        
+        // Buscar cliente con mayor progreso
+        const { data: progresos, error: progresosError } = await supabase
+          .from('progreso')
+          .select('cliente_id, fecha, peso')
+          .in('cliente_id', clientesIds)
+          .order('fecha', { ascending: true });
+          
+        if (progresosError) {
+          throw new Error(progresosError.message);
+        }
+        
+        // Agrupar por cliente
+        const progresosPorCliente: Record<string, { primer: any, ultimo: any }> = {};
+        
+        progresos.forEach(progreso => {
+          const clienteId = progreso.cliente_id;
+          
+          if (!progresosPorCliente[clienteId]) {
+            progresosPorCliente[clienteId] = { primer: progreso, ultimo: progreso };
+          } else {
+            const fechaActual = new Date(progreso.fecha).getTime();
+            const fechaPrimer = new Date(progresosPorCliente[clienteId].primer.fecha).getTime();
+            const fechaUltimo = new Date(progresosPorCliente[clienteId].ultimo.fecha).getTime();
+            
+            if (fechaActual < fechaPrimer) {
+              progresosPorCliente[clienteId].primer = progreso;
+            }
+            
+            if (fechaActual > fechaUltimo) {
+              progresosPorCliente[clienteId].ultimo = progreso;
+            }
+          }
+        });
+        
+        // Encontrar cliente con mayor pérdida de peso
+        let clienteMayorProgresoId = '';
+        let mayorReduccion = 0;
+        
+        Object.entries(progresosPorCliente).forEach(([clienteId, { primer, ultimo }]) => {
+          const reduccion = primer.peso - ultimo.peso;
+          if (reduccion > mayorReduccion) {
+            mayorReduccion = reduccion;
+            clienteMayorProgresoId = clienteId;
+          }
+        });
+        
+        const clienteMayorProgreso = clientes.find(c => c.id === clienteMayorProgresoId) || { nombre: 'N/A' };
+        
+        // Top performers
         const topPerformers: TopPerformers = {
           clienteMasActivo: {
-            nombre: "Ana Martínez",
-            sesiones: 12
+            nombre: clienteMasActivo.nombre,
+            sesiones: maxSesiones
           },
           ejercicioMasPopular: {
-            nombre: "Sentadilla",
-            porcentaje: 85
+            nombre: ejercicioMasPopularNombre,
+            porcentaje: porcentajeEjercicioPopular
           },
           mayorProgreso: {
-            nombre: "Carlos Rodríguez",
-            reduccion: "-6.5kg en 3 meses"
+            nombre: clienteMayorProgreso.nombre,
+            reduccion: mayorReduccion > 0 ? `-${mayorReduccion.toFixed(1)}kg` : 'N/A'
           }
         };
         
         return { distribucionClientes, distribucionEjercicios, topPerformers };
       } catch (error) {
         console.error("Error al cargar datos de distribución:", error);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los datos de distribución",
-          variant: "destructive"
-        });
+        toast.error("No se pudieron cargar los datos de distribución");
         return { 
           distribucionClientes: [], 
           distribucionEjercicios: [],
@@ -299,11 +576,7 @@ export const useReportes = (clienteId: string = "all", periodo: string = "month"
         return data || [];
       } catch (error) {
         console.error("Error al cargar clientes:", error);
-        toast({
-          title: "Error",
-          description: "No se pudieron cargar los clientes",
-          variant: "destructive"
-        });
+        toast.error("No se pudieron cargar los clientes");
         return [];
       }
     },
@@ -314,10 +587,7 @@ export const useReportes = (clienteId: string = "all", periodo: string = "month"
   const generateReport = (selectedClient: string, dateRange: string) => {
     setDateRange(dateRange);
     // Aquí podría ir lógica adicional para exportar informes
-    toast({
-      title: "Informe generado",
-      description: "Se ha generado el informe correctamente"
-    });
+    toast.success("Informe generado correctamente");
   };
 
   return {

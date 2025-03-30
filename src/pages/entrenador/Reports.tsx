@@ -48,6 +48,11 @@ const TrainerReports = () => {
     generateReport(selectedClient, dateRange);
   };
 
+  // Verificar si hay datos para mostrar
+  const hasActivityData = activityData && activityData.length > 0;
+  const hasProgressData = progressData && progressData.length > 0;
+  const hasDistributionData = clientDistributionData && clientDistributionData.length > 0;
+
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
@@ -100,7 +105,7 @@ const TrainerReports = () => {
                   <div className="h-[400px]">
                     <Skeleton className="w-full h-full" />
                   </div>
-                ) : (
+                ) : hasActivityData ? (
                   <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsBarChart
@@ -123,6 +128,10 @@ const TrainerReports = () => {
                         <Bar dataKey="ejercicios" name="Ejercicios" fill="#82ca9d" />
                       </RechartsBarChart>
                     </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center">
+                    <p className="text-muted-foreground">No hay datos de actividad disponibles</p>
                   </div>
                 )}
               </CardContent>
@@ -201,7 +210,7 @@ const TrainerReports = () => {
                   <div className="h-[400px]">
                     <Skeleton className="w-full h-full" />
                   </div>
-                ) : (
+                ) : hasProgressData ? (
                   <div className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <RechartsLineChart
@@ -226,6 +235,10 @@ const TrainerReports = () => {
                       </RechartsLineChart>
                     </ResponsiveContainer>
                   </div>
+                ) : (
+                  <div className="h-[400px] flex items-center justify-center">
+                    <p className="text-muted-foreground">No hay datos de progreso disponibles</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -240,7 +253,7 @@ const TrainerReports = () => {
                     <Skeleton className="w-full h-12" />
                   ) : (
                     <>
-                      <div className="text-2xl font-bold">-{progressStats?.reduccionPeso || 0} kg</div>
+                      <div className="text-2xl font-bold">{progressStats?.reduccionPeso > 0 ? `-${progressStats.reduccionPeso}` : `+${Math.abs(progressStats?.reduccionPeso || 0)}`} kg</div>
                       <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
                     </>
                   )}
@@ -256,7 +269,7 @@ const TrainerReports = () => {
                     <Skeleton className="w-full h-12" />
                   ) : (
                     <>
-                      <div className="text-2xl font-bold">-{progressStats?.reduccionGrasa || 0}%</div>
+                      <div className="text-2xl font-bold">{progressStats?.reduccionGrasa > 0 ? `-${progressStats.reduccionGrasa}` : `+${Math.abs(progressStats?.reduccionGrasa || 0)}`}%</div>
                       <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
                     </>
                   )}
@@ -272,7 +285,7 @@ const TrainerReports = () => {
                     <Skeleton className="w-full h-12" />
                   ) : (
                     <>
-                      <div className="text-2xl font-bold">+{progressStats?.aumentoMuscular || 0} kg</div>
+                      <div className="text-2xl font-bold">{progressStats?.aumentoMuscular > 0 ? `+${progressStats.aumentoMuscular}` : `-${Math.abs(progressStats?.aumentoMuscular || 0)}`} kg</div>
                       <p className="text-xs text-muted-foreground mt-1">En el último trimestre</p>
                     </>
                   )}
@@ -292,7 +305,7 @@ const TrainerReports = () => {
                     <div className="h-[300px]">
                       <Skeleton className="w-full h-full" />
                     </div>
-                  ) : (
+                  ) : hasDistributionData && selectedClient === "all" ? (
                     <div className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart width={400} height={300}>
@@ -315,6 +328,14 @@ const TrainerReports = () => {
                         </RechartsPieChart>
                       </ResponsiveContainer>
                     </div>
+                  ) : selectedClient !== "all" ? (
+                    <div className="h-[300px] flex items-center justify-center">
+                      <p className="text-muted-foreground">Distribución disponible solo para vista general</p>
+                    </div>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center">
+                      <p className="text-muted-foreground">No hay datos de distribución disponibles</p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -328,7 +349,7 @@ const TrainerReports = () => {
                     <div className="h-[300px]">
                       <Skeleton className="w-full h-full" />
                     </div>
-                  ) : (
+                  ) : exerciseDistributionData && exerciseDistributionData.length > 0 && selectedClient === "all" ? (
                     <div className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart width={400} height={300}>
@@ -351,60 +372,76 @@ const TrainerReports = () => {
                         </RechartsPieChart>
                       </ResponsiveContainer>
                     </div>
+                  ) : selectedClient !== "all" ? (
+                    <div className="h-[300px] flex items-center justify-center">
+                      <p className="text-muted-foreground">Distribución disponible solo para vista general</p>
+                    </div>
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center">
+                      <p className="text-muted-foreground">No hay datos de ejercicios disponibles</p>
+                    </div>
                   )}
                 </CardContent>
               </Card>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Cliente Más Activo</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="w-full h-12" />
-                  ) : (
-                    <>
-                      <div className="text-lg font-bold">{topPerformers?.clienteMasActivo.nombre}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{topPerformers?.clienteMasActivo.sesiones} sesiones este mes</p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Ejercicio Más Popular</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="w-full h-12" />
-                  ) : (
-                    <>
-                      <div className="text-lg font-bold">{topPerformers?.ejercicioMasPopular.nombre}</div>
-                      <p className="text-xs text-muted-foreground mt-1">Usado en {topPerformers?.ejercicioMasPopular.porcentaje}% de las rutinas</p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Mayor Progreso</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <Skeleton className="w-full h-12" />
-                  ) : (
-                    <>
-                      <div className="text-lg font-bold">{topPerformers?.mayorProgreso.nombre}</div>
-                      <p className="text-xs text-muted-foreground mt-1">{topPerformers?.mayorProgreso.reduccion}</p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+            {selectedClient === "all" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Cliente Más Activo</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="w-full h-12" />
+                    ) : topPerformers ? (
+                      <>
+                        <div className="text-lg font-bold">{topPerformers.clienteMasActivo.nombre}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{topPerformers.clienteMasActivo.sesiones} sesiones este mes</p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Ejercicio Más Popular</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="w-full h-12" />
+                    ) : topPerformers ? (
+                      <>
+                        <div className="text-lg font-bold">{topPerformers.ejercicioMasPopular.nombre}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Usado en {topPerformers.ejercicioMasPopular.porcentaje}% de las rutinas</p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm font-medium">Mayor Progreso</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoading ? (
+                      <Skeleton className="w-full h-12" />
+                    ) : topPerformers ? (
+                      <>
+                        <div className="text-lg font-bold">{topPerformers.mayorProgreso.nombre}</div>
+                        <p className="text-xs text-muted-foreground mt-1">{topPerformers.mayorProgreso.reduccion}</p>
+                      </>
+                    ) : (
+                      <p className="text-muted-foreground">No hay datos disponibles</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
