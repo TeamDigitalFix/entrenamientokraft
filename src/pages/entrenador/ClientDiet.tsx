@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { supabase } from "@/integrations/supabase/client";
 import { Utensils, Plus, ArrowLeft, Info, Edit, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -206,6 +207,46 @@ const ClientDiet = () => {
     return Math.round((comida.alimentos.calorias * comida.cantidad) / 100);
   };
 
+  const handleCreateDiet = async () => {
+    if (!clientId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("dietas")
+        .insert({
+          cliente_id: clientId,
+          nombre: "Plan alimenticio personalizado",
+          fecha_inicio: new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Dieta creada",
+        description: "El nuevo plan alimenticio ha sido creado correctamente."
+      });
+      
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `No se pudo crear el plan alimenticio: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Función para mostrar la fecha formateada
+  const formatearFecha = (fechaStr: string) => {
+    try {
+      return format(parseISO(fechaStr), "d 'de' MMMM", { locale: es });
+    } catch (error) {
+      return fechaStr;
+    }
+  };
+
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
@@ -222,21 +263,38 @@ const ClientDiet = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-2xl">Plan alimenticio</CardTitle>
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button onClick={handleAddMeal}>
+            <div>
+              <CardTitle className="text-2xl">Plan alimenticio</CardTitle>
+              {dieta && (
+                <p className="text-sm text-muted-foreground">
+                  {dieta.nombre} - Inicio: {formatearFecha(dieta.fecha_inicio)}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {dieta && (
+                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                  <DialogTrigger asChild>
+                    <Button onClick={handleAddMeal}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Añadir comida
+                    </Button>
+                  </DialogTrigger>
+                  <DietaComidaForm 
+                    clienteId={clientId || ""} 
+                    dietaId={dieta.id || null}
+                    onCancel={() => setShowAddDialog(false)}
+                    onSuccess={handleAddSuccess}
+                  />
+                </Dialog>
+              )}
+              {!dieta && (
+                <Button onClick={handleCreateDiet}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Añadir comida
+                  Crear plan alimenticio
                 </Button>
-              </DialogTrigger>
-              <DietaComidaForm 
-                clienteId={clientId || ""} 
-                dietaId={dieta?.id || null}
-                onCancel={() => setShowAddDialog(false)}
-                onSuccess={handleAddSuccess}
-              />
-            </Dialog>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -356,20 +414,27 @@ const ClientDiet = () => {
               <div className="text-center py-8 flex flex-col items-center">
                 <Utensils className="h-12 w-12 text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">Este cliente no tiene un plan alimenticio asignado</p>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="mt-4">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Crear plan alimenticio
-                    </Button>
-                  </DialogTrigger>
-                  <DietaComidaForm 
-                    clienteId={clientId || ""} 
-                    dietaId={null}
-                    onCancel={() => setShowAddDialog(false)}
-                    onSuccess={handleAddSuccess}
-                  />
-                </Dialog>
+                {dieta ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="mt-4">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Añadir primera comida
+                      </Button>
+                    </DialogTrigger>
+                    <DietaComidaForm 
+                      clienteId={clientId || ""} 
+                      dietaId={dieta.id}
+                      onCancel={() => setShowAddDialog(false)}
+                      onSuccess={handleAddSuccess}
+                    />
+                  </Dialog>
+                ) : (
+                  <Button onClick={handleCreateDiet} className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear plan alimenticio
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>

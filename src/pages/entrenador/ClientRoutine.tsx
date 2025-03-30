@@ -140,6 +140,23 @@ const ClientRoutine = () => {
   const handleDeleteExercise = async (ejercicioId: string) => {
     if (confirm("¿Estás seguro de que deseas eliminar este ejercicio?")) {
       try {
+        // First check if the exercise is completed
+        const { data: completados } = await supabase
+          .from("ejercicios_completados")
+          .select("id")
+          .eq("rutina_ejercicio_id", ejercicioId);
+          
+        // If completed, delete the completed exercises first
+        if (completados && completados.length > 0) {
+          const { error: deleteCompletadosError } = await supabase
+            .from("ejercicios_completados")
+            .delete()
+            .eq("rutina_ejercicio_id", ejercicioId);
+            
+          if (deleteCompletadosError) throw deleteCompletadosError;
+        }
+        
+        // Now delete the exercise from the routine
         const { error } = await supabase
           .from("rutina_ejercicios")
           .delete()
@@ -192,6 +209,37 @@ const ClientRoutine = () => {
     }
   };
 
+  const handleCreateRoutine = async () => {
+    if (!clientId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("rutinas")
+        .insert({
+          cliente_id: clientId,
+          nombre: "Nueva rutina",
+          fecha_inicio: new Date().toISOString().split('T')[0],
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      toast({
+        title: "Rutina creada",
+        description: "La nueva rutina ha sido creada correctamente."
+      });
+      
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `No se pudo crear la rutina: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
       <div className="space-y-4">
@@ -208,21 +256,38 @@ const ClientRoutine = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-2xl">Programa de entrenamiento</CardTitle>
-            <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-              <DialogTrigger asChild>
-                <Button onClick={handleAddExercise}>
+            <div>
+              <CardTitle className="text-2xl">Programa de entrenamiento</CardTitle>
+              {rutina && (
+                <p className="text-sm text-muted-foreground">
+                  {rutina.nombre} - Inicio: {formatearFecha(rutina.fecha_inicio)}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {rutina && (
+                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                  <DialogTrigger asChild>
+                    <Button onClick={handleAddExercise}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Añadir ejercicio
+                    </Button>
+                  </DialogTrigger>
+                  <RutinaEjercicioForm 
+                    clienteId={clientId || ""} 
+                    rutinaId={rutina.id || null}
+                    onCancel={() => setShowAddDialog(false)}
+                    onSuccess={handleAddSuccess}
+                  />
+                </Dialog>
+              )}
+              {!rutina && (
+                <Button onClick={handleCreateRoutine}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Añadir ejercicio
+                  Crear nueva rutina
                 </Button>
-              </DialogTrigger>
-              <RutinaEjercicioForm 
-                clienteId={clientId || ""} 
-                rutinaId={rutina?.id || null}
-                onCancel={() => setShowAddDialog(false)}
-                onSuccess={handleAddSuccess}
-              />
-            </Dialog>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -340,20 +405,27 @@ const ClientRoutine = () => {
               <div className="text-center py-8 flex flex-col items-center">
                 <Dumbbell className="h-12 w-12 text-muted-foreground mb-2" />
                 <p className="text-muted-foreground">Este cliente no tiene ejercicios asignados</p>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="mt-4">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Añadir primer ejercicio
-                    </Button>
-                  </DialogTrigger>
-                  <RutinaEjercicioForm 
-                    clienteId={clientId || ""} 
-                    rutinaId={null}
-                    onCancel={() => setShowAddDialog(false)}
-                    onSuccess={handleAddSuccess}
-                  />
-                </Dialog>
+                {rutina ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="mt-4">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Añadir primer ejercicio
+                      </Button>
+                    </DialogTrigger>
+                    <RutinaEjercicioForm 
+                      clienteId={clientId || ""} 
+                      rutinaId={rutina.id}
+                      onCancel={() => setShowAddDialog(false)}
+                      onSuccess={handleAddSuccess}
+                    />
+                  </Dialog>
+                ) : (
+                  <Button className="mt-4" onClick={handleCreateRoutine}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear nueva rutina
+                  </Button>
+                )}
               </div>
             )}
           </CardContent>
