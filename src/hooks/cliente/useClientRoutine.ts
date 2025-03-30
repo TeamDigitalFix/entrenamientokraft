@@ -15,7 +15,7 @@ export type ClientRoutineExercise = {
   weight?: number;
   muscleGroup: string;
   notes?: string;
-  date: string; // Changed to be consistently a string (YYYY-MM-DD format)
+  date: string; // YYYY-MM-DD format or day of week (1-7)
   completed: boolean;
   imageUrl?: string | null;
   videoUrl?: string | null;
@@ -30,14 +30,33 @@ export type ClientRoutine = {
   exercises: ClientRoutineExercise[];
 };
 
-type ExercisesByDate = {
-  [key: string]: ClientRoutineExercise[];
+// Mapeo de día numérico a nombre del día
+const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+// Determinar el día de la semana a partir de la fecha o número de día
+const getDayFromDateOrNumber = (dateOrDay: string): string => {
+  // Si es un número del 1-7, convertirlo a nombre del día
+  if (/^[1-7]$/.test(dateOrDay)) {
+    return dayNames[parseInt(dateOrDay) - 1];
+  }
+  
+  // Si es una fecha en formato YYYY-MM-DD, obtener el día de la semana
+  try {
+    if (dateOrDay.includes("-")) {
+      const dayNumber = parseInt(format(parseISO(dateOrDay), "i", { locale: es })) - 1;
+      return dayNames[dayNumber];
+    }
+  } catch (error) {
+    console.error("Error parsing date:", error);
+  }
+  
+  return "Desconocido";
 };
 
 export const useClientRoutine = () => {
   const { user } = useAuth();
   const clientId = user?.id;
-  const [activeDate, setActiveDate] = useState<string>("");
+  const [activeDay, setActiveDay] = useState<string>("Lunes");
 
   const { data: routine, isLoading } = useQuery({
     queryKey: ["client-routine", clientId],
@@ -106,26 +125,28 @@ export const useClientRoutine = () => {
           weight: exercise.peso,
           muscleGroup: exercise.ejercicios?.grupo_muscular || "Sin grupo",
           notes: exercise.notas,
-          date: exercise.dia.toString(), // Ensure it's always a string
+          date: exercise.dia || "1", // Si no tiene día, asignamos "1" (Lunes)
           completed: completedIds.has(exercise.id),
           imageUrl: exercise.ejercicios?.imagen_url,
           videoUrl: exercise.ejercicios?.video_url
         }));
 
-        // Group exercises by date
-        const exercisesByDate: ExercisesByDate = {};
-        const uniqueDates = [...new Set(transformedExercises.map(ex => ex.date))].sort();
+        // Group exercises by day of week
+        const exercisesByDay: { [key: string]: ClientRoutineExercise[] } = {};
         
-        uniqueDates.forEach(date => {
-          exercisesByDate[date] = transformedExercises.filter(
-            exercise => exercise.date === date
-          );
+        // Inicializar todos los días de la semana
+        dayNames.forEach(day => {
+          exercisesByDay[day] = [];
         });
-
-        // Set initial active date if not set already
-        if (!activeDate && uniqueDates.length > 0) {
-          setActiveDate(uniqueDates[0]);
-        }
+        
+        // Agrupar ejercicios por día
+        transformedExercises.forEach(exercise => {
+          const dayName = getDayFromDateOrNumber(exercise.date);
+          if (!exercisesByDay[dayName]) {
+            exercisesByDay[dayName] = [];
+          }
+          exercisesByDay[dayName].push(exercise);
+        });
 
         return {
           id: routineData.id,
@@ -134,7 +155,7 @@ export const useClientRoutine = () => {
           startDate: new Date(routineData.fecha_inicio),
           endDate: routineData.fecha_fin ? new Date(routineData.fecha_fin) : null,
           exercises: transformedExercises,
-          exercisesByDate,
+          exercisesByDay,
         };
       } catch (error) {
         console.error("Error fetching routine:", error);
@@ -145,13 +166,14 @@ export const useClientRoutine = () => {
     enabled: !!clientId
   });
 
-  const availableDates = routine ? Object.keys(routine.exercisesByDate).sort() : [];
+  // Todos los días de la semana siempre deben estar disponibles
+  const availableDays = dayNames;
 
   return {
     routine,
     isLoading,
-    activeDate: activeDate || (availableDates.length > 0 ? availableDates[0] : ""),
-    setActiveDate,
-    availableDates
+    activeDay,
+    setActiveDay,
+    availableDays
   };
 };

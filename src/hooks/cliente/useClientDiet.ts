@@ -17,7 +17,7 @@ export type ClientMeal = {
   fat: number;
   quantity: number;
   mealType: string;
-  date: string; // Changed to be consistently a string (YYYY-MM-DD format)
+  date: string; // YYYY-MM-DD format or day of week (1-7)
   completed?: boolean;
   imageUrl?: string | null;
 };
@@ -32,17 +32,40 @@ export type ClientDiet = {
 };
 
 export interface ClientDietHook {
-  diet: ClientDiet & { mealsByDate: { [key: string]: ClientMeal[] } } | null;
+  diet: ClientDiet & { mealsByDay: { [key: string]: ClientMeal[] } } | null;
   isLoading: boolean;
-  activeDate: string;
-  setActiveDate: (date: string) => void;
-  availableDates: string[];
+  activeDay: string;
+  setActiveDay: (day: string) => void;
+  availableDays: string[];
 }
+
+// Mapeo de día numérico a nombre del día
+const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+// Determinar el día de la semana a partir de la fecha o número de día
+const getDayFromDateOrNumber = (dateOrDay: string): string => {
+  // Si es un número del 1-7, convertirlo a nombre del día
+  if (/^[1-7]$/.test(dateOrDay)) {
+    return dayNames[parseInt(dateOrDay) - 1];
+  }
+  
+  // Si es una fecha en formato YYYY-MM-DD, obtener el día de la semana
+  try {
+    if (dateOrDay.includes("-")) {
+      const dayNumber = parseInt(format(parseISO(dateOrDay), "i", { locale: es })) - 1;
+      return dayNames[dayNumber];
+    }
+  } catch (error) {
+    console.error("Error parsing date:", error);
+  }
+  
+  return "Desconocido";
+};
 
 export const useClientDiet = (): ClientDietHook => {
   const { user } = useAuth();
   const clientId = user?.id;
-  const [activeDate, setActiveDate] = useState<string>("");
+  const [activeDay, setActiveDay] = useState<string>("Lunes");
 
   const { data: diet, isLoading } = useQuery({
     queryKey: ["client-diet", clientId],
@@ -102,24 +125,26 @@ export const useClientDiet = (): ClientDietHook => {
           fat: Math.round((meal.alimentos?.grasas || 0) * meal.cantidad / 100),
           quantity: meal.cantidad,
           mealType: meal.tipo_comida,
-          date: meal.dia.toString(), // Ensure it's always a string
+          date: meal.dia || "1", // Si no tiene día, asignamos "1" (Lunes)
           imageUrl: meal.alimentos?.imagen_url
         }));
 
-        // Group meals by date
-        const mealsByDate: { [key: string]: ClientMeal[] } = {};
-        const uniqueDates = [...new Set(transformedMeals.map(meal => meal.date))].sort();
+        // Group meals by day of week
+        const mealsByDay: { [key: string]: ClientMeal[] } = {};
         
-        uniqueDates.forEach(date => {
-          mealsByDate[date] = transformedMeals.filter(
-            meal => meal.date === date
-          );
+        // Inicializar todos los días de la semana
+        dayNames.forEach(day => {
+          mealsByDay[day] = [];
         });
-
-        // Set initial active date if not set already
-        if (!activeDate && uniqueDates.length > 0) {
-          setActiveDate(uniqueDates[0]);
-        }
+        
+        // Agrupar comidas por día
+        transformedMeals.forEach(meal => {
+          const dayName = getDayFromDateOrNumber(meal.date);
+          if (!mealsByDay[dayName]) {
+            mealsByDay[dayName] = [];
+          }
+          mealsByDay[dayName].push(meal);
+        });
 
         return {
           id: dietData.id,
@@ -128,7 +153,7 @@ export const useClientDiet = (): ClientDietHook => {
           startDate: new Date(dietData.fecha_inicio),
           endDate: dietData.fecha_fin ? new Date(dietData.fecha_fin) : null,
           meals: transformedMeals,
-          mealsByDate,
+          mealsByDay,
         };
       } catch (error) {
         console.error("Error fetching diet:", error);
@@ -139,13 +164,14 @@ export const useClientDiet = (): ClientDietHook => {
     enabled: !!clientId
   });
 
-  const availableDates = diet ? Object.keys(diet.mealsByDate).sort() : [];
+  // Todos los días de la semana siempre deben estar disponibles
+  const availableDays = dayNames;
 
   return {
     diet,
     isLoading,
-    activeDate: activeDate || (availableDates.length > 0 ? availableDates[0] : ""),
-    setActiveDate,
-    availableDates
+    activeDay,
+    setActiveDay,
+    availableDays
   };
 };

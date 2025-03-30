@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -14,10 +13,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import DietaComidaForm from "@/components/entrenador/DietaComidaForm";
 
-// Definir días de la semana
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-// Mapear números de día a nombres de día
 const mapDiaNumeroANombre = (diaNumero: number): string => {
   return diasSemana[diaNumero - 1] || "Desconocido";
 };
@@ -25,7 +22,7 @@ const mapDiaNumeroANombre = (diaNumero: number): string => {
 interface Comida {
   id: string;
   tipo_comida: string;
-  dia: number;
+  dia: string;
   cantidad: number;
   alimento_id: string;
   dieta_id: string;
@@ -66,7 +63,6 @@ const ClientDiet = () => {
       try {
         setLoading(true);
         
-        // Obtener datos del cliente
         const { data: clientData, error: clientError } = await supabase
           .from("usuarios")
           .select("nombre")
@@ -76,7 +72,6 @@ const ClientDiet = () => {
         if (clientError) throw clientError;
         setClientName(clientData?.nombre || "Cliente");
         
-        // Obtener la dieta más reciente del cliente
         const { data: dietasData, error: dietasError } = await supabase
           .from("dietas")
           .select("*")
@@ -90,7 +85,6 @@ const ClientDiet = () => {
           const dietaActual = dietasData[0];
           setDieta(dietaActual);
           
-          // Obtener comidas de la dieta con detalles del alimento
           const { data: comidasData, error: comidasError } = await supabase
             .from("dieta_comidas")
             .select(`
@@ -162,14 +156,20 @@ const ClientDiet = () => {
     }
   };
 
-  // Agrupar comidas por día de la semana
   const comidasPorDia = diasSemana.reduce((acc, dia, index) => {
-    const diaNumero = index + 1;
-    acc[dia] = comidas.filter(comida => comida.dia === diaNumero);
+    const diaNumero = (index + 1).toString();
+    acc[dia] = comidas.filter(comida => {
+      if (/^[1-7]$/.test(comida.dia)) {
+        return comida.dia === diaNumero;
+      } else if (comida.dia.includes("-")) {
+        const diaSemana = mapDiaNumeroANombre(parseInt(format(parseISO(comida.dia), "i", { locale: es })));
+        return diaSemana === dia;
+      }
+      return false;
+    });
     return acc;
   }, {} as Record<string, Comida[]>);
 
-  // Ordenar comidas por tipo (para mostrarlas en orden lógico: desayuno, media mañana, etc.)
   const ordenComidas = {
     "Desayuno": 1,
     "Media mañana": 2,
@@ -188,7 +188,6 @@ const ClientDiet = () => {
     });
   };
 
-  // Determinar qué pestaña debe estar activa por defecto (la primera que tenga comidas)
   useEffect(() => {
     if (!loading && comidas.length > 0) {
       for (const dia of diasSemana) {
@@ -200,7 +199,6 @@ const ClientDiet = () => {
     }
   }, [loading, comidas]);
 
-  // Calcular calorías totales para una comida
   const calcularCalorias = (comida: Comida): number => {
     if (!comida.alimentos) return 0;
     return Math.round((comida.alimentos.calorias * comida.cantidad) / 100);
