@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, parseISO, startOfDay, endOfDay, isAfter, isBefore } from "date-fns";
 import { es } from "date-fns/locale";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Cita = {
   id: string;
@@ -32,6 +32,7 @@ export const useCitas = (entrenadorId: string) => {
   const [filteredCitas, setFilteredCitas] = useState<Cita[]>([]);
   const [selectedTab, setSelectedTab] = useState("all");
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Validar el estado de la cita para que cumpla con el tipo "programada" | "completada" | "cancelada"
   const validateCitaStatus = (estado: string): "programada" | "completada" | "cancelada" => {
@@ -54,25 +55,56 @@ export const useCitas = (entrenadorId: string) => {
   const fetchCitas = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      console.log("Buscando citas para entrenador:", entrenadorId);
+      
+      // Obtener primero las citas sin el join
+      const { data: citasData, error: citasError } = await supabase
         .from("citas")
-        .select(`
-          *,
-          cliente:cliente_id(nombre)
-        `)
+        .select("*")
         .eq("entrenador_id", entrenadorId)
         .order("fecha", { ascending: true });
 
-      if (error) throw error;
+      if (citasError) {
+        console.error("Error obteniendo citas:", citasError);
+        throw citasError;
+      }
 
-      // Asegurar que los estados de las citas y los clientes cumplan con los tipos esperados
-      const citasWithValidTypes = (data || []).map(cita => ({
-        ...cita,
-        estado: validateCitaStatus(cita.estado),
-        cliente: validateCliente(cita.cliente)
-      })) as Cita[];
+      console.log("Citas obtenidas:", citasData);
 
-      setCitas(citasWithValidTypes);
+      // Para cada cita, obtener el nombre del cliente
+      const citasConCliente = await Promise.all((citasData || []).map(async (cita) => {
+        try {
+          const { data: clienteData, error: clienteError } = await supabase
+            .from("usuarios")
+            .select("nombre")
+            .eq("id", cita.cliente_id)
+            .single();
+
+          if (clienteError) {
+            console.warn(`No se pudo obtener el cliente para la cita ${cita.id}:`, clienteError);
+            return {
+              ...cita,
+              estado: validateCitaStatus(cita.estado),
+              cliente: undefined
+            };
+          }
+
+          return {
+            ...cita,
+            estado: validateCitaStatus(cita.estado),
+            cliente: clienteData ? { nombre: clienteData.nombre } : undefined
+          };
+        } catch (error) {
+          console.error(`Error procesando cita ${cita.id}:`, error);
+          return {
+            ...cita,
+            estado: validateCitaStatus(cita.estado),
+            cliente: undefined
+          };
+        }
+      }));
+
+      setCitas(citasConCliente as Cita[]);
     } catch (error: any) {
       console.error("Error al cargar citas:", error);
       toast({
@@ -96,7 +128,7 @@ export const useCitas = (entrenadorId: string) => {
         estado: validateCitaStatus(nuevaCita.estado)
       };
       
-      // Primero hacemos la inserción básica
+      // Inserción de la cita
       const { data, error } = await supabase
         .from("citas")
         .insert(validatedCita)
@@ -108,8 +140,9 @@ export const useCitas = (entrenadorId: string) => {
         throw error;
       }
 
-      // Ahora hacemos una consulta adicional para obtener el nombre del cliente
-      // ya que la respuesta de insert no incluye los joins
+      console.log("Cita creada exitosamente:", data);
+
+      // Obtener el nombre del cliente
       const { data: clienteData, error: clienteError } = await supabase
         .from("usuarios")
         .select("nombre")
@@ -138,7 +171,7 @@ export const useCitas = (entrenadorId: string) => {
       console.error("Error al crear cita:", error);
       toast({
         title: "Error",
-        description: "No se pudo crear la cita",
+        description: "No se pudo crear la cita: " + (error.message || "Error desconocido"),
         variant: "destructive",
       });
       return null;
@@ -256,7 +289,7 @@ export const useCitas = (entrenadorId: string) => {
     if (searchTerm) {
       filtered = filtered.filter(
         (cita) =>
-          cita.cliente?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          cita.cliente?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           cita.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (cita.tipo && cita.tipo.toLowerCase().includes(searchTerm.toLowerCase()))
       );
@@ -292,9 +325,11 @@ export const useCitas = (entrenadorId: string) => {
     setFilteredCitas(filtered);
   }, [citas, searchTerm, selectedTab]);
 
-  // Refrescar las citas cuando cambie la fecha seleccionada
+  // Refrescar las citas cuando cambie la fecha seleccionada o el entrenador
   useEffect(() => {
-    fetchCitas();
+    if (entrenadorId) {
+      fetchCitas();
+    }
   }, [entrenadorId]);
 
   return {

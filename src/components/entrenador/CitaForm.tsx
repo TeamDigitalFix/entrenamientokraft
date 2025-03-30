@@ -95,14 +95,19 @@ export const CitaForm = ({
   useEffect(() => {
     const fetchClientes = async () => {
       try {
+        console.log("Cargando clientes para entrenador:", entrenadorId);
         const { data, error } = await supabase
           .from("usuarios")
           .select("id, nombre")
           .eq("role", "cliente")
           .eq("entrenador_id", entrenadorId);
 
-        if (error) throw error;
+        if (error) {
+          console.error("Error al cargar clientes:", error);
+          throw error;
+        }
 
+        console.log("Clientes cargados:", data);
         setClientes(data || []);
       } catch (error) {
         console.error("Error al cargar clientes:", error);
@@ -114,7 +119,9 @@ export const CitaForm = ({
       }
     };
 
-    fetchClientes();
+    if (entrenadorId) {
+      fetchClientes();
+    }
   }, [entrenadorId, toast]);
 
   const handleSubmit = async (values: z.infer<typeof citaSchema>) => {
@@ -124,6 +131,9 @@ export const CitaForm = ({
       const [horas, minutos] = values.hora.split(":");
       fechaHora.setHours(parseInt(horas), parseInt(minutos));
 
+      console.log("Preparando cita con valores:", values);
+      console.log("Fecha y hora formateada:", fechaHora.toISOString());
+
       const nuevaCita: NuevaCita = {
         entrenador_id: entrenadorId,
         cliente_id: values.cliente_id,
@@ -131,10 +141,11 @@ export const CitaForm = ({
         descripcion: values.descripcion || null,
         fecha: fechaHora.toISOString(),
         duracion: values.duracion,
-        estado: "programada",
-        tipo: values.tipo,
+        estado: "programada", // Siempre establecemos el estado inicial como "programada"
+        tipo: values.tipo || null,
       };
 
+      console.log("Enviando cita a crear:", nuevaCita);
       await onSubmit(nuevaCita);
       onCancel();
     } catch (error) {
