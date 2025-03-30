@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/index";
+import { AlertTriangle } from "lucide-react";
 
 const NotFound = () => {
   const location = useLocation();
@@ -52,11 +53,17 @@ const NotFound = () => {
   }, [location.pathname, navigate, user]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">404</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
+      <div className="text-center max-w-md w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 md:p-8">
+        <div className="flex justify-center mb-4">
+          <AlertTriangle className="h-16 w-16 text-yellow-500" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">404</h1>
         <p className="text-xl text-gray-600 dark:text-gray-400 mb-4">Oops! Página no encontrada</p>
         <p className="text-gray-500 dark:text-gray-500 mb-4">Redirigiendo a una página disponible...</p>
+        <div className="animate-pulse flex justify-center">
+          <div className="h-2 w-16 bg-blue-500 rounded"></div>
+        </div>
       </div>
     </div>
   );
