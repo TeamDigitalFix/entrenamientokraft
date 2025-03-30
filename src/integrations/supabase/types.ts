@@ -77,7 +77,7 @@ export type Database = {
           descripcion?: string | null
           duracion: number
           entrenador_id: string
-          estado?: string
+          estado: string
           fecha: string
           id?: string
           tipo?: string | null
@@ -96,22 +96,7 @@ export type Database = {
           tipo?: string | null
           titulo?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "citas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "citas_entrenador_id_fkey"
-            columns: ["entrenador_id"]
-            isOneToOne: false
-            referencedRelation: "usuarios"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       dieta_comidas: {
         Row: {
