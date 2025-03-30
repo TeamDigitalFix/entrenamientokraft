@@ -11,9 +11,10 @@ import {
   Filter, 
   UserPlus, 
   Edit, 
-  UserX, 
+  Trash2, 
   RefreshCw,
-  Dumbbell
+  Dumbbell,
+  Undo
 } from "lucide-react";
 import { UserRole } from "@/types/index";
 import { useClients, ClientData } from "@/hooks/entrenador/useClients";
@@ -46,15 +47,21 @@ const TrainerClients = () => {
     setNewClientData,
     editClientData,
     setEditClientData,
-    clientToDeactivate,
-    setClientToDeactivate,
+    clientToDelete,
+    setClientToDelete,
     createClient,
     updateClient,
-    deactivateClient
+    deleteClient,
+    recoverClient
   } = useClients(searchTerm);
 
   const handleOpenEditDialog = (client: ClientData) => {
-    setEditClientData(client);
+    // Reseteamos la contraseña en el diálogo de edición para que no se envíe
+    // a menos que el usuario introduzca una nueva
+    setEditClientData({
+      ...client,
+      password: ""
+    });
     setShowEditClientDialog(true);
   };
 
@@ -113,7 +120,7 @@ const TrainerClients = () => {
                     <TableHead>Teléfono</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Último Ingreso</TableHead>
-                    <TableHead className="w-[100px]">Acciones</TableHead>
+                    <TableHead className="w-[120px]">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -127,38 +134,50 @@ const TrainerClients = () => {
                     </TableRow>
                   ) : (
                     clients.map((client) => (
-                      <TableRow key={client.id}>
+                      <TableRow key={client.id} className={client.eliminado ? "bg-muted/40" : ""}>
                         <TableCell className="font-medium">{client.nombre}</TableCell>
                         <TableCell>{client.email || "-"}</TableCell>
                         <TableCell>{client.telefono || "-"}</TableCell>
                         <TableCell>
                           <Badge variant={client.eliminado ? "secondary" : "success"}>
-                            {client.eliminado ? "Inactivo" : "Activo"}
+                            {client.eliminado ? "Eliminado" : "Activo"}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatLastActive(client.actualizado_en)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" title="Rutina">
-                              <Dumbbell className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              title="Editar"
-                              onClick={() => handleOpenEditDialog(client)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              title="Desactivar"
-                              onClick={() => setClientToDeactivate(client.id as string)}
-                              disabled={client.eliminado === true}
-                            >
-                              <UserX className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {!client.eliminado ? (
+                              <>
+                                <Button variant="ghost" size="icon" title="Rutina">
+                                  <Dumbbell className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  title="Editar"
+                                  onClick={() => handleOpenEditDialog(client)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  title="Eliminar"
+                                  onClick={() => setClientToDelete(client.id as string)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                title="Recuperar"
+                                onClick={() => recoverClient(client.id as string)}
+                              >
+                                <Undo className="h-4 w-4 text-green-600" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -192,19 +211,19 @@ const TrainerClients = () => {
         isEdit
       />
 
-      {/* Diálogo de confirmación para desactivar cliente */}
-      <AlertDialog open={!!clientToDeactivate} onOpenChange={(open) => !open && setClientToDeactivate(null)}>
+      {/* Diálogo de confirmación para eliminar cliente */}
+      <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción desactivará al cliente. Podrás reactivarlo más adelante si es necesario.
+              Esta acción eliminará al cliente. Podrás recuperarlo más adelante si es necesario.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => clientToDeactivate && deactivateClient(clientToDeactivate)}>
-              Desactivar
+            <AlertDialogAction onClick={() => clientToDelete && deleteClient(clientToDelete)}>
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

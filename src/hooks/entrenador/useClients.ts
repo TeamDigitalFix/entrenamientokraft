@@ -23,7 +23,7 @@ export const useClients = (searchTerm: string = "") => {
   const queryClient = useQueryClient();
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [showEditClientDialog, setShowEditClientDialog] = useState(false);
-  const [clientToDeactivate, setClientToDeactivate] = useState<string | null>(null);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [newClientData, setNewClientData] = useState<ClientData>({
     nombre: "",
     email: "",
@@ -75,14 +75,19 @@ export const useClients = (searchTerm: string = "") => {
   });
 
   // Check if username already exists
-  const checkUsernameExists = async (username: string): Promise<boolean> => {
-    const { data, error } = await supabase
+  const checkUsernameExists = async (username: string, excludeId?: string): Promise<boolean> => {
+    let query = supabase
       .from("usuarios")
       .select("id")
-      .eq("username", username)
-      .single();
+      .eq("username", username);
     
-    return !!data;
+    if (excludeId) {
+      query = query.neq("id", excludeId);
+    }
+    
+    const { data, error } = await query;
+    
+    return data && data.length > 0;
   };
 
   // Create new client
@@ -138,14 +143,30 @@ export const useClients = (searchTerm: string = "") => {
   // Update client
   const updateClient = useMutation({
     mutationFn: async (clientData: ClientData) => {
+      // Check if username exists (excluding this client)
+      if (clientData.username) {
+        const usernameExists = await checkUsernameExists(clientData.username, clientData.id);
+        
+        if (usernameExists) {
+          throw new Error("El nombre de usuario ya está en uso. Por favor, elija otro.");
+        }
+      }
+      
+      const updateData: any = {
+        nombre: clientData.nombre,
+        email: clientData.email,
+        telefono: clientData.telefono,
+        username: clientData.username
+      };
+      
+      // Solo incluir password si se ha proporcionado uno nuevo
+      if (clientData.password) {
+        updateData.password = clientData.password;
+      }
+      
       const { data, error } = await supabase
         .from("usuarios")
-        .update({
-          nombre: clientData.nombre,
-          email: clientData.email,
-          telefono: clientData.telefono,
-          // No actualizamos password a menos que sea necesario
-        })
+        .update(updateData)
         .eq("id", clientData.id)
         .select();
 
@@ -158,12 +179,16 @@ export const useClients = (searchTerm: string = "") => {
       setShowEditClientDialog(false);
     },
     onError: (error: any) => {
-      toast.error(`Error al actualizar cliente: ${error.message}`);
+      if (error.message.includes("usuarios_username_key")) {
+        toast.error("El nombre de usuario ya está en uso. Por favor, elija otro.");
+      } else {
+        toast.error(`Error al actualizar cliente: ${error.message}`);
+      }
     }
   });
 
-  // Deactivate client
-  const deactivateClient = useMutation({
+  // Delete client (soft delete)
+  const deleteClient = useMutation({
     mutationFn: async (clientId: string) => {
       const { data, error } = await supabase
         .from("usuarios")
@@ -175,12 +200,33 @@ export const useClients = (searchTerm: string = "") => {
       return data;
     },
     onSuccess: () => {
-      toast.success("Cliente desactivado con éxito");
+      toast.success("Cliente eliminado con éxito");
       queryClient.invalidateQueries({ queryKey: ["clients"] });
-      setClientToDeactivate(null);
+      setClientToDelete(null);
     },
     onError: (error: any) => {
-      toast.error(`Error al desactivar cliente: ${error.message}`);
+      toast.error(`Error al eliminar cliente: ${error.message}`);
+    }
+  });
+
+  // Recover client
+  const recoverClient = useMutation({
+    mutationFn: async (clientId: string) => {
+      const { data, error } = await supabase
+        .from("usuarios")
+        .update({ eliminado: false })
+        .eq("id", clientId)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Cliente recuperado con éxito");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+    },
+    onError: (error: any) => {
+      toast.error(`Error al recuperar cliente: ${error.message}`);
     }
   });
 
@@ -196,10 +242,11 @@ export const useClients = (searchTerm: string = "") => {
     setNewClientData,
     editClientData,
     setEditClientData,
-    clientToDeactivate,
-    setClientToDeactivate,
+    clientToDelete,
+    setClientToDelete,
     createClient: (data: ClientData) => createClient.mutate(data),
     updateClient: (data: ClientData) => updateClient.mutate(data),
-    deactivateClient: (id: string) => deactivateClient.mutate(id)
+    deleteClient: (id: string) => deleteClient.mutate(id),
+    recoverClient: (id: string) => recoverClient.mutate(id)
   };
 };

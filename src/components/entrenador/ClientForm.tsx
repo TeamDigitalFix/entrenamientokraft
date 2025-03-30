@@ -78,36 +78,35 @@ export const ClientForm: React.FC<ClientFormProps> = ({
               />
             </div>
             
-            {!isEdit && (
-              <>
-                <div className="grid gap-2">
-                  <Label htmlFor="username">Nombre de usuario</Label>
-                  <Input
-                    id="username"
-                    name="username"
-                    value={clientData.username}
-                    onChange={handleChange}
-                    required
-                    aria-describedby="username-description"
-                  />
-                  <p id="username-description" className="text-xs text-muted-foreground">
-                    El nombre de usuario debe ser único en el sistema
-                  </p>
-                </div>
-                
-                <div className="grid gap-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={clientData.password}
-                    onChange={handleChange}
-                    required
-                  />
-                </div>
-              </>
-            )}
+            <div className="grid gap-2">
+              <Label htmlFor="username">Nombre de usuario</Label>
+              <Input
+                id="username"
+                name="username"
+                value={clientData.username}
+                onChange={handleChange}
+                required
+                aria-describedby="username-description"
+              />
+              <p id="username-description" className="text-xs text-muted-foreground">
+                El nombre de usuario debe ser único en el sistema
+              </p>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="password">
+                {isEdit ? "Nueva contraseña (dejar en blanco para mantener actual)" : "Contraseña"}
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                value={clientData.password}
+                onChange={handleChange}
+                required={!isEdit}
+                placeholder={isEdit ? "••••••••" : ""}
+              />
+            </div>
           </div>
           
           <DialogFooter>
