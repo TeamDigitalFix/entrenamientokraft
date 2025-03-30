@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
 import { 
   Menu, 
   Dumbbell, 
@@ -21,14 +22,15 @@ import {
   BarChart2, 
   Users, 
   Activity,
-  Pizza
+  Pizza,
+  LogOut
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "@/hooks/useTheme";
-import { useClientMessages } from "@/hooks/useClientMessages";
+import { useClientMessages } from "@/hooks/cliente/useClientMessages";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -50,7 +52,7 @@ const NotificationBadge = ({ count }: NotificationBadgeProps) => {
 };
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRoles }) => {
-  const { user } = useAuth();
+  const { user, loading, logout } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -74,60 +76,40 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
   }
 
   const renderClientMenu = () => (
-    <SidebarContent>
-      <SidebarGroup>
-        <SidebarGroupLabel>Mi Perfil</SidebarGroupLabel>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/cliente/dashboard"}>
-                <Link to="/cliente/dashboard">
-                  <Home /> <span>Dashboard</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/cliente/rutina"}>
-                <Link to="/cliente/rutina">
-                  <Dumbbell /> <span>Mi Rutina</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/cliente/dieta"}>
-                <Link to="/cliente/dieta">
-                  <Utensils /> <span>Mi Dieta</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/cliente/citas"}>
-                <Link to="/cliente/citas">
-                  <Calendar /> <span>Mis Citas</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/cliente/mensajes"}>
-                <Link to="/cliente/mensajes" className="relative">
-                  <MessageSquare /> <span>Mensajes</span>
-                  {clientMessages?.unreadCount ? (
-                    <NotificationBadge count={clientMessages.unreadCount} />
-                  ) : null}
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === "/cliente/progreso"}>
-                <Link to="/cliente/progreso">
-                  <BarChart2 /> <span>Mi Progreso</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </SidebarContent>
+    <>
+      <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+        <Home className="h-4 w-4 mr-2" />
+        Dashboard
+      </Link>
+      
+      <Link to="/cliente/rutina" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+        <Dumbbell className="h-4 w-4 mr-2" />
+        Mi Rutina
+      </Link>
+      
+      <Link to="/cliente/dieta" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+        <Utensils className="h-4 w-4 mr-2" />
+        Mi Dieta
+      </Link>
+      
+      <Link to="/cliente/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+        <Calendar className="h-4 w-4 mr-2" />
+        Mis Citas
+      </Link>
+      
+      <Link to="/cliente/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 relative">
+        <MessageSquare className="h-4 w-4 mr-2" />
+        Mensajes
+        {clientMessages?.unreadCount ? (
+          <NotificationBadge count={clientMessages.unreadCount} />
+        ) : null}
+      </Link>
+      
+      <Link to="/cliente/progreso" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
+        <BarChart2 className="h-4 w-4 mr-2" />
+        Mi Progreso
+      </Link>
+    </>
   );
 
   return (
@@ -195,7 +177,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
               <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
           </div>
-          <button onClick={logout} className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 text-left">Cerrar sesión</button>
+          <button onClick={logout} className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 mt-2 text-left flex items-center">
+            <LogOut className="h-4 w-4 mr-2" />
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
@@ -266,7 +251,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
                 <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
             </div>
-            <button onClick={logout} className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 text-left">Cerrar sesión</button>
+            <button onClick={logout} className="w-full text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 mt-2 text-left flex items-center">
+              <LogOut className="h-4 w-4 mr-2" />
+              Cerrar sesión
+            </button>
           </div>
         </SheetContent>
       </Sheet>

@@ -46,6 +46,11 @@ const ClientMessages = () => {
     }
   };
 
+  // Scroll to the bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   return (
     <DashboardLayout allowedRoles={[UserRole.CLIENT]}>
       <div className="space-y-4">
