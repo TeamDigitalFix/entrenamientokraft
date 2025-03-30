@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -166,6 +167,9 @@ export const useClientDashboard = () => {
             completedMeals?.map(cm => cm.dieta_comida_id) || []
           );
 
+          const currentDate = new Date();
+          const todayWeekday = parseInt(format(currentDate, "i", { locale: es }));
+
           meals = (mealsData || [])
             .filter(meal => {
               if (!meal.dia) return false;
@@ -173,9 +177,9 @@ export const useClientDashboard = () => {
               if (meal.dia.includes("-")) {
                 const mealDate = parseISO(meal.dia);
                 return (
-                  mealDate.getDate() === today.getDate() &&
-                  mealDate.getMonth() === today.getMonth() &&
-                  mealDate.getFullYear() === today.getFullYear()
+                  mealDate.getDate() === currentDate.getDate() &&
+                  mealDate.getMonth() === currentDate.getMonth() &&
+                  mealDate.getFullYear() === currentDate.getFullYear()
                 );
               }
               
@@ -230,12 +234,12 @@ export const useClientDashboard = () => {
       try {
         if (!clientId) return defaultTodaySchedule;
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(currentDate);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const todayWeekday = parseInt(format(today, "i", { locale: es }));
+        const todayWeekday = parseInt(format(currentDate, "i", { locale: es }));
 
         const { data: routine } = await supabase
           .from("rutinas")
@@ -274,9 +278,9 @@ export const useClientDashboard = () => {
               if (ex.dia.includes("-")) {
                 const exDate = parseISO(ex.dia);
                 return (
-                  exDate.getDate() === today.getDate() &&
-                  exDate.getMonth() === today.getMonth() &&
-                  exDate.getFullYear() === today.getFullYear()
+                  exDate.getDate() === currentDate.getDate() &&
+                  exDate.getMonth() === currentDate.getMonth() &&
+                  exDate.getFullYear() === currentDate.getFullYear()
                 );
               }
               
@@ -330,9 +334,9 @@ export const useClientDashboard = () => {
               if (meal.dia.includes("-")) {
                 const mealDate = parseISO(meal.dia);
                 return (
-                  mealDate.getDate() === today.getDate() &&
-                  mealDate.getMonth() === today.getMonth() &&
-                  mealDate.getFullYear() === today.getFullYear()
+                  mealDate.getDate() === currentDate.getDate() &&
+                  mealDate.getMonth() === currentDate.getMonth() &&
+                  mealDate.getFullYear() === currentDate.getFullYear()
                 );
               }
               
@@ -354,7 +358,7 @@ export const useClientDashboard = () => {
           .from("citas")
           .select("id, titulo, fecha, duracion")
           .eq("cliente_id", clientId)
-          .gte("fecha", today.toISOString())
+          .gte("fecha", currentDate.toISOString())
           .lt("fecha", tomorrow.toISOString())
           .order("fecha", { ascending: true });
 

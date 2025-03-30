@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, Utensils, Calendar, BarChart2 } from "lucide-react";
@@ -17,47 +18,25 @@ const ClientDashboard = () => {
   const { 
     todaySchedule, 
     progressSummary, 
-    isLoading 
+    isLoading,
+    clientId
   } = useClientDashboard();
   
-  const { user } = useAuth();
-  const clientId = user?.id || "dbd137fd-96c9-4243-9daf-29d6cff0fdbc"; // Default ID for testing
-
-  // State for local meal completion (since we don't have a backend implementation yet)
-  const [localMeals, setLocalMeals] = useState<Record<string, boolean>>({});
-
-  const { toggleExerciseCompletion, isToggling } = useExerciseToggle();
-  const { toggleMealCompletion } = useMealToggle();
+  const { toggleExerciseCompletion, isToggling: isTogglingExercise } = useExerciseToggle();
+  const { toggleMealCompletion, isToggling: isTogglingMeal } = useMealToggle();
 
   const handleExerciseToggle = (id: string, currentStatus: boolean) => {
     toggleExerciseCompletion({ exerciseId: id, completed: currentStatus });
   };
 
   const handleMealToggle = (id: string, currentStatus: boolean) => {
-    // Update local state immediately for UI responsiveness
-    setLocalMeals(prev => ({
-      ...prev,
-      [id]: !currentStatus
-    }));
+    if (!clientId) return;
     
-    // Call the backend mutation with the clientId parameter
     toggleMealCompletion({ 
       mealId: id, 
       completed: currentStatus,
       clientId: clientId
     });
-  };
-
-  // Function to determine if a meal is completed (using local state or original data)
-  const isMealCompleted = (id: string, originalCompleted: boolean) => {
-    return id in localMeals ? localMeals[id] : originalCompleted;
-  };
-
-  // Format appointment date for display
-  const formatAppointmentDate = (dateString: string) => {
-    const date = new Date(dateString);
-    // Format day and time
-    return format(date, "EEEE - HH:mm", { locale: es });
   };
 
   // Initialize empty data structures if data is not yet loaded
@@ -115,7 +94,7 @@ const ClientDashboard = () => {
                         className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
                         size="sm"
                         onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
-                        disabled={isToggling}
+                        disabled={isTogglingExercise}
                       >
                         {exercise.completed ? "Completado" : "Marcar"}
                       </Button>
@@ -149,27 +128,25 @@ const ClientDashboard = () => {
                 <p className="text-center py-4 text-muted-foreground">No tienes comidas programadas para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {meals.map((meal) => {
-                    const isCompleted = isMealCompleted(meal.id, meal.completed);
-                    return (
-                      <div key={meal.id} className="flex items-center justify-between border-b pb-2">
-                        <div>
-                          <p className="font-medium">{meal.mealType}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {meal.foodName}
-                          </p>
-                        </div>
-                        <Button 
-                          variant={isCompleted ? "default" : "outline"}
-                          className={`${isCompleted ? "bg-green-500 hover:bg-green-600" : ""}`}
-                          size="sm"
-                          onClick={() => handleMealToggle(meal.id, isCompleted)}
-                        >
-                          {isCompleted ? "Completado" : "Marcar"}
-                        </Button>
+                  {meals.map((meal) => (
+                    <div key={meal.id} className="flex items-center justify-between border-b pb-2">
+                      <div>
+                        <p className="font-medium">{meal.mealType}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {meal.foodName}
+                        </p>
                       </div>
-                    );
-                  })}
+                      <Button 
+                        variant={meal.completed ? "default" : "outline"}
+                        className={`${meal.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
+                        size="sm"
+                        onClick={() => handleMealToggle(meal.id, meal.completed)}
+                        disabled={isTogglingMeal}
+                      >
+                        {meal.completed ? "Completado" : "Marcar"}
+                      </Button>
+                    </div>
+                  ))}
                 </div>
               )}
               <Button className="w-full mt-4" variant="outline" asChild>
@@ -249,35 +226,31 @@ const ClientDashboard = () => {
                       </div>
                     </div>
                   )}
-                  {progressData.muscleMass !== null && (
+                  {progressData.muscleMassChange !== null && (
                     <div className="flex justify-between border-b pb-2">
                       <p className="font-medium">Masa muscular:</p>
                       <div className="flex items-center">
-                        <p>{progressData.muscleMass}%</p>
-                        {progressData.muscleMassChange !== null && (
-                          <span className={`ml-2 text-xs flex items-center ${progressData.muscleMassChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {progressData.muscleMassChange > 0 ? '+' : ''}
-                            {progressData.muscleMassChange.toFixed(1)}%
-                          </span>
-                        )}
+                        <p>-</p>
+                        <span className={`ml-2 text-xs flex items-center ${progressData.muscleMassChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {progressData.muscleMassChange > 0 ? '+' : ''}
+                          {progressData.muscleMassChange.toFixed(1)}%
+                        </span>
                       </div>
                     </div>
                   )}
-                  {progressData.bodyFat !== null && (
+                  {progressData.bodyFatChange !== null && (
                     <div className="flex justify-between border-b pb-2">
                       <p className="font-medium">Grasa corporal:</p>
                       <div className="flex items-center">
-                        <p>{progressData.bodyFat}%</p>
-                        {progressData.bodyFatChange !== null && (
-                          <span className={`ml-2 text-xs flex items-center ${progressData.bodyFatChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {progressData.bodyFatChange < 0 ? '' : '+'}
-                            {progressData.bodyFatChange.toFixed(1)}%
-                          </span>
-                        )}
+                        <p>-</p>
+                        <span className={`ml-2 text-xs flex items-center ${progressData.bodyFatChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {progressData.bodyFatChange < 0 ? '' : '+'}
+                          {progressData.bodyFatChange.toFixed(1)}%
+                        </span>
                       </div>
                     </div>
                   )}
-                  {!progressData.weight && !progressData.muscleMass && !progressData.bodyFat && (
+                  {!progressData.weight && !progressData.muscleMassChange && !progressData.bodyFatChange && (
                     <p className="text-center py-4 text-muted-foreground">No hay mediciones registradas</p>
                   )}
                 </div>
