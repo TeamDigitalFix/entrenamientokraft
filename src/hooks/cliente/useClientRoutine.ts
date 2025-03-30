@@ -15,6 +15,8 @@ export type ClientRoutineExercise = {
   notes?: string;
   day: number;
   completed: boolean;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
 };
 
 export type ClientRoutine = {
@@ -75,7 +77,9 @@ export const useClientRoutine = () => {
             ejercicios:ejercicio_id (
               nombre,
               grupo_muscular,
-              descripcion
+              descripcion,
+              imagen_url,
+              video_url
             )
           `)
           .eq("rutina_id", routineData.id);
@@ -103,7 +107,9 @@ export const useClientRoutine = () => {
           muscleGroup: exercise.ejercicios?.grupo_muscular || "Sin grupo",
           notes: exercise.notas,
           day: exercise.dia,
-          completed: completedIds.has(exercise.id)
+          completed: completedIds.has(exercise.id),
+          imageUrl: exercise.ejercicios?.imagen_url,
+          videoUrl: exercise.ejercicios?.video_url
         })) as ClientRoutineExercise[];
 
         // Group exercises by day

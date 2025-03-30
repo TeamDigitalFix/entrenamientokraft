@@ -2,7 +2,7 @@
 import React from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dumbbell, Loader2 } from "lucide-react";
+import { Dumbbell, Loader2, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { useClientRoutine } from "@/hooks/cliente/useClientRoutine";
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useExerciseToggle } from "@/hooks/cliente/useExerciseToggle";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 const ClientRoutine = () => {
   const { routine, isLoading, activeDay, setActiveDay, dayNames } = useClientRoutine();
@@ -88,6 +89,51 @@ const ClientRoutine = () => {
                             </AccordionTrigger>
                             <AccordionContent className="bg-accent/20 rounded-b-md px-4 pb-4 pt-2">
                               <div className="space-y-3">
+                                {/* Media Section */}
+                                {(exercise.imageUrl || exercise.videoUrl) && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                    {exercise.imageUrl && (
+                                      <div className="relative">
+                                        <p className="text-sm font-medium mb-1">Imagen de referencia</p>
+                                        <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
+                                          <img 
+                                            src={exercise.imageUrl} 
+                                            alt={`Imagen de ${exercise.name}`}
+                                            className="object-cover w-full h-full"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.src = "/placeholder.svg";
+                                            }}
+                                          />
+                                        </AspectRatio>
+                                      </div>
+                                    )}
+                                    
+                                    {exercise.videoUrl && (
+                                      <div className="relative">
+                                        <p className="text-sm font-medium mb-1">Video tutorial</p>
+                                        <AspectRatio ratio={16 / 9} className="bg-muted rounded-md overflow-hidden">
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                            <a 
+                                              href={exercise.videoUrl} 
+                                              target="_blank" 
+                                              rel="noopener noreferrer"
+                                              className="bg-primary text-white rounded-full p-2 shadow-lg hover:bg-primary/90 transition-colors"
+                                            >
+                                              <Play className="h-5 w-5" />
+                                            </a>
+                                          </div>
+                                          <img 
+                                            src={exercise.imageUrl || "/placeholder.svg"} 
+                                            alt={`Video de ${exercise.name}`}
+                                            className="object-cover w-full h-full opacity-70"
+                                          />
+                                        </AspectRatio>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                   {exercise.weight && (
                                     <div>

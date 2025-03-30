@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 const ClientDiet = () => {
   const { diet, isLoading, activeDay, setActiveDay, dayNames } = useClientDiet();
@@ -125,10 +126,25 @@ const ClientDiet = () => {
                           <h4 className="text-sm font-medium mb-2">Alimentos:</h4>
                           <div className="space-y-3">
                             {meals.map(meal => (
-                              <div key={meal.id} className="flex items-start justify-between">
-                                <div className="flex items-start space-x-2">
+                              <div key={meal.id} className="flex items-start justify-between border-b pb-3">
+                                <div className="flex items-start space-x-3 w-full">
                                   <Checkbox id={meal.id} />
-                                  <div>
+                                  
+                                  {meal.imageUrl && (
+                                    <div className="flex-shrink-0 w-16 h-16 rounded-md overflow-hidden mr-2">
+                                      <img 
+                                        src={meal.imageUrl} 
+                                        alt={meal.foodName}
+                                        className="object-cover w-full h-full"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = "/placeholder.svg";
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex-1">
                                     <label 
                                       htmlFor={meal.id} 
                                       className="text-sm font-medium cursor-pointer"
@@ -145,9 +161,10 @@ const ClientDiet = () => {
                                       <span>{meal.quantity}g</span>
                                     </div>
                                   </div>
-                                </div>
-                                <div className="text-sm">
-                                  {meal.calories} kcal
+                                  
+                                  <div className="text-sm font-medium whitespace-nowrap">
+                                    {meal.calories} kcal
+                                  </div>
                                 </div>
                               </div>
                             ))}
