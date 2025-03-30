@@ -532,6 +532,10 @@ export type Database = {
       }
       progreso: {
         Row: {
+          altura: number | null
+          circunferencia_cadera: number | null
+          circunferencia_cintura: number | null
+          circunferencia_cuello: number | null
           cliente_id: string
           creado_en: string | null
           fecha: string
@@ -540,8 +544,13 @@ export type Database = {
           masa_muscular: number | null
           notas: string | null
           peso: number
+          sexo: string | null
         }
         Insert: {
+          altura?: number | null
+          circunferencia_cadera?: number | null
+          circunferencia_cintura?: number | null
+          circunferencia_cuello?: number | null
           cliente_id: string
           creado_en?: string | null
           fecha: string
@@ -550,8 +559,13 @@ export type Database = {
           masa_muscular?: number | null
           notas?: string | null
           peso: number
+          sexo?: string | null
         }
         Update: {
+          altura?: number | null
+          circunferencia_cadera?: number | null
+          circunferencia_cintura?: number | null
+          circunferencia_cuello?: number | null
           cliente_id?: string
           creado_en?: string | null
           fecha?: string
@@ -560,6 +574,7 @@ export type Database = {
           masa_muscular?: number | null
           notas?: string | null
           peso?: number
+          sexo?: string | null
         }
         Relationships: [
           {
