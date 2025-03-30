@@ -133,7 +133,7 @@ const RutinaEjercicioForm = ({
           repeticiones: values.repeticiones,
           peso: values.peso || null,
           notas: values.notas || null,
-          dia: formattedDate, // Store the date as a string
+          dia: formattedDate, // Store the date in YYYY-MM-DD format
         });
 
       if (ejercicioError) throw ejercicioError;

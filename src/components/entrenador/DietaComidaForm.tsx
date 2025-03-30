@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -24,7 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
 import { Calendar } from "@/components/ui/calendar";
@@ -38,16 +39,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const tiposComida = [
-  { value: "Desayuno", label: "Desayuno" },
-  { value: "Media mañana", label: "Media mañana" },
-  { value: "Almuerzo", label: "Almuerzo" },
-  { value: "Merienda", label: "Merienda" },
-  { value: "Cena", label: "Cena" },
-  { value: "Pre-entrenamiento", label: "Pre-entrenamiento" },
-  { value: "Post-entrenamiento", label: "Post-entrenamiento" },
-];
-
 interface DietaComidaFormProps {
   clienteId: string;
   dietaId: string | null;
@@ -59,8 +50,17 @@ interface AlimentoOption {
   id: string;
   nombre: string;
   categoria: string;
-  calorias: number;
 }
+
+const tiposComida = [
+  "Desayuno",
+  "Media mañana",
+  "Almuerzo",
+  "Merienda",
+  "Cena",
+  "Pre-entrenamiento",
+  "Post-entrenamiento",
+];
 
 const DietaComidaForm = ({
   clienteId,
@@ -71,14 +71,13 @@ const DietaComidaForm = ({
   const { toast } = useToast();
   const [alimentos, setAlimentos] = useState<AlimentoOption[]>([]);
   const [loading, setLoading] = useState(false);
-  const [creatingDieta, setCreatingDieta] = useState(false);
-  const [selectedAlimento, setSelectedAlimento] = useState<AlimentoOption | null>(null);
+  const [creandoDieta, setCreandoDieta] = useState(false);
 
   const form = useForm({
     defaultValues: {
       alimento_id: "",
-      fecha: new Date(),
       tipo_comida: "Desayuno",
+      fecha: new Date(),
       cantidad: 100,
     },
   });
@@ -89,7 +88,7 @@ const DietaComidaForm = ({
       try {
         const { data, error } = await supabase
           .from("alimentos")
-          .select("id, nombre, categoria, calorias");
+          .select("id, nombre, categoria");
 
         if (error) throw error;
         setAlimentos(data || []);
@@ -105,13 +104,6 @@ const DietaComidaForm = ({
     fetchAlimentos();
   }, [toast]);
 
-  // Actualizar información del alimento cuando se selecciona
-  const handleAlimentoChange = (alimentoId: string) => {
-    const alimento = alimentos.find(a => a.id === alimentoId);
-    setSelectedAlimento(alimento || null);
-    form.setValue("alimento_id", alimentoId);
-  };
-
   const onSubmit = async (values: any) => {
     try {
       setLoading(true);
@@ -119,7 +111,7 @@ const DietaComidaForm = ({
 
       // Si no existe una dieta, crear una nueva
       if (!dieta_id) {
-        setCreatingDieta(true);
+        setCreandoDieta(true);
         const { data: nuevaDieta, error: dietaError } = await supabase
           .from("dietas")
           .insert({
@@ -132,13 +124,14 @@ const DietaComidaForm = ({
 
         if (dietaError) throw dietaError;
         dieta_id = nuevaDieta.id;
-        setCreatingDieta(false);
+        setCreandoDieta(false);
       }
 
-      // Format the date as a string (YYYY-MM-DD)
+      // Convert date to day number (1-7, representing days of the week)
+      // Since we're storing the date as text in the database, we'll convert it to YYYY-MM-DD format
       const formattedDate = format(values.fecha, "yyyy-MM-dd");
-
-      // Insertar la comida en la dieta
+      
+      // Insert the meal into the diet
       const { error: comidaError } = await supabase
         .from("dieta_comidas")
         .insert({
@@ -146,7 +139,7 @@ const DietaComidaForm = ({
           alimento_id: values.alimento_id,
           tipo_comida: values.tipo_comida,
           cantidad: values.cantidad,
-          dia: formattedDate, // Store the date as a string in the database
+          dia: formattedDate, // Store the date in YYYY-MM-DD format
         });
 
       if (comidaError) throw comidaError;
@@ -171,9 +164,9 @@ const DietaComidaForm = ({
   return (
     <DialogContent className="sm:max-w-lg">
       <DialogHeader>
-        <DialogTitle>Añadir comida a la dieta</DialogTitle>
+        <DialogTitle>Añadir alimento a la dieta</DialogTitle>
         <DialogDescription>
-          Selecciona un alimento y completa la información para añadirlo al plan alimenticio del cliente.
+          Selecciona un alimento y completa la información para añadirlo a la dieta del cliente.
         </DialogDescription>
       </DialogHeader>
 
@@ -186,7 +179,7 @@ const DietaComidaForm = ({
               <FormItem>
                 <FormLabel>Alimento*</FormLabel>
                 <Select
-                  onValueChange={handleAlimentoChange}
+                  onValueChange={field.onChange}
                   defaultValue={field.value}
                   disabled={loading}
                 >
@@ -199,6 +192,35 @@ const DietaComidaForm = ({
                     {alimentos.map((alimento) => (
                       <SelectItem key={alimento.id} value={alimento.id}>
                         {alimento.nombre} - {alimento.categoria}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="tipo_comida"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tipo de comida*</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  disabled={loading}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona el tipo de comida" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {tiposComida.map((tipo) => (
+                      <SelectItem key={tipo} value={tipo}>
+                        {tipo}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -251,61 +273,25 @@ const DietaComidaForm = ({
 
           <FormField
             control={form.control}
-            name="tipo_comida"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo de comida*</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  disabled={loading}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona un tipo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {tiposComida.map((tipo) => (
-                      <SelectItem key={tipo.value} value={tipo.value}>
-                        {tipo.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name="cantidad"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Cantidad (g)*</FormLabel>
+                <FormLabel>Cantidad (en gramos)*</FormLabel>
                 <FormControl>
-                  <div className="flex items-center space-x-4">
-                    <Input
-                      type="number"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      disabled={loading}
-                      min={1}
-                    />
-                    {selectedAlimento && (
-                      <div className="text-sm text-muted-foreground whitespace-nowrap">
-                        {Math.round((selectedAlimento.calorias * field.value) / 100)} kcal
-                      </div>
-                    )}
-                  </div>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    disabled={loading}
+                    min={1}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <Button
               type="button"
               variant="outline"
@@ -315,7 +301,7 @@ const DietaComidaForm = ({
               Cancelar
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (creatingDieta ? "Creando dieta..." : "Añadiendo...") : "Añadir comida"}
+              {loading ? (creandoDieta ? "Creando dieta..." : "Añadiendo...") : "Añadir alimento"}
             </Button>
           </DialogFooter>
         </form>
