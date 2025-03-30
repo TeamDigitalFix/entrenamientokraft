@@ -33,6 +33,7 @@ export const useProgress = () => {
       try {
         if (!user?.id) return [];
 
+        console.log("Consultando mediciones para usuario:", user.id);
         const { data, error } = await supabase
           .from("progreso")
           .select("*")
@@ -44,6 +45,7 @@ export const useProgress = () => {
           throw error;
         }
 
+        console.log("Mediciones obtenidas:", data);
         return data as ProgressMeasurement[];
       } catch (error) {
         console.error("Error al cargar mediciones:", error);
@@ -97,20 +99,24 @@ export const useProgress = () => {
         throw new Error("Usuario no autenticado");
       }
 
+      const now = new Date().toISOString();
+      console.log("Fecha actual:", now);
+      
       const measurementData = {
         cliente_id: user.id,
         peso: newMeasurement.peso,
         grasa_corporal: newMeasurement.grasa_corporal || null,
         masa_muscular: newMeasurement.masa_muscular || null,
         notas: newMeasurement.notas || null,
-        fecha: new Date().toISOString(),
+        fecha: now,
       };
       
       console.log("Datos a insertar:", measurementData);
       
+      // Usar upsert en lugar de insert para mayor compatibilidad
       const { data, error } = await supabase
         .from("progreso")
-        .insert(measurementData)
+        .upsert(measurementData)
         .select();
 
       if (error) {
@@ -128,7 +134,7 @@ export const useProgress = () => {
     },
     onError: (error) => {
       console.error("Error al registrar medición:", error);
-      toast.error("No se pudo registrar la medición");
+      toast.error("No se pudo registrar la medición. Inténtalo de nuevo.");
     },
   });
 

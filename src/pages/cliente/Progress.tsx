@@ -1,9 +1,7 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart2, TrendingUp, Scale, Percent, Dumbbell, PlusCircle, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,10 +48,17 @@ const ClientProgress = () => {
   });
 
   const onSubmit = (data: MeasurementFormValues) => {
+    console.log("Formulario enviado con datos:", data);
+    
+    // Convertir valores de string a número
+    const pesoValue = parseFloat(data.peso);
+    const grasaValue = data.grasa_corporal ? parseFloat(data.grasa_corporal) : undefined;
+    const musculoValue = data.masa_muscular ? parseFloat(data.masa_muscular) : undefined;
+    
     addMeasurement({
-      peso: parseFloat(data.peso),
-      grasa_corporal: data.grasa_corporal ? parseFloat(data.grasa_corporal) : undefined,
-      masa_muscular: data.masa_muscular ? parseFloat(data.masa_muscular) : undefined,
+      peso: pesoValue,
+      grasa_corporal: grasaValue,
+      masa_muscular: musculoValue,
       notas: data.notas || undefined
     });
   };
