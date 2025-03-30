@@ -14,13 +14,24 @@ import {
   Edit, 
   Trash2, 
   RefreshCw,
-  Eye
+  Eye,
+  RotateCcw
 } from "lucide-react";
 import { useEjercicios } from "@/hooks/entrenador/useEjercicios";
 import { EjercicioForm } from "@/components/entrenador/EjercicioForm";
 import { Ejercicio, NuevoEjercicio } from "@/types/ejercicios";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/index";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const TrainerExercises = () => {
   const { user } = useAuth();
@@ -30,7 +41,6 @@ const TrainerExercises = () => {
     isLoading, 
     searchTerm, 
     setSearchTerm,
-
     crearEjercicio,
     actualizarEjercicio,
     eliminarEjercicio 
@@ -39,6 +49,8 @@ const TrainerExercises = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedEjercicio, setSelectedEjercicio] = useState<Ejercicio | null>(null);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+  const [deleteEjercicioId, setDeleteEjercicioId] = useState<string | null>(null);
 
   const handleCreateEjercicio = (nuevoEjercicio: NuevoEjercicio) => {
     crearEjercicio(nuevoEjercicio);
@@ -61,9 +73,16 @@ const TrainerExercises = () => {
     setShowEditDialog(true);
   };
 
-  const handleDeleteEjercicio = (id: string) => {
-    if (confirm("¿Estás seguro de que deseas eliminar este ejercicio?")) {
-      eliminarEjercicio(id);
+  const openDeleteAlert = (id: string) => {
+    setDeleteEjercicioId(id);
+    setShowDeleteAlert(true);
+  };
+
+  const handleDeleteEjercicio = () => {
+    if (deleteEjercicioId) {
+      eliminarEjercicio(deleteEjercicioId);
+      setShowDeleteAlert(false);
+      setDeleteEjercicioId(null);
     }
   };
 
@@ -111,10 +130,18 @@ const TrainerExercises = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" title="Filtrar">
                 <Filter className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon">
+              <Button 
+                variant="outline" 
+                size="icon" 
+                title="Refrescar"
+                onClick={() => {
+                  setSearchTerm("");
+                  setSelectedEjercicio(null);
+                }}
+              >
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -165,7 +192,7 @@ const TrainerExercises = () => {
                               variant="ghost" 
                               size="icon" 
                               title="Eliminar"
-                              onClick={() => handleDeleteEjercicio(ejercicio.id)}
+                              onClick={() => openDeleteAlert(ejercicio.id)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -198,6 +225,24 @@ const TrainerExercises = () => {
           />
         )}
       </Dialog>
+
+      {/* Alerta de Confirmación para Eliminar */}
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el ejercicio de forma permanente y no podrá ser recuperado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEjercicio} className="bg-destructive text-destructive-foreground">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

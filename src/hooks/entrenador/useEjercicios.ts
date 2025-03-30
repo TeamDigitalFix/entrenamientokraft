@@ -17,7 +17,8 @@ export const useEjercicios = (entrenadorId: string) => {
       const { data, error } = await supabase
         .from("ejercicios")
         .select("*")
-        .eq("creado_por", entrenadorId);
+        .eq("creado_por", entrenadorId)
+        .order("nombre");
 
       if (error) {
         console.error("Error al obtener ejercicios:", error);

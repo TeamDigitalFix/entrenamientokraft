@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UserRole } from "@/types/index";
 import { supabase } from "@/integrations/supabase/client";
 import { Dumbbell, Plus, ArrowLeft, Info, Edit, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -116,7 +116,7 @@ const ClientRoutine = () => {
               dia: ej.dia,
             }));
             
-            setEjercicios(ejerciciosTransformados);
+            setEjercicios(ejerciciosTransformados as Ejercicio[]);
           }
         } else {
           setRutina(null);
@@ -272,10 +272,10 @@ const ClientRoutine = () => {
                                     </div>
                                   )}
                                   
-                                  {ejercicio.ejercicios && (
+                                  {ejercicio.ejercicio && (
                                     <div>
                                       <h4 className="text-sm font-medium mb-1">Grupo muscular</h4>
-                                      <Badge variant="outline">{ejercicio.ejercicios.grupo_muscular}</Badge>
+                                      <Badge variant="outline">{ejercicio.ejercicio.grupo_muscular}</Badge>
                                     </div>
                                   )}
                                   
@@ -286,10 +286,10 @@ const ClientRoutine = () => {
                                     </div>
                                   )}
                                   
-                                  {ejercicio.ejercicios?.descripcion && (
+                                  {ejercicio.ejercicio?.descripcion && (
                                     <div className="col-span-full">
                                       <h4 className="text-sm font-medium mb-1">Descripción</h4>
-                                      <p className="text-sm text-muted-foreground">{ejercicio.ejercicios.descripcion}</p>
+                                      <p className="text-sm text-muted-foreground">{ejercicio.ejercicio.descripcion}</p>
                                     </div>
                                   )}
                                 </div>
