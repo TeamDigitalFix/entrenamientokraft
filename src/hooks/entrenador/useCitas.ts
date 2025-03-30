@@ -14,9 +14,9 @@ export type Cita = {
   entrenador_id: string;
   cliente_id: string;
   estado: "programada" | "completada" | "cancelada";
-  tipo?: string;
-  creado_en?: string;
-  actualizado_en?: string;
+  tipo?: string | null;
+  creado_en?: string | null;
+  actualizado_en?: string | null;
   cliente?: {
     nombre: string;
   };
@@ -48,7 +48,13 @@ export const useCitas = (entrenadorId: string) => {
 
       if (error) throw error;
 
-      setCitas(data || []);
+      // Asegurar que los estados de las citas cumplan con el tipo esperado
+      const citasWithValidStatus = (data || []).map(cita => ({
+        ...cita,
+        estado: validateCitaStatus(cita.estado)
+      }));
+
+      setCitas(citasWithValidStatus);
     } catch (error: any) {
       console.error("Error al cargar citas:", error);
       toast({
@@ -59,6 +65,15 @@ export const useCitas = (entrenadorId: string) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Validar el estado de la cita para que cumpla con el tipo "programada" | "completada" | "cancelada"
+  const validateCitaStatus = (estado: string): "programada" | "completada" | "cancelada" => {
+    if (estado === "programada" || estado === "completada" || estado === "cancelada") {
+      return estado as "programada" | "completada" | "cancelada";
+    }
+    // Si el estado no es válido, devolver "programada" por defecto
+    return "programada";
   };
 
   // Crear una nueva cita
@@ -72,13 +87,18 @@ export const useCitas = (entrenadorId: string) => {
 
       if (error) throw error;
 
-      setCitas((prevCitas) => [...prevCitas, data]);
+      const citaWithValidStatus = {
+        ...data,
+        estado: validateCitaStatus(data.estado)
+      };
+
+      setCitas((prevCitas) => [...prevCitas, citaWithValidStatus]);
       toast({
         title: "Éxito",
         description: "Cita creada correctamente",
       });
       
-      return data;
+      return citaWithValidStatus;
     } catch (error: any) {
       console.error("Error al crear cita:", error);
       toast({
@@ -102,8 +122,13 @@ export const useCitas = (entrenadorId: string) => {
 
       if (error) throw error;
 
+      const citaWithValidStatus = {
+        ...data,
+        estado: validateCitaStatus(data.estado)
+      };
+
       setCitas((prevCitas) =>
-        prevCitas.map((cita) => (cita.id === id ? data : cita))
+        prevCitas.map((cita) => (cita.id === id ? citaWithValidStatus : cita))
       );
       
       toast({
@@ -111,7 +136,7 @@ export const useCitas = (entrenadorId: string) => {
         description: "Cita actualizada correctamente",
       });
       
-      return data;
+      return citaWithValidStatus;
     } catch (error: any) {
       console.error("Error al actualizar cita:", error);
       toast({
