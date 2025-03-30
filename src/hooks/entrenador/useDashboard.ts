@@ -97,19 +97,27 @@ export const useDashboard = () => {
         const today = new Date().toISOString().split('T')[0];
         
         // Fix for the infinite type instantiation issue:
-        // Use a type assertion to string[] to avoid the type inference problem
-        const clientIds = clientsData.map(client => client.id) as string[];
+        // Extract client IDs safely
+        const clientIds: string[] = [];
+        if (clientsData && clientsData.length > 0) {
+          clientsData.forEach(client => {
+            if (client && client.id) {
+              clientIds.push(client.id);
+            }
+          });
+        }
         
         // Only proceed if we have client IDs
         let completedExercisesData: any[] = [];
         let completedExercisesError = null;
         
         if (clientIds.length > 0) {
+          // Use explicit parameter types to avoid type inference issues
           const { data, error } = await supabase
             .from("ejercicios_completados")
             .select("id")
             .eq("fecha_completado::date", today)
-            .in("cliente_id", clientIds);
+            .in("cliente_id", clientIds as string[]);
             
           completedExercisesData = data || [];
           completedExercisesError = error;
@@ -309,8 +317,15 @@ export const useDashboard = () => {
           
         if (clientsError) throw clientsError;
         
-        // Use type assertion to string[] to avoid the inference problem
-        const clientIds = clientsData.map(c => c.id) as string[];
+        // Extract client IDs safely
+        const clientIds: string[] = [];
+        if (clientsData && clientsData.length > 0) {
+          clientsData.forEach(client => {
+            if (client && client.id) {
+              clientIds.push(client.id);
+            }
+          });
+        }
         
         // Obtener ejercicios completados por día - only proceed if we have clients
         let completedExercises: any[] = [];
@@ -320,7 +335,7 @@ export const useDashboard = () => {
           const { data, error } = await supabase
             .from("ejercicios_completados")
             .select("fecha_completado")
-            .in("cliente_id", clientIds)
+            .in("cliente_id", clientIds as string[])
             .gte("fecha_completado", formattedDates[0]);
             
           completedExercises = data || [];
@@ -337,7 +352,7 @@ export const useDashboard = () => {
           const { data, error } = await supabase
             .from("sesiones_diarias")
             .select("fecha, completada")
-            .in("cliente_id", clientIds)
+            .in("cliente_id", clientIds as string[])
             .gte("fecha", formattedDates[0])
             .eq("completada", true);
             
