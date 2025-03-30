@@ -1,6 +1,5 @@
-
-import React, { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/index";
 import {
@@ -27,15 +26,38 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTheme } from "@/hooks/useTheme";
+import { useClientMessages } from "@/hooks/useClientMessages";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
   allowedRoles: UserRole[];
 }
 
-const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
-  const { user, loading, logout } = useAuth();
+interface NotificationBadgeProps {
+  count: number;
+}
+
+const NotificationBadge = ({ count }: NotificationBadgeProps) => {
+  if (count <= 0) return null;
+  
+  return (
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+      {count > 9 ? '9+' : count}
+    </span>
+  );
+};
+
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRoles }) => {
+  const { user } = useAuth();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { theme, setTheme } = useTheme();
+
+  const clientMessages = user?.role === UserRole.CLIENT ? useClientMessages() : null;
 
   useEffect(() => {
     if (!loading && (!user || !allowedRoles.includes(user.role))) {
@@ -50,6 +72,63 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
   if (!user || !allowedRoles.includes(user.role)) {
     return null;
   }
+
+  const renderClientMenu = () => (
+    <SidebarContent>
+      <SidebarGroup>
+        <SidebarGroupLabel>Mi Perfil</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/cliente/dashboard"}>
+                <Link to="/cliente/dashboard">
+                  <Home /> <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/cliente/rutina"}>
+                <Link to="/cliente/rutina">
+                  <Dumbbell /> <span>Mi Rutina</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/cliente/dieta"}>
+                <Link to="/cliente/dieta">
+                  <Utensils /> <span>Mi Dieta</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/cliente/citas"}>
+                <Link to="/cliente/citas">
+                  <Calendar /> <span>Mis Citas</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/cliente/mensajes"}>
+                <Link to="/cliente/mensajes" className="relative">
+                  <MessageSquare /> <span>Mensajes</span>
+                  {clientMessages?.unreadCount ? (
+                    <NotificationBadge count={clientMessages.unreadCount} />
+                  ) : null}
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === "/cliente/progreso"}>
+                <Link to="/cliente/progreso">
+                  <BarChart2 /> <span>Mi Progreso</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    </SidebarContent>
+  );
 
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900">
@@ -104,32 +183,7 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
             </>
           )}
           {user.role === UserRole.CLIENT && (
-            <>
-              <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                <Home className="h-4 w-4 mr-2" />
-                Dashboard
-              </Link>
-              <Link to="/cliente/rutina" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                <Dumbbell className="h-4 w-4 mr-2" />
-                Mi Rutina
-              </Link>
-              <Link to="/cliente/dieta" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                <Utensils className="h-4 w-4 mr-2" />
-                Mi Dieta
-              </Link>
-              <Link to="/cliente/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                <Calendar className="h-4 w-4 mr-2" />
-                Mis Citas
-              </Link>
-              <Link to="/cliente/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Mensajes
-              </Link>
-              <Link to="/cliente/progreso" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                <BarChart2 className="h-4 w-4 mr-2" />
-                Mi Progreso
-              </Link>
-            </>
+            renderClientMenu()
           )}
         </nav>
         <div className="p-4">
@@ -200,32 +254,7 @@ const DashboardLayout = ({ children, allowedRoles }: DashboardLayoutProps) => {
               </>
             )}
             {user.role === UserRole.CLIENT && (
-              <>
-                <Link to="/cliente/dashboard" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                  <Home className="h-4 w-4 mr-2" />
-                  Dashboard
-                </Link>
-                <Link to="/cliente/rutina" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                  <Dumbbell className="h-4 w-4 mr-2" />
-                  Mi Rutina
-                </Link>
-                <Link to="/cliente/dieta" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                  <Utensils className="h-4 w-4 mr-2" />
-                  Mi Dieta
-                </Link>
-                <Link to="/cliente/citas" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Mis Citas
-                </Link>
-                <Link to="/cliente/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Mensajes
-                </Link>
-                <Link to="/cliente/progreso" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">
-                  <BarChart2 className="h-4 w-4 mr-2" />
-                  Mi Progreso
-                </Link>
-              </>
+              renderClientMenu()
             )}
           </nav>
           <div className="p-4">

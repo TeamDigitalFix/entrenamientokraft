@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -34,8 +33,8 @@ export const useMessages = () => {
   const [conversations, setConversations] = useState<ConversationParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Cargar conversaciones del entrenador
   const loadConversations = async () => {
     if (!user?.id) return;
     
@@ -43,7 +42,6 @@ export const useMessages = () => {
     try {
       console.log("Cargando conversaciones para el usuario:", user.id);
       
-      // Obtener todos los clientes del entrenador
       const { data: clientesData, error: clientesError } = await supabase
         .from("usuarios")
         .select("id, nombre, ultimo_ingreso")
@@ -57,11 +55,9 @@ export const useMessages = () => {
       
       console.log("Clientes obtenidos:", clientesData);
       
-      // Para cada cliente, obtener el último mensaje
       const conversationsWithMessages = await Promise.all(
         clientesData.map(async (cliente) => {
           try {
-            // Obtener el último mensaje entre el entrenador y el cliente
             const { data: mensajeData, error: mensajeError } = await supabase
               .from("mensajes")
               .select("*")
@@ -82,7 +78,6 @@ export const useMessages = () => {
               };
             }
             
-            // Verificar si hay mensajes no leídos para el entrenador
             const { data: unreadData, error: unreadError } = await supabase
               .from("mensajes")
               .select("id")
@@ -114,7 +109,6 @@ export const useMessages = () => {
       
       setConversations(conversationsWithMessages);
       
-      // Si hay conversaciones, seleccionar la primera por defecto
       if (conversationsWithMessages.length > 0 && !selectedConversation) {
         setSelectedConversation(conversationsWithMessages[0].id);
       }
@@ -127,7 +121,6 @@ export const useMessages = () => {
     }
   };
 
-  // Cargar mensajes de una conversación específica
   const loadMessages = async (conversationId: string) => {
     if (!user?.id || !conversationId) return;
     
@@ -149,7 +142,6 @@ export const useMessages = () => {
       console.log("Mensajes obtenidos:", data);
       setMessages(data || []);
       
-      // Marcar como leídos los mensajes recibidos
       await markMessagesAsRead(conversationId);
       
     } catch (error) {
@@ -160,7 +152,6 @@ export const useMessages = () => {
     }
   };
 
-  // Marcar mensajes como leídos
   const markMessagesAsRead = async (senderId: string) => {
     if (!user?.id) return;
     
@@ -175,7 +166,6 @@ export const useMessages = () => {
       if (error) {
         console.error("Error al marcar mensajes como leídos:", error);
       } else {
-        // Actualizar estado local de conversaciones
         setConversations(prevConversations => 
           prevConversations.map(conv => 
             conv.id === senderId ? { ...conv, unread: false } : conv
@@ -187,7 +177,6 @@ export const useMessages = () => {
     }
   };
 
-  // Enviar un nuevo mensaje
   const sendMessage = async (receiverId: string, content: string) => {
     if (!user?.id || !receiverId || !content.trim()) return null;
     
@@ -213,10 +202,8 @@ export const useMessages = () => {
       
       console.log("Mensaje enviado:", data);
       
-      // Actualizar mensajes en la UI
       setMessages(prevMessages => [...prevMessages, data]);
       
-      // Actualizar la conversación en la lista
       setConversations(prevConversations => 
         prevConversations.map(conv => 
           conv.id === receiverId 
@@ -237,21 +224,39 @@ export const useMessages = () => {
     }
   };
 
-  // Cargar conversaciones cuando cambia el usuario
+  const updateUnreadCount = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from("mensajes")
+        .select("id")
+        .eq("receptor_id", user.id)
+        .eq("leido", false);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setUnreadCount(data?.length || 0);
+    } catch (error) {
+      console.error("Error al obtener mensajes no leídos:", error);
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
       loadConversations();
+      updateUnreadCount();
     }
   }, [user?.id]);
 
-  // Cargar mensajes cuando cambia la conversación seleccionada
   useEffect(() => {
     if (selectedConversation) {
       loadMessages(selectedConversation);
     }
   }, [selectedConversation]);
 
-  // Configurar suscripción a nuevos mensajes en tiempo real
   useEffect(() => {
     if (!user?.id) return;
     
@@ -267,13 +272,11 @@ export const useMessages = () => {
         
         const newMessage = payload.new as Message;
         
-        // Actualizar mensajes si está en la conversación actual
         if (selectedConversation === newMessage.emisor_id) {
           setMessages(prevMessages => [...prevMessages, newMessage]);
           markMessagesAsRead(newMessage.emisor_id);
         }
         
-        // Actualizar conversaciones
         setConversations(prevConversations => {
           return prevConversations.map(conv => {
             if (conv.id === newMessage.emisor_id) {
@@ -288,10 +291,10 @@ export const useMessages = () => {
           });
         });
         
-        // Notificar al usuario si no está en esta conversación
         if (selectedConversation !== newMessage.emisor_id) {
           const sender = conversations.find(c => c.id === newMessage.emisor_id);
           toast.info(`Nuevo mensaje de ${sender?.nombre || 'un cliente'}`);
+          updateUnreadCount();
         }
       })
       .subscribe();
@@ -309,6 +312,8 @@ export const useMessages = () => {
     setSelectedConversation,
     sendMessage,
     loadConversations,
-    loadMessages
+    loadMessages,
+    unreadCount,
+    updateUnreadCount
   };
 };

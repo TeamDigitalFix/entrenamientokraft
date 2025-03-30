@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +23,8 @@ const TrainerMessages = () => {
     loading, 
     selectedConversation, 
     setSelectedConversation, 
-    sendMessage 
+    sendMessage,
+    unreadCount 
   } = useMessages();
   
   const filteredConversations = conversations.filter(conversation => 
@@ -80,7 +80,6 @@ const TrainerMessages = () => {
     }
   };
   
-  // Auto-scroll al final de los mensajes cuando llegan nuevos
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
