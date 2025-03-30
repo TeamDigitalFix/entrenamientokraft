@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,14 +96,23 @@ export const useDashboard = () => {
         const today = new Date().toISOString().split('T')[0];
         
         // Fix for the infinite type instantiation issue:
-        // Define clientIds array explicitly before using it in the query
-        const clientIds = clientsData.map(client => client.id);
+        // Define clientIds array explicitly with string[] type before using it in the query
+        const clientIds: string[] = clientsData.map(client => client.id);
         
-        const { data: completedExercisesData, error: completedExercisesError } = await supabase
-          .from("ejercicios_completados")
-          .select("id")
-          .eq("fecha_completado::date", today)
-          .in("cliente_id", clientIds); // Use the explicitly defined array
+        // Only proceed if we have client IDs
+        let completedExercisesData = [];
+        let completedExercisesError = null;
+        
+        if (clientIds.length > 0) {
+          const result = await supabase
+            .from("ejercicios_completados")
+            .select("id")
+            .eq("fecha_completado::date", today)
+            .in("cliente_id", clientIds);
+            
+          completedExercisesData = result.data || [];
+          completedExercisesError = result.error;
+        }
           
         if (completedExercisesError) throw completedExercisesError;
 
@@ -300,25 +308,41 @@ export const useDashboard = () => {
           
         if (clientsError) throw clientsError;
         
-        // Fix for infinite type issue: define explicitly before using
-        const clientIds = clientsData.map(c => c.id);
+        // Fix for infinite type issue: define explicitly with string[] type before using
+        const clientIds: string[] = clientsData.map(c => c.id);
         
-        // Obtener ejercicios completados por día
-        const { data: completedExercises, error: exercisesError } = await supabase
-          .from("ejercicios_completados")
-          .select("fecha_completado")
-          .in("cliente_id", clientIds) // Use the explicitly defined array
-          .gte("fecha_completado", formattedDates[0]);
+        // Obtener ejercicios completados por día - only proceed if we have clients
+        let completedExercises = [];
+        let exercisesError = null;
+        
+        if (clientIds.length > 0) {
+          const result = await supabase
+            .from("ejercicios_completados")
+            .select("fecha_completado")
+            .in("cliente_id", clientIds)
+            .gte("fecha_completado", formattedDates[0]);
+            
+          completedExercises = result.data || [];
+          exercisesError = result.error;
+        }
           
         if (exercisesError) throw exercisesError;
         
-        // Obtener sesiones diarias
-        const { data: dailySessions, error: sessionsError } = await supabase
-          .from("sesiones_diarias")
-          .select("fecha, completada")
-          .in("cliente_id", clientIds) // Use the explicitly defined array
-          .gte("fecha", formattedDates[0])
-          .eq("completada", true);
+        // Obtener sesiones diarias - only proceed if we have clients
+        let dailySessions = [];
+        let sessionsError = null;
+        
+        if (clientIds.length > 0) {
+          const result = await supabase
+            .from("sesiones_diarias")
+            .select("fecha, completada")
+            .in("cliente_id", clientIds)
+            .gte("fecha", formattedDates[0])
+            .eq("completada", true);
+            
+          dailySessions = result.data || [];
+          sessionsError = result.error;
+        }
           
         if (sessionsError) throw sessionsError;
         
