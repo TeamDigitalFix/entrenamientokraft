@@ -129,6 +129,7 @@ export const useClientAppointments = () => {
         throw new Error("No tienes un entrenador asignado");
       }
 
+      // Aseguramos que el estado sea exactamente 'pendiente' (string literal)
       const newAppointment = {
         cliente_id: user.id,
         entrenador_id: userData.entrenador_id,
@@ -136,7 +137,7 @@ export const useClientAppointments = () => {
         descripcion: appointmentData.descripcion,
         fecha: appointmentData.fecha,
         duracion: appointmentData.duracion,
-        estado: "pendiente" as const
+        estado: "pendiente"
       };
 
       console.log("Solicitando cita:", newAppointment);
