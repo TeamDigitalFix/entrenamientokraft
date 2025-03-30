@@ -13,6 +13,8 @@ import { RecentActivity } from "@/components/admin/RecentActivity";
 import { TrainersManagement } from "@/components/admin/TrainersManagement";
 import { ResetDataDialog } from "@/components/admin/ResetDataDialog";
 import { UserRole } from "@/types/index";
+import { ClientsManagement } from "@/components/admin/ClientsManagement";
+import { useAdminClients } from "@/hooks/admin/useAdminClients";
 
 const AdminDashboard = () => {
   const [currentTab, setCurrentTab] = useState("dashboard");
@@ -48,9 +50,30 @@ const AdminDashboard = () => {
     restoreTrainer
   } = useTrainers(page, searchTerm, showDeleted, pageSize);
 
+  const {
+    clients,
+    isLoading: clientsLoading,
+    refetch: refetchClients,
+    showNewClientDialog,
+    setShowNewClientDialog,
+    showEditClientDialog,
+    setShowEditClientDialog,
+    newClientData,
+    setNewClientData,
+    editClientData, 
+    setEditClientData,
+    clientToDelete,
+    setClientToDelete,
+    createClient,
+    updateClient,
+    deleteClient,
+    restoreClient
+  } = useAdminClients(page, searchTerm, showDeleted, pageSize);
+
   const refreshData = () => {
     refetchStats();
     refetchTrainers();
+    refetchClients();
     refetchActivity();
     toast.info("Datos actualizados");
   };
@@ -73,6 +96,7 @@ const AdminDashboard = () => {
           <TabsList className="mb-4">
             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
             <TabsTrigger value="trainers">Entrenadores</TabsTrigger>
+            <TabsTrigger value="clients">Clientes</TabsTrigger>
           </TabsList>
           
           <TabsContent value="dashboard">
@@ -112,6 +136,34 @@ const AdminDashboard = () => {
               deleteTrainer={deleteTrainer}
               permanentDeleteTrainer={permanentDeleteTrainer}
               restoreTrainer={restoreTrainer}
+            />
+          </TabsContent>
+          
+          <TabsContent value="clients">
+            <ClientsManagement
+              clients={clients}
+              isLoading={clientsLoading}
+              searchTerm={searchTerm}
+              page={page}
+              pageSize={pageSize}
+              showDeleted={showDeleted}
+              setSearchTerm={setSearchTerm}
+              setPage={setPage}
+              setShowDeleted={setShowDeleted}
+              showNewClientDialog={showNewClientDialog}
+              setShowNewClientDialog={setShowNewClientDialog}
+              showEditClientDialog={showEditClientDialog}
+              setShowEditClientDialog={setShowEditClientDialog}
+              newClientData={newClientData}
+              setNewClientData={setNewClientData}
+              editClientData={editClientData}
+              setEditClientData={setEditClientData}
+              clientToDelete={clientToDelete}
+              setClientToDelete={setClientToDelete}
+              createClient={createClient}
+              updateClient={updateClient}
+              deleteClient={deleteClient}
+              restoreClient={restoreClient}
             />
           </TabsContent>
         </Tabs>
