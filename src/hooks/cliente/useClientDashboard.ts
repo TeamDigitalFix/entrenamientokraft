@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -199,6 +200,8 @@ export const useClientDashboard = () => {
             }));
         }
 
+        const currentDate = new Date();
+        
         const { data: appointments } = await supabase
           .from("citas")
           .select("id, titulo, fecha, duracion, estado, tipo")
@@ -211,7 +214,7 @@ export const useClientDashboard = () => {
           type: "appointment" as const,
           title: apt.titulo,
           date: new Date(apt.fecha),
-          details: apt.descripcion || apt.tipo,
+          details: apt.tipo || "", // Using tipo instead of descripcion, with fallback to empty string
         }));
 
         const allActivities = [...exercises, ...meals, ...appointmentItems].sort(
