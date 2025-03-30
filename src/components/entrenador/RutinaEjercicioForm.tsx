@@ -120,6 +120,7 @@ const RutinaEjercicioForm = ({
       }
 
       // Format the date as a string (YYYY-MM-DD)
+      // Asegurarnos que la fecha esté en formato ISO sin la parte de tiempo
       const formattedDate = format(values.fecha, "yyyy-MM-dd");
 
       // Insertar el ejercicio en la rutina usando la fecha como texto

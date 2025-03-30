@@ -128,6 +128,7 @@ const DietaComidaForm = ({
       }
 
       // Convert date to YYYY-MM-DD format
+      // Asegurarnos que la fecha esté en formato ISO sin la parte de tiempo
       const formattedDate = format(values.fecha, "yyyy-MM-dd");
       
       // Insert the meal into the diet

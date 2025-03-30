@@ -1,102 +1,117 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-
-export type DashboardStats = {
-  totalClients: number;
-  activeClients: number;
-  upcomingAppointments: number;
-  unreadMessages: number;
-  completedToday: number;
-};
 
 export const useDashboardStats = () => {
   const { user } = useAuth();
+  const trainerId = user?.id;
 
-  const { data: dashboardStats, isLoading } = useQuery({
-    queryKey: ["dashboard", "stats", user?.id],
+  // Total Clients
+  const { data: totalClients, isLoading: clientsLoading } = useQuery({
+    queryKey: ["trainer-clients-count"],
     queryFn: async () => {
       try {
-        if (!user?.id) return null;
-
-        // Total de clientes
-        const { data: clientsData, error: clientsError } = await supabase
+        const { count, error } = await supabase
           .from("usuarios")
-          .select("id, ultimo_ingreso")
-          .eq("entrenador_id", user.id)
+          .select("*", { count: "exact", head: true })
+          .eq("entrenador_id", trainerId)
           .eq("role", "cliente")
           .eq("eliminado", false);
-          
-        if (clientsError) throw clientsError;
 
-        // Clientes activos (con actividad en los últimos 7 días)
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const activeClients = clientsData.filter(client => 
-          client.ultimo_ingreso && new Date(client.ultimo_ingreso) >= sevenDaysAgo
-        );
-
-        // Citas próximas (próximos 7 días)
-        const { data: appointmentsData, error: appointmentsError } = await supabase
-          .from("citas")
-          .select("id")
-          .eq("entrenador_id", user.id)
-          .eq("estado", "programada")
-          .gte("fecha", new Date().toISOString())
-          .lte("fecha", new Date(new Date().setDate(new Date().getDate() + 7)).toISOString());
-          
-        if (appointmentsError) throw appointmentsError;
-
-        // Mensajes sin leer
-        const { data: messagesData, error: messagesError } = await supabase
-          .from("mensajes")
-          .select("id")
-          .eq("receptor_id", user.id)
-          .eq("leido", false);
-          
-        if (messagesError) throw messagesError;
-
-        // Ejercicios completados hoy
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Extract client IDs and explicitly type as string array to avoid deep type inference
-        const clientIds: string[] = clientsData.map(client => client.id);
-        
-        // Only proceed if we have client IDs
-        let completedExercisesData: any[] = [];
-        let completedExercisesError = null;
-        
-        if (clientIds.length > 0) {
-          // Use explicit string array type to avoid inference issues
-          const { data, error } = await supabase
-            .from("ejercicios_completados")
-            .select("id")
-            .eq("fecha_completado::date", today)
-            .in("cliente_id", clientIds as string[]);
-            
-          completedExercisesData = data || [];
-          completedExercisesError = error;
-        }
-          
-        if (completedExercisesError) throw completedExercisesError;
-
-        return {
-          totalClients: clientsData.length,
-          activeClients: activeClients.length,
-          upcomingAppointments: appointmentsData.length,
-          unreadMessages: messagesData.length,
-          completedToday: completedExercisesData.length
-        } as DashboardStats;
+        if (error) throw error;
+        return count || 0;
       } catch (error) {
-        console.error("Error al cargar estadísticas del dashboard:", error);
-        toast.error("No se pudieron cargar las estadísticas del dashboard");
-        return null;
+        console.error("Error loading clients count:", error);
+        return 0;
       }
     },
-    enabled: !!user?.id
+    enabled: !!trainerId,
   });
 
-  return { dashboardStats, isLoading };
+  // Total Exercises
+  const { data: totalExercisesCreated, isLoading: exercisesCreatedLoading } = useQuery({
+    queryKey: ["trainer-exercises-created-count"],
+    queryFn: async () => {
+      try {
+        const { count, error } = await supabase
+          .from("ejercicios")
+          .select("*", { count: "exact", head: true })
+          .eq("creado_por", trainerId);
+
+        if (error) throw error;
+        return count || 0;
+      } catch (error) {
+        console.error("Error loading exercises created count:", error);
+        return 0;
+      }
+    },
+    enabled: !!trainerId,
+  });
+
+  // Total Foods
+  const { data: totalFoodsCreated, isLoading: foodsCreatedLoading } = useQuery({
+    queryKey: ["trainer-foods-created-count"],
+    queryFn: async () => {
+      try {
+        const { count, error } = await supabase
+          .from("alimentos")
+          .select("*", { count: "exact", head: true })
+          .eq("creado_por", trainerId);
+
+        if (error) throw error;
+        return count || 0;
+      } catch (error) {
+        console.error("Error loading foods created count:", error);
+        return 0;
+      }
+    },
+    enabled: !!trainerId,
+  });
+
+  // Solucionar el error TS2589: Type instantiation is excessively deep and possibly infinite
+  // Añadimos una anotación de tipo explícita para clientIds
+  const { data: totalExercises, isLoading: exercisesLoading } = useQuery({
+    queryKey: ["trainer-exercises-count"],
+    queryFn: async () => {
+      try {
+        // Obtener los IDs de clientes del entrenador
+        const { data: clients, error: clientsError } = await supabase
+          .from("usuarios")
+          .select("id")
+          .eq("entrenador_id", trainerId)
+          .eq("role", "cliente")
+          .eq("eliminado", false);
+
+        if (clientsError) throw clientsError;
+        
+        // Crear una lista de IDs explícitamente tipada como string[]
+        const clientIds: string[] = clients?.map(client => client.id) || [];
+
+        // Si no hay clientes, devolver 0
+        if (clientIds.length === 0) return 0;
+
+        // Contar ejercicios completados para estos clientes
+        const { count, error: exercisesError } = await supabase
+          .from("ejercicios_completados")
+          .select("*", { count: "exact", head: true })
+          .in("cliente_id", clientIds);
+
+        if (exercisesError) throw exercisesError;
+        
+        return count || 0;
+      } catch (error) {
+        console.error("Error loading exercises count:", error);
+        return 0;
+      }
+    },
+    enabled: !!trainerId,
+  });
+
+  return {
+    totalClients: totalClients || 0,
+    totalExercisesCreated: totalExercisesCreated || 0,
+    totalFoodsCreated: totalFoodsCreated || 0,
+    totalExercises: totalExercises || 0,
+    isLoading: clientsLoading || exercisesCreatedLoading || foodsCreatedLoading || exercisesLoading,
+  };
 };
