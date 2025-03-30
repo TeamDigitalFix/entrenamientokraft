@@ -14,6 +14,22 @@ WHERE table_name = 'progreso';
 
 -- Get specific client measurements
 -- Replace 'your-user-id-here' with an actual client ID
-SELECT * FROM progreso 
+SELECT id, cliente_id, fecha, peso, grasa_corporal, masa_muscular, notas 
+FROM progreso 
 WHERE cliente_id = 'your-user-id-here'
 ORDER BY fecha DESC;
+
+-- Check that RLS policies are properly configured
+SELECT
+  schemaname,
+  tablename,
+  policyname,
+  permissive,
+  roles,
+  cmd,
+  qual,
+  with_check
+FROM
+  pg_policies
+WHERE
+  tablename = 'progreso';

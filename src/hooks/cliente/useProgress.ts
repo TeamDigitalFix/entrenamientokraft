@@ -4,29 +4,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-
-export type ProgressMeasurement = {
-  id: string;
-  fecha: string;
-  peso: number;
-  grasa_corporal: number | null;
-  masa_muscular: number | null;
-  notas: string | null;
-};
-
-export type NewMeasurement = {
-  peso: number;
-  grasa_corporal?: number;
-  masa_muscular?: number;
-  notas?: string;
-};
+import { ProgressMeasurement, NewMeasurement } from "@/types/progress";
+import { calculateChanges, formatChartData } from "@/utils/progressUtils";
 
 export const useProgress = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  // Obtener todas las mediciones del cliente
+  // Get all client measurements
   const { data: measurements, isLoading: isLoadingMeasurements } = useQuery({
     queryKey: ["progress", user?.id],
     queryFn: async () => {
@@ -71,38 +57,17 @@ export const useProgress = () => {
     staleTime: 0,
   });
 
-  // Obtener la medición más reciente
+  // Get the latest measurement
   const latestMeasurement = measurements && measurements.length > 0 
     ? measurements[0] 
     : null;
 
-  // Obtener la primera medición para calcular cambios
+  // Get the first measurement to calculate changes
   const firstMeasurement = measurements && measurements.length > 0 
     ? measurements[measurements.length - 1] 
     : null;
 
-  // Calcular cambios desde la primera medición
-  const calculateChanges = () => {
-    if (!latestMeasurement || !firstMeasurement) {
-      return {
-        pesoChange: null,
-        grasaChange: null,
-        musculoChange: null
-      };
-    }
-
-    return {
-      pesoChange: +(latestMeasurement.peso - firstMeasurement.peso).toFixed(1),
-      grasaChange: latestMeasurement.grasa_corporal !== null && firstMeasurement.grasa_corporal !== null
-        ? +(latestMeasurement.grasa_corporal - firstMeasurement.grasa_corporal).toFixed(1)
-        : null,
-      musculoChange: latestMeasurement.masa_muscular !== null && firstMeasurement.masa_muscular !== null
-        ? +(latestMeasurement.masa_muscular - firstMeasurement.masa_muscular).toFixed(1)
-        : null
-    };
-  };
-
-  // Mutación para añadir una nueva medición
+  // Mutation to add a new measurement
   const { mutate: addMeasurement, isPending: isAddingMeasurement } = useMutation({
     mutationFn: async (newMeasurement: NewMeasurement) => {
       try {
@@ -115,20 +80,19 @@ export const useProgress = () => {
         console.log("Añadiendo medición para usuario:", user.id);
         console.log("Datos de medición:", newMeasurement);
         
-        // Verificar que los valores son válidos antes de enviar
+        // Verify values are valid before sending
         if (isNaN(newMeasurement.peso) || newMeasurement.peso <= 0) {
           toast.error("El peso debe ser un número positivo");
           throw new Error("El peso debe ser un número positivo");
         }
         
-        // Usamos la fecha actual para la medición
+        // Use current date for the measurement
         const now = new Date();
         const currentDateString = now.toISOString().split('T')[0]; // YYYY-MM-DD format
         
         console.log("Fecha formateada:", currentDateString);
         
-        // Ahora insertamos directamente en la tabla progreso
-        // Utilizaremos inserción directa en vez de RPC ya que hemos configurado RLS
+        // Now insert directly into the progreso table
         const { data, error } = await supabase
           .from('progreso')
           .insert({
@@ -158,7 +122,7 @@ export const useProgress = () => {
       console.log("Medición registrada con éxito:", data);
       toast.success("Medición registrada correctamente");
       
-      // Forzar una invalidación y recarga de los datos inmediatamente
+      // Force invalidation and immediate reload of data
       queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
       
       setIsDialogOpen(false);
@@ -170,34 +134,14 @@ export const useProgress = () => {
     },
   });
 
-  // Formatear datos para gráficas
-  const formatChartData = () => {
-    if (!measurements || measurements.length === 0) return [];
-    
-    // Ordenar por fecha ascendente para gráficas
-    const sortedData = [...measurements].sort((a, b) => 
-      new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
-    );
-    
-    return sortedData.map(m => ({
-      name: new Date(m.fecha).toLocaleDateString('es-ES', { 
-        day: '2-digit', 
-        month: 'short' 
-      }),
-      peso: m.peso,
-      grasa: m.grasa_corporal || undefined,
-      musculo: m.masa_muscular || undefined
-    }));
-  };
-
   return {
     measurements,
     isLoadingMeasurements,
-    latestMeasurement: measurements && measurements.length > 0 ? measurements[0] : null,
-    changes: calculateChanges(),
+    latestMeasurement,
+    changes: calculateChanges(latestMeasurement, firstMeasurement),
     addMeasurement,
     isAddingMeasurement,
-    chartData: formatChartData(),
+    chartData: formatChartData(measurements || []),
     isDialogOpen,
     setIsDialogOpen
   };
