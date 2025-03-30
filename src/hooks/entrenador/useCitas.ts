@@ -33,6 +33,15 @@ export const useCitas = (entrenadorId: string) => {
   const [selectedTab, setSelectedTab] = useState("all");
   const { toast } = useToast();
 
+  // Validar el estado de la cita para que cumpla con el tipo "programada" | "completada" | "cancelada"
+  const validateCitaStatus = (estado: string): "programada" | "completada" | "cancelada" => {
+    if (estado === "programada" || estado === "completada" || estado === "cancelada") {
+      return estado as "programada" | "completada" | "cancelada";
+    }
+    // Si el estado no es válido, devolver "programada" por defecto
+    return "programada";
+  };
+
   // Cargar citas desde Supabase
   const fetchCitas = async () => {
     setIsLoading(true);
@@ -54,7 +63,7 @@ export const useCitas = (entrenadorId: string) => {
         estado: validateCitaStatus(cita.estado)
       }));
 
-      setCitas(citasWithValidStatus);
+      setCitas(citasWithValidStatus as Cita[]);
     } catch (error: any) {
       console.error("Error al cargar citas:", error);
       toast({
@@ -65,15 +74,6 @@ export const useCitas = (entrenadorId: string) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Validar el estado de la cita para que cumpla con el tipo "programada" | "completada" | "cancelada"
-  const validateCitaStatus = (estado: string): "programada" | "completada" | "cancelada" => {
-    if (estado === "programada" || estado === "completada" || estado === "cancelada") {
-      return estado as "programada" | "completada" | "cancelada";
-    }
-    // Si el estado no es válido, devolver "programada" por defecto
-    return "programada";
   };
 
   // Crear una nueva cita
@@ -92,13 +92,13 @@ export const useCitas = (entrenadorId: string) => {
         estado: validateCitaStatus(data.estado)
       };
 
-      setCitas((prevCitas) => [...prevCitas, citaWithValidStatus]);
+      setCitas((prevCitas) => [...prevCitas, citaWithValidStatus as Cita]);
       toast({
         title: "Éxito",
         description: "Cita creada correctamente",
       });
       
-      return citaWithValidStatus;
+      return citaWithValidStatus as Cita;
     } catch (error: any) {
       console.error("Error al crear cita:", error);
       toast({
@@ -128,7 +128,7 @@ export const useCitas = (entrenadorId: string) => {
       };
 
       setCitas((prevCitas) =>
-        prevCitas.map((cita) => (cita.id === id ? citaWithValidStatus : cita))
+        prevCitas.map((cita) => (cita.id === id ? (citaWithValidStatus as Cita) : cita))
       );
       
       toast({
@@ -136,7 +136,7 @@ export const useCitas = (entrenadorId: string) => {
         description: "Cita actualizada correctamente",
       });
       
-      return citaWithValidStatus;
+      return citaWithValidStatus as Cita;
     } catch (error: any) {
       console.error("Error al actualizar cita:", error);
       toast({
