@@ -13,6 +13,7 @@ export type NewMeasurement = {
   grasa_corporal?: number;
   masa_muscular?: number;
   notas?: string;
+  fecha?: Date;
 };
 
 export type MeasurementChange = {

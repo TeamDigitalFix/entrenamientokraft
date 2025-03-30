@@ -8,12 +8,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { NewMeasurement } from "@/types/progress";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type MeasurementFormValues = {
   peso: string;
   grasa_corporal: string;
   masa_muscular: string;
   notas: string;
+  fecha: Date;
 };
 
 type MeasurementFormProps = {
@@ -27,14 +34,17 @@ const MeasurementForm = ({
   onCancel, 
   isSubmitting 
 }: MeasurementFormProps) => {
-  const { register, handleSubmit, formState: { errors } } = useForm<MeasurementFormValues>({
+  const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<MeasurementFormValues>({
     defaultValues: {
       peso: "",
       grasa_corporal: "",
       masa_muscular: "",
-      notas: ""
+      notas: "",
+      fecha: new Date()
     }
   });
+
+  const selectedDate = watch("fecha");
 
   const handleFormSubmit = (data: MeasurementFormValues) => {
     const pesoValue = parseFloat(data.peso);
@@ -45,13 +55,46 @@ const MeasurementForm = ({
       peso: pesoValue,
       grasa_corporal: grasaValue,
       masa_muscular: musculoValue,
-      notas: data.notas || undefined
+      notas: data.notas || undefined,
+      fecha: data.fecha
     });
   };
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)}>
       <div className="grid gap-4 py-3">
+        <div className="grid gap-2">
+          <Label htmlFor="fecha" className="required">Fecha de medición</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="fecha"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !selectedDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {selectedDate ? (
+                  format(selectedDate, "PPP", { locale: es })
+                ) : (
+                  <span>Selecciona una fecha</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => date && setValue("fecha", date)}
+                disabled={(date) => date > new Date()}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
         <div className="grid gap-2">
           <Label htmlFor="peso" className="required">Peso (kg)</Label>
           <Input

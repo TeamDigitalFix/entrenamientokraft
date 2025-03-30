@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ProgressMeasurement, NewMeasurement } from "@/types/progress";
 import { calculateChanges, formatChartData } from "@/utils/progressUtils";
+import { format } from "date-fns";
 
 export const useProgress = () => {
   const { user } = useAuth();
@@ -87,18 +88,19 @@ export const useProgress = () => {
           throw new Error("El peso debe ser un número positivo");
         }
         
-        // Use current date for the measurement
-        const now = new Date();
-        const currentDateString = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+        // Use provided date or current date for the measurement
+        const measurementDate = newMeasurement.fecha || new Date();
+        // Format date as YYYY-MM-DD
+        const dateString = format(measurementDate, 'yyyy-MM-dd');
         
-        console.log("Fecha formateada:", currentDateString);
+        console.log("Fecha formateada:", dateString);
         
-        // Check if there's already a measurement for today
+        // Check if there's already a measurement for this date
         const { data: existingMeasurement, error: queryError } = await supabase
           .from('progreso')
           .select('id')
           .eq('cliente_id', user.id)
-          .eq('fecha', currentDateString)
+          .eq('fecha', dateString)
           .maybeSingle();
         
         if (queryError) {
@@ -109,8 +111,8 @@ export const useProgress = () => {
         let result;
         
         if (existingMeasurement) {
-          // Update the existing measurement for today
-          console.log("Actualizando medición existente para hoy:", existingMeasurement.id);
+          // Update the existing measurement for the selected date
+          console.log("Actualizando medición existente para:", dateString);
           
           const { data, error } = await supabase
             .from('progreso')
@@ -133,7 +135,7 @@ export const useProgress = () => {
           console.log("Medición actualizada con éxito:", data);
         } else {
           // Insert a new measurement
-          console.log("Creando nueva medición para hoy");
+          console.log("Creando nueva medición para:", dateString);
           
           const { data, error } = await supabase
             .from('progreso')
@@ -143,7 +145,7 @@ export const useProgress = () => {
               grasa_corporal: newMeasurement.grasa_corporal || null,
               masa_muscular: newMeasurement.masa_muscular || null,
               notas: newMeasurement.notas || null,
-              fecha: currentDateString
+              fecha: dateString
             })
             .select()
             .single();
