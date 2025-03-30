@@ -53,14 +53,19 @@ const ClientDashboard = () => {
     return format(date, "EEEE - HH:mm", { locale: es });
   };
 
-  // Transform progressSummary into progressData
+  // Initialize empty data structures if data is not yet loaded
+  const exercises = todaySchedule?.exercises || [];
+  const meals = todaySchedule?.meals || [];
+  const appointments = todaySchedule?.appointments || [];
+
+  // Transform progressSummary into progressData with proper null checks
   const progressData = progressSummary ? {
-    weight: progressSummary.currentWeight,
-    weightChange: progressSummary.weightChange,
+    weight: progressSummary.currentWeight || null,
+    weightChange: progressSummary.weightChange || null,
     bodyFat: null,
-    bodyFatChange: progressSummary.bodyFatChange,
+    bodyFatChange: progressSummary.bodyFatChange || null,
     muscleMass: null,
-    muscleMassChange: progressSummary.muscleMassChange
+    muscleMassChange: progressSummary.muscleMassChange || null
   } : null;
 
   return (
@@ -86,11 +91,11 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todaySchedule.exercises.length === 0 ? (
+              ) : exercises.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes ejercicios programados para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todaySchedule.exercises.map((exercise) => (
+                  {exercises.map((exercise) => (
                     <div key={exercise.id} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{exercise.name}</p>
@@ -133,11 +138,11 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todaySchedule.meals.length === 0 ? (
+              ) : meals.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes comidas programadas para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todaySchedule.meals.map((meal) => {
+                  {meals.map((meal) => {
                     const isCompleted = isMealCompleted(meal.id, meal.completed);
                     return (
                       <div key={meal.id} className="flex items-center justify-between border-b pb-2">
@@ -183,11 +188,11 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todaySchedule.appointments.length === 0 ? (
+              ) : appointments.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes citas programadas próximamente</p>
               ) : (
                 <div className="space-y-3">
-                  {todaySchedule.appointments.map((appointment) => (
+                  {appointments.map((appointment) => (
                     <div key={appointment.id} className="border-b pb-2">
                       <p className="font-medium">{appointment.title}</p>
                       <p className="text-sm text-muted-foreground">
@@ -223,17 +228,20 @@ const ClientDashboard = () => {
                 <p className="text-center py-4 text-muted-foreground">No hay datos de progreso disponibles</p>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex justify-between border-b pb-2">
-                    <p className="font-medium">Peso actual:</p>
-                    <div className="flex items-center">
-                      <p>{progressData.weight} kg</p>
-                      {progressData.weightChange !== null && (
-                        <span className={`ml-2 text-xs flex items-center ${progressData.weightChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {progressData.weightChange < 0 ? '' : '+'}{progressData.weightChange.toFixed(1)} kg
-                        </span>
-                      )}
+                  {progressData.weight !== null && (
+                    <div className="flex justify-between border-b pb-2">
+                      <p className="font-medium">Peso actual:</p>
+                      <div className="flex items-center">
+                        <p>{progressData.weight} kg</p>
+                        {progressData.weightChange !== null && (
+                          <span className={`ml-2 text-xs flex items-center ${progressData.weightChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            {progressData.weightChange < 0 ? '' : '+'}
+                            {progressData.weightChange.toFixed(1)} kg
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  )}
                   {progressData.muscleMass !== null && (
                     <div className="flex justify-between border-b pb-2">
                       <p className="font-medium">Masa muscular:</p>
@@ -241,7 +249,8 @@ const ClientDashboard = () => {
                         <p>{progressData.muscleMass}%</p>
                         {progressData.muscleMassChange !== null && (
                           <span className={`ml-2 text-xs flex items-center ${progressData.muscleMassChange > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {progressData.muscleMassChange > 0 ? '+' : ''}{progressData.muscleMassChange.toFixed(1)}%
+                            {progressData.muscleMassChange > 0 ? '+' : ''}
+                            {progressData.muscleMassChange.toFixed(1)}%
                           </span>
                         )}
                       </div>
@@ -254,11 +263,15 @@ const ClientDashboard = () => {
                         <p>{progressData.bodyFat}%</p>
                         {progressData.bodyFatChange !== null && (
                           <span className={`ml-2 text-xs flex items-center ${progressData.bodyFatChange < 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            {progressData.bodyFatChange < 0 ? '' : '+'}{progressData.bodyFatChange.toFixed(1)}%
+                            {progressData.bodyFatChange < 0 ? '' : '+'}
+                            {progressData.bodyFatChange.toFixed(1)}%
                           </span>
                         )}
                       </div>
                     </div>
+                  )}
+                  {!progressData.weight && !progressData.muscleMass && !progressData.bodyFat && (
+                    <p className="text-center py-4 text-muted-foreground">No hay mediciones registradas</p>
                   )}
                 </div>
               )}

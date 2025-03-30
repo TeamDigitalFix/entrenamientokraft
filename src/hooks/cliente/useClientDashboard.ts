@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +46,13 @@ export type TodaySchedule = {
     time: string;
     duration: number;
   }[];
+};
+
+// Default empty structure for today's schedule
+const defaultTodaySchedule: TodaySchedule = {
+  exercises: [],
+  meals: [],
+  appointments: []
 };
 
 export const useClientDashboard = () => {
@@ -228,11 +234,11 @@ export const useClientDashboard = () => {
   });
 
   // Get today's schedule
-  const { data: todaySchedule, isLoading: loadingSchedule } = useQuery({
+  const { data: todaySchedule = defaultTodaySchedule, isLoading: loadingSchedule } = useQuery({
     queryKey: ["client-today-schedule", clientId],
     queryFn: async () => {
       try {
-        if (!clientId) return { exercises: [], meals: [], appointments: [] };
+        if (!clientId) return defaultTodaySchedule;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -373,13 +379,13 @@ export const useClientDashboard = () => {
 
         return {
           exercises,
-          meals,
-          appointments: appointmentItems,
+          meals: meals || [],
+          appointments: appointmentItems || [],
         };
       } catch (error) {
         console.error("Error fetching today's schedule:", error);
         toast.error("No se pudo cargar el horario de hoy");
-        return { exercises: [], meals: [], appointments: [] };
+        return defaultTodaySchedule;
       }
     },
     enabled: !!clientId,
@@ -419,10 +425,10 @@ export const useClientDashboard = () => {
         const weightChange = latest.peso - first.peso;
         const bodyFatChange = latest.grasa_corporal && first.grasa_corporal
           ? latest.grasa_corporal - first.grasa_corporal
-          : undefined;
+          : null;
         const muscleMassChange = latest.masa_muscular && first.masa_muscular
           ? latest.masa_muscular - first.masa_muscular
-          : undefined;
+          : null;
 
         return {
           initialWeight: first.peso,

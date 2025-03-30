@@ -104,7 +104,7 @@ export const useDashboard = () => {
           .from("ejercicios_completados")
           .select("id")
           .eq("fecha_completado::date", today)
-          .in("cliente_id", clientIds);
+          .in("cliente_id", clientIds); // Use the explicitly defined array
           
         if (completedExercisesError) throw completedExercisesError;
 
@@ -307,7 +307,7 @@ export const useDashboard = () => {
         const { data: completedExercises, error: exercisesError } = await supabase
           .from("ejercicios_completados")
           .select("fecha_completado")
-          .in("cliente_id", clientIds)
+          .in("cliente_id", clientIds) // Use the explicitly defined array
           .gte("fecha_completado", formattedDates[0]);
           
         if (exercisesError) throw exercisesError;
@@ -316,7 +316,7 @@ export const useDashboard = () => {
         const { data: dailySessions, error: sessionsError } = await supabase
           .from("sesiones_diarias")
           .select("fecha, completada")
-          .in("cliente_id", clientIds)
+          .in("cliente_id", clientIds) // Use the explicitly defined array
           .gte("fecha", formattedDates[0])
           .eq("completada", true);
           
