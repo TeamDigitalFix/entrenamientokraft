@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useAuth } from "@/hooks/useAuth";
 
 const ClientDashboard = () => {
   const { 
@@ -19,6 +19,9 @@ const ClientDashboard = () => {
     progressSummary, 
     isLoading 
   } = useClientDashboard();
+  
+  const { user } = useAuth();
+  const clientId = user?.id || "dbd137fd-96c9-4243-9daf-29d6cff0fdbc"; // Default ID for testing
 
   // State for local meal completion (since we don't have a backend implementation yet)
   const [localMeals, setLocalMeals] = useState<Record<string, boolean>>({});
@@ -37,8 +40,12 @@ const ClientDashboard = () => {
       [id]: !currentStatus
     }));
     
-    // Call the backend mutation
-    toggleMealCompletion({ mealId: id, completed: currentStatus });
+    // Call the backend mutation with the clientId parameter
+    toggleMealCompletion({ 
+      mealId: id, 
+      completed: currentStatus,
+      clientId: clientId
+    });
   };
 
   // Function to determine if a meal is completed (using local state or original data)
