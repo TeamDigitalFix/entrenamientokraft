@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,7 +31,8 @@ export const useClients = (searchTerm: string = "") => {
     password: "",
     role: "cliente",
     eliminado: false,
-    entrenador_id: user?.id || null
+    entrenador_id: user?.id || null,
+    ultimo_ingreso: null
   });
   const [editClientData, setEditClientData] = useState<ClientData>({
     id: "",
@@ -43,7 +43,8 @@ export const useClients = (searchTerm: string = "") => {
     password: "",
     role: "cliente",
     eliminado: false,
-    entrenador_id: user?.id || null
+    entrenador_id: user?.id || null,
+    ultimo_ingreso: null
   });
 
   // Fetching clients for the current trainer
@@ -128,7 +129,8 @@ export const useClients = (searchTerm: string = "") => {
         password: "",
         role: "cliente",
         eliminado: false,
-        entrenador_id: user?.id || null
+        entrenador_id: user?.id || null,
+        ultimo_ingreso: null
       });
     },
     onError: (error: any) => {
