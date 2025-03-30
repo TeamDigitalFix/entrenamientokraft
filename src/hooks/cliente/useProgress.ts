@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ProgressMeasurement, NewMeasurement } from "@/types/progress";
+import { ProgressMeasurement, NewMeasurement, calculateBodyFatPercentage, calculateMuscleMassPercentage } from "@/types/progress";
 import { calculateChanges, formatChartData } from "@/utils/progressUtils";
 import { format } from "date-fns";
 
@@ -25,7 +25,7 @@ export const useProgress = () => {
         // Check for measurements in the database using the right column names
         const { data, error } = await supabase
           .from("progreso")
-          .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, cliente_id")
+          .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, cliente_id, altura, circunferencia_cuello, circunferencia_cintura, circunferencia_cadera, sexo")
           .eq("cliente_id", user.id)
           .order("fecha", { ascending: false });
 
@@ -110,6 +110,37 @@ export const useProgress = () => {
         
         let result;
         
+        // Si se proporcionan suficientes datos para el método Navy, calcular los porcentajes
+        let grasaCorpCalculada = newMeasurement.grasa_corporal;
+        let masaMuscCalculada = newMeasurement.masa_muscular;
+        
+        // Calcular porcentajes si hay suficientes datos
+        if (newMeasurement.altura && newMeasurement.circunferencia_cuello && 
+            newMeasurement.circunferencia_cintura && newMeasurement.sexo) {
+              
+          if (grasaCorpCalculada === undefined) {
+            const calculatedBF = calculateBodyFatPercentage(
+              newMeasurement.altura,
+              newMeasurement.circunferencia_cuello,
+              newMeasurement.circunferencia_cintura,
+              newMeasurement.circunferencia_cadera,
+              newMeasurement.sexo
+            );
+            
+            if (calculatedBF !== null) {
+              grasaCorpCalculada = calculatedBF;
+              
+              // Si no se proporcionó masa muscular, calcularla
+              if (masaMuscCalculada === undefined) {
+                const calculatedMM = calculateMuscleMassPercentage(calculatedBF);
+                if (calculatedMM !== null) {
+                  masaMuscCalculada = calculatedMM;
+                }
+              }
+            }
+          }
+        }
+        
         if (existingMeasurement) {
           // Update the existing measurement for the selected date
           console.log("Actualizando medición existente para:", dateString);
@@ -118,9 +149,14 @@ export const useProgress = () => {
             .from('progreso')
             .update({
               peso: newMeasurement.peso,
-              grasa_corporal: newMeasurement.grasa_corporal || null,
-              masa_muscular: newMeasurement.masa_muscular || null,
-              notas: newMeasurement.notas || null
+              grasa_corporal: grasaCorpCalculada || null,
+              masa_muscular: masaMuscCalculada || null,
+              notas: newMeasurement.notas || null,
+              altura: newMeasurement.altura || null,
+              circunferencia_cuello: newMeasurement.circunferencia_cuello || null,
+              circunferencia_cintura: newMeasurement.circunferencia_cintura || null,
+              circunferencia_cadera: newMeasurement.circunferencia_cadera || null,
+              sexo: newMeasurement.sexo || null
             })
             .eq('id', existingMeasurement.id)
             .select()
@@ -142,10 +178,15 @@ export const useProgress = () => {
             .insert({
               cliente_id: user.id,
               peso: newMeasurement.peso,
-              grasa_corporal: newMeasurement.grasa_corporal || null,
-              masa_muscular: newMeasurement.masa_muscular || null,
+              grasa_corporal: grasaCorpCalculada || null,
+              masa_muscular: masaMuscCalculada || null,
               notas: newMeasurement.notas || null,
-              fecha: dateString
+              fecha: dateString,
+              altura: newMeasurement.altura || null,
+              circunferencia_cuello: newMeasurement.circunferencia_cuello || null,
+              circunferencia_cintura: newMeasurement.circunferencia_cintura || null,
+              circunferencia_cadera: newMeasurement.circunferencia_cadera || null,
+              sexo: newMeasurement.sexo || null
             })
             .select()
             .single();
