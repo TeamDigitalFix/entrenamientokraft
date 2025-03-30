@@ -16,7 +16,9 @@ import {
   Trash2, 
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  CheckSquare,
+  XSquare
 } from "lucide-react";
 import { UserRole } from "@/types/index";
 import { useCitas } from "@/hooks/entrenador/useCitas";
@@ -42,6 +44,7 @@ const TrainerAppointments = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [selectedCitaId, setSelectedCitaId] = useState<string | null>(null);
   
   const {
@@ -57,6 +60,8 @@ const TrainerAppointments = () => {
     actualizarCita,
     completarCita,
     cancelarCita,
+    aceptarSolicitud,
+    rechazarSolicitud,
     getCitasPorFecha,
     formatearFecha,
     formatearHora,
@@ -85,6 +90,18 @@ const TrainerAppointments = () => {
     }
   };
 
+  const handleRechazarSolicitud = async () => {
+    if (selectedCitaId) {
+      await rechazarSolicitud(selectedCitaId);
+      setShowRejectDialog(false);
+      setSelectedCitaId(null);
+    }
+  };
+
+  const handleAceptarSolicitud = async (id: string) => {
+    await aceptarSolicitud(id);
+  };
+
   const openEditForm = (id: string) => {
     setSelectedCitaId(id);
     setShowEditForm(true);
@@ -95,11 +112,17 @@ const TrainerAppointments = () => {
     setShowCancelDialog(true);
   };
 
+  const openRejectDialog = (id: string) => {
+    setSelectedCitaId(id);
+    setShowRejectDialog(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "programada": return "success";
       case "completada": return "secondary";
       case "cancelada": return "destructive";
+      case "pendiente": return "warning";
       default: return "secondary";
     }
   };
@@ -109,6 +132,7 @@ const TrainerAppointments = () => {
       case "programada": return "Programada";
       case "completada": return "Completada";
       case "cancelada": return "Cancelada";
+      case "pendiente": return "Solicitud pendiente";
       default: return status;
     }
   };
@@ -133,6 +157,7 @@ const TrainerAppointments = () => {
               <Tabs defaultValue="all" value={selectedTab} onValueChange={setSelectedTab}>
                 <TabsList className="mb-4">
                   <TabsTrigger value="all">Todas</TabsTrigger>
+                  <TabsTrigger value="pending">Solicitudes</TabsTrigger>
                   <TabsTrigger value="today">Hoy</TabsTrigger>
                   <TabsTrigger value="upcoming">Próximas</TabsTrigger>
                   <TabsTrigger value="past">Pasadas</TabsTrigger>
@@ -184,7 +209,26 @@ const TrainerAppointments = () => {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
-                                  {cita.estado === "programada" && (
+                                  {cita.estado === "pendiente" ? (
+                                    <>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        title="Aceptar solicitud"
+                                        onClick={() => handleAceptarSolicitud(cita.id)}
+                                      >
+                                        <CheckSquare className="h-4 w-4 text-success" />
+                                      </Button>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        title="Rechazar solicitud"
+                                        onClick={() => openRejectDialog(cita.id)}
+                                      >
+                                        <XSquare className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    </>
+                                  ) : cita.estado === "programada" && (
                                     <>
                                       <Button 
                                         variant="ghost" 
@@ -225,6 +269,63 @@ const TrainerAppointments = () => {
                         )}
                       </TableBody>
                     </Table>
+                  </div>
+                </TabsContent>
+                
+                {/* NUEVA PESTAÑA: Solicitudes pendientes */}
+                <TabsContent value="pending">
+                  <div className="space-y-4">
+                    {filteredCitas.length > 0 ? (
+                      filteredCitas.map((cita) => (
+                        <Card key={cita.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-bold text-lg">{cita.cliente?.nombre}</h3>
+                                <p className="text-sm text-muted-foreground">{cita.tipo || cita.titulo}</p>
+                                <div className="flex flex-col mt-2">
+                                  <div className="flex items-center">
+                                    <CalendarIcon className="h-4 w-4 mr-1 text-muted-foreground" />
+                                    <span className="text-sm">{formatearFecha(cita.fecha)}</span>
+                                  </div>
+                                  <div className="flex items-center mt-1">
+                                    <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                                    <span className="text-sm">{formatearHora(cita.fecha)}</span>
+                                  </div>
+                                  {cita.descripcion && (
+                                    <div className="mt-2 p-2 bg-muted/50 rounded-md">
+                                      <p className="text-sm">{cita.descripcion}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="bg-green-100 hover:bg-green-200 text-green-800 border-green-200"
+                                  onClick={() => handleAceptarSolicitud(cita.id)}
+                                >
+                                  <CheckSquare className="h-4 w-4 mr-1" />
+                                  Aceptar
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/20"
+                                  onClick={() => openRejectDialog(cita.id)}
+                                >
+                                  <XSquare className="h-4 w-4 mr-1" />
+                                  Rechazar
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-center text-muted-foreground py-4">No hay solicitudes pendientes</p>
+                    )}
                   </div>
                 </TabsContent>
                 
@@ -378,7 +479,7 @@ const TrainerAppointments = () => {
                 {(selectedDate ? citasFechaSeleccionada : citasHoy).length > 0 ? (
                   <div className="space-y-2">
                     {(selectedDate ? citasFechaSeleccionada : citasHoy)
-                      .filter(cita => cita.estado === "programada")
+                      .filter(cita => cita.estado === "programada" || cita.estado === "pendiente")
                       .map((cita) => (
                         <div key={cita.id} className="flex justify-between items-center p-2 rounded-md border">
                           <div>
@@ -387,7 +488,9 @@ const TrainerAppointments = () => {
                               {formatearHora(cita.fecha)} - {cita.tipo || cita.titulo}
                             </p>
                           </div>
-                          <Badge variant="outline">{formatearHora(cita.fecha)}</Badge>
+                          <Badge variant={cita.estado === "pendiente" ? "warning" : "outline"}>
+                            {cita.estado === "pendiente" ? "Pendiente" : formatearHora(cita.fecha)}
+                          </Badge>
                         </div>
                       ))
                     }
@@ -423,6 +526,7 @@ const TrainerAppointments = () => {
         />
       )}
 
+      {/* Diálogo para cancelar una cita */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -437,6 +541,26 @@ const TrainerAppointments = () => {
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelarCita} className="bg-destructive text-destructive-foreground">
               Sí, cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Diálogo para rechazar una solicitud */}
+      <AlertDialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rechazar Solicitud</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas rechazar esta solicitud de cita? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedCitaId(null)}>
+              No, mantener
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleRechazarSolicitud} className="bg-destructive text-destructive-foreground">
+              Sí, rechazar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

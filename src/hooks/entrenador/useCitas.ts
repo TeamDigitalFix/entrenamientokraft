@@ -14,7 +14,7 @@ export type Cita = {
   duracion: number;
   entrenador_id: string;
   cliente_id: string;
-  estado: "programada" | "completada" | "cancelada";
+  estado: "programada" | "completada" | "cancelada" | "pendiente";
   tipo?: string | null;
   creado_en?: string | null;
   actualizado_en?: string | null;
@@ -35,10 +35,10 @@ export const useCitas = (entrenadorId: string) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Validar el estado de la cita para que cumpla con el tipo "programada" | "completada" | "cancelada"
-  const validateCitaStatus = (estado: string): "programada" | "completada" | "cancelada" => {
-    if (estado === "programada" || estado === "completada" || estado === "cancelada") {
-      return estado as "programada" | "completada" | "cancelada";
+  // Validar el estado de la cita para que cumpla con el tipo correcto
+  const validateCitaStatus = (estado: string): "programada" | "completada" | "cancelada" | "pendiente" => {
+    if (estado === "programada" || estado === "completada" || estado === "cancelada" || estado === "pendiente") {
+      return estado as "programada" | "completada" | "cancelada" | "pendiente";
     }
     // Si el estado no es válido, devolver "programada" por defecto
     return "programada";
@@ -253,6 +253,40 @@ export const useCitas = (entrenadorId: string) => {
     return actualizarCita(id, { estado: "cancelada" });
   };
 
+  // NUEVA FUNCIÓN: Aceptar una solicitud de cita
+  const aceptarSolicitud = async (id: string) => {
+    try {
+      const result = await actualizarCita(id, { estado: "programada" });
+      if (result) {
+        toast({
+          title: "Éxito",
+          description: "Solicitud de cita aceptada correctamente",
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error("Error al aceptar solicitud:", error);
+      return null;
+    }
+  };
+
+  // NUEVA FUNCIÓN: Rechazar una solicitud de cita
+  const rechazarSolicitud = async (id: string) => {
+    try {
+      const result = await cancelarCita(id);
+      if (result) {
+        toast({
+          title: "Éxito",
+          description: "Solicitud de cita rechazada correctamente",
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error("Error al rechazar solicitud:", error);
+      return null;
+    }
+  };
+
   // Obtener citas para una fecha específica
   const getCitasPorFecha = (fecha?: Date) => {
     if (!fecha) return [];
@@ -300,6 +334,9 @@ export const useCitas = (entrenadorId: string) => {
 
     // Filtrar por pestaña
     switch (selectedTab) {
+      case "pending":
+        filtered = filtered.filter(cita => cita.estado === "pendiente");
+        break;
       case "today":
         filtered = filtered.filter(
           (cita) => isToday(parseISO(cita.fecha)) && cita.estado === "programada"
@@ -349,6 +386,8 @@ export const useCitas = (entrenadorId: string) => {
     actualizarCita,
     completarCita,
     cancelarCita,
+    aceptarSolicitud,
+    rechazarSolicitud,
     getCitasPorFecha,
     formatearFecha,
     formatearHora,
