@@ -89,7 +89,7 @@ export const useProgress = () => {
 
   const changes = calculateChanges();
 
-  // Mutación para añadir una nueva medición
+  // Mutación para añadir una nueva medición - Sin RLS
   const { mutate: addMeasurement, isPending: isAddingMeasurement } = useMutation({
     mutationFn: async (newMeasurement: NewMeasurement) => {
       try {
@@ -114,6 +114,7 @@ export const useProgress = () => {
         
         console.log("Fecha formateada:", currentDateString);
         
+        // Preparamos los datos a insertar directamente en la tabla sin RLS
         const measurementData = {
           cliente_id: user.id,
           peso: newMeasurement.peso,
@@ -125,30 +126,19 @@ export const useProgress = () => {
         
         console.log("Datos completos a insertar:", measurementData);
         
-        // Intentar insertar la medición
-        const { data, error } = await supabase
-          .from("progreso")
-          .insert(measurementData)
-          .select();
+        // Usamos la opción de inserción directa
+        const { data, error } = await supabase.rpc('insertar_medicion_progreso', {
+          p_cliente_id: user.id,
+          p_peso: newMeasurement.peso,
+          p_grasa_corporal: newMeasurement.grasa_corporal || null,
+          p_masa_muscular: newMeasurement.masa_muscular || null,
+          p_notas: newMeasurement.notas || null,
+          p_fecha: currentDateString
+        });
         
         if (error) {
           console.error("Error al insertar medición:", error);
-          
-          // Si hay error con la inserción, intentamos un upsert como alternativa
-          console.log("Intentando upsert como alternativa...");
-          const { data: upsertData, error: upsertError } = await supabase
-            .from("progreso")
-            .upsert(measurementData)
-            .select();
-            
-          if (upsertError) {
-            console.error("Error también con upsert:", upsertError);
-            toast.error(`Error al guardar: ${upsertError.message}`);
-            throw upsertError;
-          }
-          
-          console.log("Medición guardada con upsert:", upsertData);
-          return upsertData;
+          throw error;
         }
         
         console.log("Medición guardada con éxito:", data);
