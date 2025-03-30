@@ -18,7 +18,7 @@ type GenerarPagosFormProps = {
   onClose: () => void;
   onSubmit: (cantidad: number) => void;
   isSubmitting: boolean;
-  suscripcion: Suscripcion;
+  suscripcion: Suscripcion | null;
 };
 
 export const GenerarPagosForm = ({
@@ -39,8 +39,13 @@ export const GenerarPagosForm = ({
     onSubmit(data.cantidad);
   };
 
+  // Prevent rendering the dialog content if suscripcion is null
+  if (!suscripcion) {
+    return null;
+  }
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen && !!suscripcion} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { UserRole } from "@/types/index";
@@ -21,14 +20,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const PagosPage = () => {
-  // Current tab state
   const [activeTab, setActiveTab] = useState("pagos");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [selectedSuscripcionId, setSelectedSuscripcionId] = useState<string | undefined>(undefined);
   const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
 
-  // Payment plans states and hooks
   const {
     planes,
     isLoading: isLoadingPlanes,
@@ -43,7 +40,6 @@ const PagosPage = () => {
     setCurrentPlan
   } = usePlanesPago();
 
-  // Subscriptions states and hooks
   const {
     suscripciones,
     isLoading: isLoadingSuscripciones,
@@ -58,7 +54,6 @@ const PagosPage = () => {
     setCurrentSuscripcion
   } = useSuscripciones();
 
-  // Payments states and hooks
   const {
     pagos,
     isLoading: isLoadingPagos,
@@ -74,7 +69,6 @@ const PagosPage = () => {
     setCurrentPago
   } = usePagos(selectedSuscripcionId);
 
-  // Filtered data
   const filteredPlanes = planes?.filter(plan => 
     plan.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (plan.descripcion && plan.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -87,20 +81,17 @@ const PagosPage = () => {
   );
 
   const filteredPagos = pagos?.filter(pago => {
-    // Apply search term filter
     const matchesSearch = 
       (pago.suscripcion?.cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pago.suscripcion?.plan.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (pago.notas && pago.notas.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (pago.metodo_pago && pago.metodo_pago.toLowerCase().includes(searchTerm.toLowerCase())));
     
-    // Apply status filter if set
     const matchesStatus = !statusFilter || pago.estado === statusFilter;
     
     return matchesSearch && matchesStatus;
   });
 
-  // Form handlers
   const handlePlanSubmit = (data: any) => {
     if (currentPlan) {
       actualizarPlan({ ...currentPlan, ...data });
@@ -140,7 +131,6 @@ const PagosPage = () => {
     setActiveTab("pagos");
   };
 
-  // UI for each tab
   const renderPlanesTab = () => (
     <>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
@@ -274,13 +264,15 @@ const PagosPage = () => {
         initialData={currentSuscripcion}
       />
 
-      <GenerarPagosForm
-        isOpen={isGeneratingPayments && !!currentSuscripcion}
-        onClose={() => setIsGeneratingPayments(false)}
-        onSubmit={handleGenerarPagos}
-        isSubmitting={false}
-        suscripcion={currentSuscripcion!}
-      />
+      {currentSuscripcion && (
+        <GenerarPagosForm
+          isOpen={isGeneratingPayments}
+          onClose={() => setIsGeneratingPayments(false)}
+          onSubmit={handleGenerarPagos}
+          isSubmitting={false}
+          suscripcion={currentSuscripcion}
+        />
+      )}
     </>
   );
 
