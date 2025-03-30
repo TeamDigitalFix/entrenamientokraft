@@ -26,7 +26,7 @@ const obtenerDiaSemana = (fechaStr: string): string => {
     const fecha = parseISO(fechaStr);
     // Obtener el día de la semana (0 = domingo, 1 = lunes, etc.)
     // Ajustamos para que 0 = lunes (formato español)
-    const diaSemanaNum = format(fecha, "i", { locale: es }) - 1;
+    const diaSemanaNum = parseInt(format(fecha, "i", { locale: es })) - 1;
     return diasSemana[diaSemanaNum] || "Desconocido";
   } catch (error) {
     console.error("Error al procesar la fecha:", fechaStr, error);
@@ -105,7 +105,7 @@ const ClientRoutine = () => {
             const ejerciciosTransformados = ejerciciosData.map(ej => ({
               ...ej,
               nombre: ej.ejercicios?.nombre || "Ejercicio sin nombre",
-              dia: ej.dia, // Ahora dia es una fecha en formato YYYY-MM-DD
+              dia: ej.dia, // Ahora dia es una fecha en formato texto YYYY-MM-DD
             }));
             
             setEjercicios(ejerciciosTransformados as unknown as Ejercicio[]);
@@ -166,7 +166,7 @@ const ClientRoutine = () => {
   // Agrupar ejercicios por día de la semana basado en la fecha (formato texto YYYY-MM-DD)
   const ejerciciosPorDia = diasSemana.reduce((acc, dia) => {
     acc[dia] = ejercicios.filter(ejercicio => {
-      const diaEjercicio = obtenerDiaSemana(ejercicio.dia);
+      const diaEjercicio = obtenerDiaSemana(ejercicio.dia as string);
       return diaEjercicio === dia;
     });
     return acc;
@@ -259,7 +259,7 @@ const ClientRoutine = () => {
                                   <span className="font-medium">{ejercicio.nombre}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-xs">{formatearFecha(ejercicio.dia)}</Badge>
+                                  <Badge variant="outline" className="text-xs">{formatearFecha(ejercicio.dia as string)}</Badge>
                                   <Badge variant="outline">{ejercicio.series} series</Badge>
                                   <Badge variant="outline">{ejercicio.repeticiones} reps</Badge>
                                 </div>

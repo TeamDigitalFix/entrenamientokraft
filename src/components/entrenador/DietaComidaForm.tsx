@@ -137,7 +137,7 @@ const DietaComidaForm = ({
           alimento_id: values.alimento_id,
           tipo_comida: values.tipo_comida,
           cantidad: values.cantidad,
-          dia: formattedDate // Store the date in YYYY-MM-DD format as text
+          dia: formattedDate // Store the date as string in YYYY-MM-DD format
         });
 
       if (comidaError) throw comidaError;
