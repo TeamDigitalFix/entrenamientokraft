@@ -14,7 +14,7 @@ export interface ClientData {
   password: string;
   role: string;
   entrenador_id: string | null;
-  ultimo_ingreso: string | null;  // Ensure this property is defined
+  ultimo_ingreso: string | null;
 }
 
 export const useClients = (searchTerm: string = "") => {
@@ -23,6 +23,7 @@ export const useClients = (searchTerm: string = "") => {
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
   const [showEditClientDialog, setShowEditClientDialog] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [clientToReset, setClientToReset] = useState<string | null>(null);
   const [newClientData, setNewClientData] = useState<ClientData>({
     nombre: "",
     email: "",
@@ -232,6 +233,124 @@ export const useClients = (searchTerm: string = "") => {
     }
   });
 
+  // Reset client data
+  const resetClientData = useMutation({
+    mutationFn: async (clientId: string) => {
+      // Remove client's routines
+      const deleteRoutines = supabase
+        .from("rutinas")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's diet plans
+      const deleteDiets = supabase
+        .from("dietas")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's appointments
+      const deleteAppointments = supabase
+        .from("citas")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's progress records
+      const deleteProgress = supabase
+        .from("progreso")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's received messages
+      const deleteReceivedMessages = supabase
+        .from("mensajes")
+        .delete()
+        .eq("receptor_id", clientId);
+
+      // Remove client's sent messages
+      const deleteSentMessages = supabase
+        .from("mensajes")
+        .delete()
+        .eq("emisor_id", clientId);
+
+      // Remove client's completed exercises
+      const deleteCompletedExercises = supabase
+        .from("ejercicios_completados")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's completed meals
+      const deleteCompletedMeals = supabase
+        .from("comidas_completadas")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's daily sessions
+      const deleteDailySessions = supabase
+        .from("sesiones_diarias")
+        .delete()
+        .eq("cliente_id", clientId);
+
+      // Remove client's daily exercises
+      const deleteDailyExercises = supabase
+        .from("ejercicios_diarios")
+        .delete()
+        .eq("cliente_id", clientId);
+        
+      // Run all the delete operations
+      // Note: This does not guarantee atomicity but will perform all deletions
+      const [
+        routinesResult, 
+        dietsResult,
+        appointmentsResult,
+        progressResult,
+        receivedMessagesResult,
+        sentMessagesResult,
+        completedExercisesResult,
+        completedMealsResult,
+        dailySessionsResult,
+        dailyExercisesResult
+      ] = await Promise.all([
+        deleteRoutines,
+        deleteDiets,
+        deleteAppointments,
+        deleteProgress,
+        deleteReceivedMessages,
+        deleteSentMessages,
+        deleteCompletedExercises,
+        deleteCompletedMeals,
+        deleteDailySessions,
+        deleteDailyExercises
+      ]);
+
+      // Check for errors in any operation
+      const errors = [
+        routinesResult.error,
+        dietsResult.error,
+        appointmentsResult.error,
+        progressResult.error,
+        receivedMessagesResult.error,
+        sentMessagesResult.error,
+        completedExercisesResult.error,
+        completedMealsResult.error,
+        dailySessionsResult.error,
+        dailyExercisesResult.error
+      ].filter(error => error !== null);
+
+      if (errors.length > 0) {
+        throw new Error(`Ocurrieron errores al restablecer los datos del cliente: ${errors.map(e => e?.message).join(', ')}`);
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      toast.success("Datos del cliente restablecidos con éxito");
+      setClientToReset(null);
+    },
+    onError: (error: any) => {
+      toast.error(`Error al restablecer datos del cliente: ${error.message}`);
+    }
+  });
+
   return {
     clients,
     isLoading,
@@ -246,9 +365,12 @@ export const useClients = (searchTerm: string = "") => {
     setEditClientData,
     clientToDelete,
     setClientToDelete,
+    clientToReset,
+    setClientToReset,
     createClient: (data: ClientData) => createClient.mutate(data),
     updateClient: (data: ClientData) => updateClient.mutate(data),
     deleteClient: (id: string) => deleteClient.mutate(id),
-    recoverClient: (id: string) => recoverClient.mutate(id)
+    recoverClient: (id: string) => recoverClient.mutate(id),
+    resetClientData: (id: string) => resetClientData.mutate(id)
   };
 };

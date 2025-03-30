@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -25,7 +26,8 @@ import {
   RefreshCw,
   RotateCcw,
   Dumbbell,
-  Utensils
+  Utensils,
+  RotateCw
 } from "lucide-react";
 import { UserRole } from "@/types/index";
 import { useClients, ClientData } from "@/hooks/entrenador/useClients";
@@ -50,23 +52,28 @@ const TrainerClients = () => {
     setEditClientData,
     clientToDelete,
     setClientToDelete,
+    clientToReset,
+    setClientToReset,
     createClient,
     updateClient,
     deleteClient,
-    recoverClient
+    recoverClient,
+    resetClientData
   } = useClients(searchTerm);
 
   useEffect(() => {
     setShowNewClientDialog(false);
     setShowEditClientDialog(false);
     setClientToDelete(null);
+    setClientToReset(null);
     
     return () => {
       setShowNewClientDialog(false);
       setShowEditClientDialog(false);
       setClientToDelete(null);
+      setClientToReset(null);
     };
-  }, [setShowNewClientDialog, setShowEditClientDialog, setClientToDelete]);
+  }, [setShowNewClientDialog, setShowEditClientDialog, setClientToDelete, setClientToReset]);
 
   const handleCreateClient = (data: ClientData) => {
     createClient(data);
@@ -96,6 +103,16 @@ const TrainerClients = () => {
 
   const handleRecoverClient = (clientId: string) => {
     recoverClient(clientId);
+  };
+
+  const handleResetClient = (clientId: string) => {
+    setClientToReset(clientId);
+  };
+
+  const confirmResetClient = () => {
+    if (clientToReset) {
+      resetClientData(clientToReset);
+    }
   };
 
   const navigateToRoutine = (clientId: string) => {
@@ -227,6 +244,14 @@ const TrainerClients = () => {
                                 >
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="icon" 
+                                  title="Restablecer datos"
+                                  onClick={() => handleResetClient(client.id!)}
+                                >
+                                  <RotateCw className="h-4 w-4 text-amber-500" />
+                                </Button>
                               </>
                             ) : (
                               <Button 
@@ -281,6 +306,24 @@ const TrainerClients = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDeleteClient} className="bg-destructive text-destructive-foreground">
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!clientToReset} onOpenChange={(open) => !open && setClientToReset(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Restablecer datos del cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará todos los datos del cliente (rutinas, dietas, mensajes, citas, progresos, etc.), 
+              pero mantendrá su cuenta activa. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmResetClient} className="bg-amber-500 text-white hover:bg-amber-600">
+              Restablecer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
