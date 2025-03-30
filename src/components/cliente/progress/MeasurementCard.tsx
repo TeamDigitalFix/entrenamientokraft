@@ -34,6 +34,13 @@ const MeasurementCard = ({
     }
   };
 
+  // Format change value for display with sign and unit
+  const formatChange = (value: number | null) => {
+    if (value === null) return "";
+    const sign = value > 0 ? "+" : "";
+    return `${sign}${value} ${unit}`;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -54,8 +61,8 @@ const MeasurementCard = ({
               </p>
               {change !== null && (
                 <p className={`text-sm flex items-center mt-2 ${getChangeColorClass()}`}>
-                  <TrendingUp className="h-3 w-3 mr-1" /> {change > 0 ? "+" : ""}
-                  {change} {unit} desde el inicio
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  {formatChange(change)} desde el inicio
                 </p>
               )}
             </>

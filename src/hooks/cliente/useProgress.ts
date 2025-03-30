@@ -57,12 +57,13 @@ export const useProgress = () => {
     staleTime: 0,
   });
 
-  // Get the latest measurement
+  // Get the latest measurement - ensure we're getting the first one in the array 
+  // since they're already ordered by date descending
   const latestMeasurement = measurements && measurements.length > 0 
     ? measurements[0] 
     : null;
 
-  // Get the first measurement to calculate changes
+  // Get the first measurement (chronologically oldest) to calculate changes
   const firstMeasurement = measurements && measurements.length > 0 
     ? measurements[measurements.length - 1] 
     : null;

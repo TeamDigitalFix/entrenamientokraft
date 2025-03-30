@@ -14,6 +14,7 @@ export const calculateChanges = (
     };
   }
 
+  // Ensure we're using the correct data types and round to 1 decimal place
   return {
     pesoChange: +(latestMeasurement.peso - firstMeasurement.peso).toFixed(1),
     grasaChange: latestMeasurement.grasa_corporal !== null && firstMeasurement.grasa_corporal !== null
