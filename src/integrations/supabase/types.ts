@@ -933,6 +933,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_chat_messages: {
+        Args: {
+          p_entrenador_id: string
+          p_cliente_id: string
+        }
+        Returns: undefined
+      }
       insertar_medicion_progreso: {
         Args: {
           p_cliente_id: string

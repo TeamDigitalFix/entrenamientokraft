@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,12 +45,10 @@ export const usePagos = (suscripcionId?: string) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [currentPago, setCurrentPago] = useState<Pago | null>(null);
 
-  // Fetch payments for a specific subscription or all for the trainer's clients
   const { data: pagos, isLoading } = useQuery({
     queryKey: ["pagos", user?.id, suscripcionId],
     queryFn: async () => {
       try {
-        // First we need to get all client IDs for this trainer
         const { data: clientes, error: clientesError } = await supabase
           .from("usuarios")
           .select("id")
@@ -61,12 +58,10 @@ export const usePagos = (suscripcionId?: string) => {
 
         if (clientesError) throw clientesError;
         
-        // If no clients, return empty array
         if (!clientes?.length) return [];
         
         const clienteIds = clientes.map(cliente => cliente.id);
         
-        // Now get all subscriptions for these clients
         let subscriptionQuery = supabase
           .from("suscripciones_cliente")
           .select("id")
@@ -80,12 +75,10 @@ export const usePagos = (suscripcionId?: string) => {
         
         if (subscriptionsError) throw subscriptionsError;
         
-        // If no subscriptions, return empty array
         if (!suscripciones?.length) return [];
         
         const suscripcionIds = suscripciones.map(s => s.id);
         
-        // Finally get all payments for these subscriptions
         const { data, error } = await supabase
           .from("pagos")
           .select(`
@@ -101,7 +94,6 @@ export const usePagos = (suscripcionId?: string) => {
 
         if (error) throw error;
         
-        // Update status for payments that should be marked as "atrasado"
         const today = new Date();
         const updatedPagos = data.map(pago => {
           if (pago.estado === "pendiente" && 
@@ -112,13 +104,11 @@ export const usePagos = (suscripcionId?: string) => {
           return pago;
         });
         
-        // Update any payments in DB that should be "atrasado"
         const atrasados = updatedPagos.filter(p => 
           p.estado === "atrasado" && data.find(d => d.id === p.id)?.estado === "pendiente"
         );
         
         if (atrasados.length > 0) {
-          // Update all overdue payments
           const promises = atrasados.map(pago => 
             supabase
               .from("pagos")
@@ -139,7 +129,6 @@ export const usePagos = (suscripcionId?: string) => {
     enabled: !!user?.id
   });
 
-  // Create a new payment
   const { mutate: crearPago, isPending: isCreating } = useMutation({
     mutationFn: async (nuevoPago: PagoInput) => {
       const { data, error } = await supabase
@@ -167,12 +156,10 @@ export const usePagos = (suscripcionId?: string) => {
     }
   });
 
-  // Update an existing payment
   const { mutate: actualizarPago, isPending: isUpdating } = useMutation({
     mutationFn: async (pago: PagoInput & { id: string, estado?: string }) => {
       const { id, ...updateData } = pago;
 
-      // If payment date is set, automatically set estado to "pagado"
       if (updateData.fecha_pago && (!pago.estado || pago.estado === "pendiente" || pago.estado === "atrasado")) {
         updateData.estado = "pagado";
       }
@@ -200,7 +187,6 @@ export const usePagos = (suscripcionId?: string) => {
     }
   });
 
-  // Generate future payments for a subscription
   const { mutate: generarPagosFuturos } = useMutation({
     mutationFn: async ({ 
       suscripcion, 
@@ -209,7 +195,6 @@ export const usePagos = (suscripcionId?: string) => {
       suscripcion: Suscripcion, 
       cantidadPagos: number 
     }) => {
-      // Get the last payment date or use the subscription start date
       const { data: ultimoPago, error: ultimoPagoError } = await supabase
         .from("pagos")
         .select("fecha_programada")
@@ -224,7 +209,6 @@ export const usePagos = (suscripcionId?: string) => {
         fechaInicio = addDays(parseISO(ultimoPago[0].fecha_programada), suscripcion.plan.intervalo_dias);
       }
 
-      // Create array of future payments
       const nuevosPagos = [];
       for (let i = 0; i < cantidadPagos; i++) {
         const fechaPago = addDays(fechaInicio, i * suscripcion.plan.intervalo_dias);
@@ -237,7 +221,6 @@ export const usePagos = (suscripcionId?: string) => {
         });
       }
 
-      // Insert all new payments
       const { data, error } = await supabase
         .from("pagos")
         .insert(nuevosPagos)
@@ -257,7 +240,6 @@ export const usePagos = (suscripcionId?: string) => {
     }
   });
 
-  // Mark a payment as paid
   const { mutate: marcarComoPagado } = useMutation({
     mutationFn: async (pago: Pago) => {
       const { data, error } = await supabase
@@ -284,12 +266,31 @@ export const usePagos = (suscripcionId?: string) => {
     }
   });
 
-  // Get dashboard payment stats (for alerts)
+  const { mutate: eliminarPago } = useMutation({
+    mutationFn: async (pago: Pago) => {
+      const { error } = await supabase
+        .from("pagos")
+        .delete()
+        .eq("id", pago.id);
+
+      if (error) throw error;
+      return pago;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagos", user?.id, suscripcionId] });
+      queryClient.invalidateQueries({ queryKey: ["pagos-dashboard", user?.id] });
+      toast.success("Pago eliminado con éxito");
+    },
+    onError: (error) => {
+      console.error("Error deleting payment:", error);
+      toast.error("Error al eliminar el pago");
+    }
+  });
+
   const { data: dashboardStats, isLoading: isLoadingStats } = useQuery({
     queryKey: ["pagos-dashboard", user?.id],
     queryFn: async () => {
       try {
-        // If we have pagos from above, use that data instead of making another request
         if (pagos && !suscripcionId) {
           const today = new Date();
           const in7Days = addDays(today, 7);
@@ -297,17 +298,15 @@ export const usePagos = (suscripcionId?: string) => {
           const pendientes = pagos.filter(p => p.estado === "pendiente").length;
           const atrasados = pagos.filter(p => p.estado === "atrasado").length;
           
-          // Get payments due in the next 7 days
           const proximosPagos = pagos.filter(p => 
             p.estado === "pendiente" &&
             isAfter(parseISO(p.fecha_programada), today) &&
             isBefore(parseISO(p.fecha_programada), in7Days)
-          ).slice(0, 5); // Show only top 5
+          ).slice(0, 5);
           
-          // Get overdue payments
           const pagosAtrasados = pagos.filter(p => 
             p.estado === "atrasado"
-          ).slice(0, 5); // Show only top 5
+          ).slice(0, 5);
           
           return {
             pendientes,
@@ -317,9 +316,6 @@ export const usePagos = (suscripcionId?: string) => {
           };
         }
         
-        // Otherwise make a new query
-        // This is basically a duplicate of the logic above for pagos query
-        // First we need to get all client IDs for this trainer
         const { data: clientes, error: clientesError } = await supabase
           .from("usuarios")
           .select("id")
@@ -332,7 +328,6 @@ export const usePagos = (suscripcionId?: string) => {
         
         const clienteIds = clientes.map(cliente => cliente.id);
         
-        // Now get all subscriptions for these clients
         const { data: suscripciones, error: subscriptionsError } = await supabase
           .from("suscripciones_cliente")
           .select("id")
@@ -343,7 +338,6 @@ export const usePagos = (suscripcionId?: string) => {
         
         const suscripcionIds = suscripciones.map(s => s.id);
         
-        // Get payment stats
         const { data, error } = await supabase
           .from("pagos")
           .select(`
@@ -362,7 +356,6 @@ export const usePagos = (suscripcionId?: string) => {
         const today = new Date();
         const in7Days = addDays(today, 7);
         
-        // Update status for payments that should be marked as "atrasado"
         const updatedPagos = data.map(pago => {
           if (pago.estado === "pendiente" && 
               isBefore(parseISO(pago.fecha_programada), today) && 
@@ -372,23 +365,20 @@ export const usePagos = (suscripcionId?: string) => {
           return pago;
         });
         
-        // Count stats
         const pendientes = updatedPagos.filter(p => p.estado === "pendiente").length;
         const atrasados = updatedPagos.filter(p => p.estado === "atrasado").length;
         
-        // Get payments due in the next 7 days
         const proximosPagos = updatedPagos
           .filter(p => 
             p.estado === "pendiente" &&
             isAfter(parseISO(p.fecha_programada), today) &&
             isBefore(parseISO(p.fecha_programada), in7Days)
           )
-          .slice(0, 5); // Show only top 5
+          .slice(0, 5);
         
-        // Get overdue payments
         const pagosAtrasados = updatedPagos
           .filter(p => p.estado === "atrasado")
-          .slice(0, 5); // Show only top 5
+          .slice(0, 5);
         
         return {
           pendientes,
@@ -418,6 +408,7 @@ export const usePagos = (suscripcionId?: string) => {
     actualizarPago,
     marcarComoPagado,
     generarPagosFuturos,
+    eliminarPago,
     isEditing,
     setIsEditing,
     currentPago,

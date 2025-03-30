@@ -6,18 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Pago } from "@/hooks/entrenador/usePagos";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar, Edit, Check, AlertCircle, FileText, CreditCard } from "lucide-react";
+import { Calendar, Edit, Check, AlertCircle, FileText, CreditCard, Trash } from "lucide-react";
 
 interface PagoCardProps {
   pago: Pago;
   onEdit: (pago: Pago) => void;
   onMarkAsPaid: (pago: Pago) => void;
+  onDelete: (pago: Pago) => void;
 }
 
 export const PagoCard: React.FC<PagoCardProps> = ({ 
   pago, 
   onEdit, 
-  onMarkAsPaid
+  onMarkAsPaid,
+  onDelete
 }) => {
   const today = new Date();
   const isPastDue = isBefore(parseISO(pago.fecha_programada), today) && pago.estado === "pendiente";
@@ -103,6 +105,14 @@ export const PagoCard: React.FC<PagoCardProps> = ({
         )}
         <Button variant="outline" size="sm" onClick={() => onEdit(pago)}>
           <Edit className="h-4 w-4 mr-1" /> Editar
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onDelete(pago)}
+        >
+          <Trash className="h-4 w-4 mr-1" /> Eliminar
         </Button>
       </CardFooter>
     </Card>

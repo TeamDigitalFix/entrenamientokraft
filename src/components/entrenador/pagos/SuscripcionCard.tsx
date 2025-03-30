@@ -6,20 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Suscripcion } from "@/hooks/entrenador/useSuscripciones";
 import { formatDistanceToNow, format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { Edit, ToggleLeft, ToggleRight, CalendarDays, DollarSign } from "lucide-react";
+import { Edit, ToggleLeft, ToggleRight, CalendarDays, DollarSign, Trash } from "lucide-react";
 
 interface SuscripcionCardProps {
   suscripcion: Suscripcion;
   onEdit: (suscripcion: Suscripcion) => void;
   onToggleActive: (suscripcion: Suscripcion) => void;
   onViewPayments: (suscripcion: Suscripcion) => void;
+  onDelete: (suscripcion: Suscripcion) => void;
 }
 
 export const SuscripcionCard: React.FC<SuscripcionCardProps> = ({ 
   suscripcion, 
   onEdit, 
   onToggleActive,
-  onViewPayments
+  onViewPayments,
+  onDelete
 }) => {
   return (
     <Card className={`${!suscripcion.activo ? 'opacity-75 bg-muted/50' : ''}`}>
@@ -63,6 +65,14 @@ export const SuscripcionCard: React.FC<SuscripcionCardProps> = ({
         </Button>
         <Button variant="outline" size="sm" onClick={() => onEdit(suscripcion)}>
           <Edit className="h-4 w-4 mr-1" /> Editar
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onDelete(suscripcion)}
+        >
+          <Trash className="h-4 w-4 mr-1" /> Eliminar
         </Button>
       </CardFooter>
     </Card>

@@ -10,9 +10,15 @@ interface PlanPagoCardProps {
   plan: PlanPago;
   onEdit: (plan: PlanPago) => void;
   onToggleActive: (plan: PlanPago) => void;
+  onDelete: (plan: PlanPago) => void;
 }
 
-export const PlanPagoCard: React.FC<PlanPagoCardProps> = ({ plan, onEdit, onToggleActive }) => {
+export const PlanPagoCard: React.FC<PlanPagoCardProps> = ({ 
+  plan, 
+  onEdit, 
+  onToggleActive,
+  onDelete
+}) => {
   return (
     <Card className={`${!plan.activo ? 'opacity-75 bg-muted/50' : ''}`}>
       <CardHeader className="pb-2">
@@ -41,6 +47,14 @@ export const PlanPagoCard: React.FC<PlanPagoCardProps> = ({ plan, onEdit, onTogg
         </Button>
         <Button variant="outline" size="sm" onClick={() => onEdit(plan)}>
           <Edit className="h-4 w-4 mr-1" /> Editar
+        </Button>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onDelete(plan)}
+        >
+          <Trash className="h-4 w-4 mr-1" /> Eliminar
         </Button>
       </CardFooter>
     </Card>

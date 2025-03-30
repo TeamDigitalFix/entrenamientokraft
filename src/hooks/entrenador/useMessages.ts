@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -245,6 +244,36 @@ export const useMessages = () => {
     }
   };
 
+  const deleteConversation = async (clientId: string) => {
+    if (!user?.id) return false;
+    
+    try {
+      const { error } = await supabase.rpc('delete_chat_messages', {
+        p_entrenador_id: user.id,
+        p_cliente_id: clientId
+      });
+      
+      if (error) throw error;
+      
+      setConversations(prevConversations => 
+        prevConversations.map(conv => 
+          conv.id === clientId ? { ...conv, lastMessage: "", lastMessageTime: "", unread: false } : conv
+        )
+      );
+      
+      if (selectedConversation === clientId) {
+        setMessages([]);
+      }
+      
+      toast.success("Conversación eliminada con éxito");
+      return true;
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      toast.error("Error al eliminar la conversación");
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (user?.id) {
       loadConversations();
@@ -315,6 +344,7 @@ export const useMessages = () => {
     loadConversations,
     loadMessages,
     unreadCount,
-    updateUnreadCount
+    updateUnreadCount,
+    deleteConversation
   };
 };

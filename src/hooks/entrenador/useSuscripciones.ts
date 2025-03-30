@@ -41,12 +41,10 @@ export const useSuscripciones = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [currentSuscripcion, setCurrentSuscripcion] = useState<Suscripcion | null>(null);
 
-  // Fetch all subscriptions for the trainer's clients
   const { data: suscripciones, isLoading } = useQuery({
     queryKey: ["suscripciones", user?.id],
     queryFn: async () => {
       try {
-        // First get all clients for this trainer
         const { data: clientes, error: clientesError } = await supabase
           .from("usuarios")
           .select("id")
@@ -56,7 +54,6 @@ export const useSuscripciones = () => {
 
         if (clientesError) throw clientesError;
         
-        // If no clients, return empty array
         if (!clientes?.length) return [];
         
         const clienteIds = clientes.map(cliente => cliente.id);
@@ -82,7 +79,6 @@ export const useSuscripciones = () => {
     enabled: !!user?.id
   });
 
-  // Create a new subscription
   const { mutate: crearSuscripcion, isPending: isCreating } = useMutation({
     mutationFn: async (nuevaSuscripcion: SuscripcionInput) => {
       const { data, error } = await supabase
@@ -106,7 +102,6 @@ export const useSuscripciones = () => {
     }
   });
 
-  // Update an existing subscription
   const { mutate: actualizarSuscripcion, isPending: isUpdating } = useMutation({
     mutationFn: async (suscripcion: SuscripcionInput & { id: string }) => {
       const { id, ...updateData } = suscripcion;
@@ -133,7 +128,6 @@ export const useSuscripciones = () => {
     }
   });
 
-  // Toggle subscription active status
   const { mutate: toggleActivoSuscripcion } = useMutation({
     mutationFn: async (suscripcion: Suscripcion) => {
       const { data, error } = await supabase
@@ -156,6 +150,42 @@ export const useSuscripciones = () => {
     }
   });
 
+  const { mutate: eliminarSuscripcion } = useMutation({
+    mutationFn: async (suscripcion: Suscripcion) => {
+      const { data: pagos, error: checkError } = await supabase
+        .from("pagos")
+        .select("id")
+        .eq("suscripcion_id", suscripcion.id)
+        .limit(1);
+      
+      if (checkError) throw checkError;
+      
+      if (pagos && pagos.length > 0) {
+        throw new Error("No se puede eliminar una suscripción que tiene pagos asociados. Elimine primero los pagos.");
+      }
+      
+      const { error } = await supabase
+        .from("suscripciones_cliente")
+        .delete()
+        .eq("id", suscripcion.id);
+
+      if (error) throw error;
+      return suscripcion;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suscripciones", user?.id] });
+      toast.success("Suscripción eliminada con éxito");
+    },
+    onError: (error) => {
+      console.error("Error deleting subscription:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Error al eliminar la suscripción");
+      }
+    }
+  });
+
   return {
     suscripciones,
     isLoading,
@@ -164,6 +194,7 @@ export const useSuscripciones = () => {
     crearSuscripcion,
     actualizarSuscripcion,
     toggleActivoSuscripcion,
+    eliminarSuscripcion,
     isEditing,
     setIsEditing,
     currentSuscripcion,

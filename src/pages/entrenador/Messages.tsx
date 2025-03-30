@@ -7,15 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Send, Paperclip } from "lucide-react";
+import { Search, Send, Paperclip, Trash2, AlertCircle } from "lucide-react";
 import { UserRole } from "@/types/index";
 import { useMessages } from "@/hooks/entrenador/useMessages";
 import { format, formatDistanceToNow, parseISO, isToday, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const TrainerMessages = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [newMessage, setNewMessage] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { 
@@ -25,7 +37,8 @@ const TrainerMessages = () => {
     selectedConversation, 
     setSelectedConversation, 
     sendMessage,
-    unreadCount 
+    unreadCount,
+    deleteConversation
   } = useMessages();
   
   const filteredConversations = conversations.filter(conversation => 
@@ -36,6 +49,24 @@ const TrainerMessages = () => {
     if (newMessage.trim() && selectedConversation) {
       await sendMessage(selectedConversation, newMessage);
       setNewMessage("");
+    }
+  };
+
+  const handleDeleteConversation = (conversationId: string) => {
+    setClientToDelete(conversationId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (clientToDelete) {
+      await deleteConversation(clientToDelete);
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
+      
+      // If the deleted conversation was selected, clear selection
+      if (selectedConversation === clientToDelete) {
+        setSelectedConversation(conversations.length > 1 ? conversations[0].id : null);
+      }
     }
   };
 
@@ -113,29 +144,43 @@ const TrainerMessages = () => {
                     filteredConversations.map((conversation) => (
                       <div 
                         key={conversation.id}
-                        className={`flex items-start gap-3 p-3 rounded-md cursor-pointer ${
-                          selectedConversation === conversation.id 
-                            ? "bg-accent" 
-                            : "hover:bg-muted"
-                        }`}
-                        onClick={() => setSelectedConversation(conversation.id)}
+                        className="flex items-start gap-3 p-3 rounded-md hover:bg-muted"
                       >
-                        <Avatar>
-                          <AvatarImage src={conversation.avatar || undefined} />
-                          <AvatarFallback>{getInitials(conversation.nombre)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-start">
-                            <span className="font-medium truncate">{conversation.nombre}</span>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-                              {formatConversationTime(conversation.lastMessageTime)}
-                            </span>
+                        <div 
+                          className={`flex-1 cursor-pointer ${
+                            selectedConversation === conversation.id 
+                              ? "bg-accent" 
+                              : ""
+                          }`}
+                          onClick={() => setSelectedConversation(conversation.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar>
+                              <AvatarImage src={conversation.avatar || undefined} />
+                              <AvatarFallback>{getInitials(conversation.nombre)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-start">
+                                <span className="font-medium truncate">{conversation.nombre}</span>
+                                <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                                  {formatConversationTime(conversation.lastMessageTime)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {conversation.lastMessage || "No hay mensajes"}
+                              </p>
+                              {conversation.unread && <Badge className="mt-1">Nuevo</Badge>}
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {conversation.lastMessage || "No hay mensajes"}
-                          </p>
                         </div>
-                        {conversation.unread && <Badge className="ml-auto">Nuevo</Badge>}
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                          onClick={() => handleDeleteConversation(conversation.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     ))
                   )}
@@ -220,6 +265,27 @@ const TrainerMessages = () => {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar conversación?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará todos los mensajes entre tú y este cliente de forma permanente.
+              El cliente también perderá el historial de conversación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };

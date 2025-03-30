@@ -126,6 +126,42 @@ export const usePlanesPago = () => {
     }
   });
 
+  const { mutate: eliminarPlan } = useMutation({
+    mutationFn: async (plan: PlanPago) => {
+      const { data: subscriptions, error: checkError } = await supabase
+        .from("suscripciones_cliente")
+        .select("id")
+        .eq("plan_id", plan.id)
+        .limit(1);
+      
+      if (checkError) throw checkError;
+      
+      if (subscriptions && subscriptions.length > 0) {
+        throw new Error("No se puede eliminar un plan que está siendo utilizado en suscripciones activas");
+      }
+      
+      const { error } = await supabase
+        .from("planes_pago")
+        .delete()
+        .eq("id", plan.id);
+
+      if (error) throw error;
+      return plan;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["planes-pago", user?.id] });
+      toast.success("Plan de pago eliminado con éxito");
+    },
+    onError: (error) => {
+      console.error("Error deleting payment plan:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Error al eliminar el plan de pago");
+      }
+    }
+  });
+
   return {
     planes,
     isLoading,
@@ -134,6 +170,7 @@ export const usePlanesPago = () => {
     crearPlan,
     actualizarPlan,
     toggleActivoPlan,
+    eliminarPlan,
     isEditing,
     setIsEditing,
     currentPlan,

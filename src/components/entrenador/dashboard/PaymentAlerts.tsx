@@ -4,14 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { CalendarDays, AlertTriangle, DollarSign, ArrowRight } from "lucide-react";
+import { CalendarDays, AlertTriangle, DollarSign, ArrowRight, Trash } from "lucide-react";
 import { usePagos } from "@/hooks/entrenador/usePagos";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export const PaymentAlerts = () => {
-  const { dashboardStats, isLoadingStats, marcarComoPagado } = usePagos();
+  const { dashboardStats, isLoadingStats, marcarComoPagado, eliminarPago } = usePagos();
+  const [pagoToDelete, setPagoToDelete] = React.useState<string | null>(null);
   
   const handleMarkAsPaid = (pagoId: string) => {
     if (!dashboardStats) return;
@@ -21,6 +33,22 @@ export const PaymentAlerts = () => {
       
     if (pago) {
       marcarComoPagado(pago);
+    }
+  };
+
+  const handleDeleteClick = (pagoId: string) => {
+    setPagoToDelete(pagoId);
+  };
+  
+  const confirmDelete = () => {
+    if (!pagoToDelete || !dashboardStats) return;
+    
+    const pago = [...dashboardStats.proximosPagos, ...dashboardStats.pagosAtrasados]
+      .find(p => p.id === pagoToDelete);
+      
+    if (pago) {
+      eliminarPago(pago);
+      setPagoToDelete(null);
     }
   };
 
@@ -93,6 +121,35 @@ export const PaymentAlerts = () => {
                         >
                           Marcar Pagado
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteClick(pago.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar pago?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará permanentemente este pago. Esta acción no se puede deshacer.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={confirmDelete}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}
@@ -128,6 +185,35 @@ export const PaymentAlerts = () => {
                         >
                           Marcar Pagado
                         </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleDeleteClick(pago.id)}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar pago?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará permanentemente este pago. Esta acción no se puede deshacer.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={confirmDelete}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Eliminar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </div>
                   ))}

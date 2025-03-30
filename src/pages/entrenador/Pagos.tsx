@@ -18,6 +18,16 @@ import { useSuscripciones } from "@/hooks/entrenador/useSuscripciones";
 import { usePagos } from "@/hooks/entrenador/usePagos";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const PagosPage = () => {
   const [activeTab, setActiveTab] = useState("pagos");
@@ -25,6 +35,8 @@ const PagosPage = () => {
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [selectedSuscripcionId, setSelectedSuscripcionId] = useState<string | undefined>(undefined);
   const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ type: 'plan' | 'suscripcion' | 'pago', item: any } | null>(null);
 
   const {
     planes,
@@ -34,6 +46,7 @@ const PagosPage = () => {
     crearPlan,
     actualizarPlan,
     toggleActivoPlan,
+    eliminarPlan,
     isEditing: isEditingPlan,
     setIsEditing: setIsEditingPlan,
     currentPlan,
@@ -48,6 +61,7 @@ const PagosPage = () => {
     crearSuscripcion,
     actualizarSuscripcion,
     toggleActivoSuscripcion,
+    eliminarSuscripcion,
     isEditing: isEditingSuscripcion,
     setIsEditing: setIsEditingSuscripcion,
     currentSuscripcion,
@@ -63,6 +77,7 @@ const PagosPage = () => {
     actualizarPago,
     marcarComoPagado,
     generarPagosFuturos,
+    eliminarPago,
     isEditing: isEditingPago,
     setIsEditing: setIsEditingPago,
     currentPago,
@@ -131,6 +146,72 @@ const PagosPage = () => {
     setActiveTab("pagos");
   };
 
+  const handleDeletePlan = (plan: any) => {
+    setItemToDelete({ type: 'plan', item: plan });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSuscripcion = (suscripcion: any) => {
+    setItemToDelete({ type: 'suscripcion', item: suscripcion });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeletePago = (pago: any) => {
+    setItemToDelete({ type: 'pago', item: pago });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!itemToDelete) return;
+
+    switch (itemToDelete.type) {
+      case 'plan':
+        eliminarPlan(itemToDelete.item);
+        break;
+      case 'suscripcion':
+        eliminarSuscripcion(itemToDelete.item);
+        break;
+      case 'pago':
+        eliminarPago(itemToDelete.item);
+        break;
+    }
+
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
+  const getDeleteDialogContent = () => {
+    if (!itemToDelete) return {
+      title: "Eliminar elemento",
+      description: "¿Estás seguro de que deseas eliminar este elemento? Esta acción no se puede deshacer."
+    };
+
+    switch (itemToDelete.type) {
+      case 'plan':
+        return {
+          title: "Eliminar plan de pago",
+          description: "¿Estás seguro de que deseas eliminar este plan de pago? Esta acción no se puede deshacer. Solo puedes eliminar planes que no están asociados a suscripciones."
+        };
+      case 'suscripcion':
+        return {
+          title: "Eliminar suscripción",
+          description: "¿Estás seguro de que deseas eliminar esta suscripción? Esta acción no se puede deshacer. Solo puedes eliminar suscripciones que no tienen pagos asociados."
+        };
+      case 'pago':
+        return {
+          title: "Eliminar pago",
+          description: "¿Estás seguro de que deseas eliminar este pago? Esta acción no se puede deshacer."
+        };
+      default:
+        return {
+          title: "Eliminar elemento",
+          description: "¿Estás seguro de que deseas eliminar este elemento? Esta acción no se puede deshacer."
+        };
+    }
+  };
+
+  const dialogContent = getDeleteDialogContent();
+
   const renderPlanesTab = () => (
     <>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
@@ -164,6 +245,7 @@ const PagosPage = () => {
                 setIsEditingPlan(true);
               }}
               onToggleActive={(plan) => toggleActivoPlan(plan)}
+              onDelete={handleDeletePlan}
             />
           ))}
         </div>
@@ -228,6 +310,7 @@ const PagosPage = () => {
               }}
               onToggleActive={(suscripcion) => toggleActivoSuscripcion(suscripcion)}
               onViewPayments={handleViewSuscripcionPayments}
+              onDelete={handleDeleteSuscripcion}
             />
           ))}
         </div>
@@ -301,7 +384,7 @@ const PagosPage = () => {
                 </span>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={undefined}>Todos los estados</SelectItem>
+                <SelectItem value={undefined as any}>Todos los estados</SelectItem>
                 <SelectItem value="pendiente">Pendiente</SelectItem>
                 <SelectItem value="pagado">Pagado</SelectItem>
                 <SelectItem value="atrasado">Atrasado</SelectItem>
@@ -371,6 +454,7 @@ const PagosPage = () => {
                 setIsEditingPago(true);
               }}
               onMarkAsPaid={(pago) => marcarComoPagado(pago)}
+              onDelete={handleDeletePago}
             />
           ))}
         </div>
@@ -469,6 +553,26 @@ const PagosPage = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{dialogContent.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {dialogContent.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
