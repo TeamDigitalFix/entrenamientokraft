@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import DietaComidaForm from "@/components/entrenador/DietaComidaForm";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 

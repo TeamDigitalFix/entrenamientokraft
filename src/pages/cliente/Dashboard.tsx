@@ -15,10 +15,8 @@ import { es } from "date-fns/locale";
 
 const ClientDashboard = () => {
   const { 
-    todayExercises, 
-    todayMeals, 
-    upcomingAppointments, 
-    progressData, 
+    todaySchedule, 
+    progressSummary, 
     isLoading 
   } = useClientDashboard();
 
@@ -55,6 +53,16 @@ const ClientDashboard = () => {
     return format(date, "EEEE - HH:mm", { locale: es });
   };
 
+  // Transform progressSummary into progressData
+  const progressData = progressSummary ? {
+    weight: progressSummary.currentWeight,
+    weightChange: progressSummary.weightChange,
+    bodyFat: null,
+    bodyFatChange: progressSummary.bodyFatChange,
+    muscleMass: null,
+    muscleMassChange: progressSummary.muscleMassChange
+  } : null;
+
   return (
     <DashboardLayout allowedRoles={[UserRole.CLIENT]}>
       <div className="space-y-4">
@@ -78,11 +86,11 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todayExercises.length === 0 ? (
+              ) : todaySchedule.exercises.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes ejercicios programados para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todayExercises.map((exercise) => (
+                  {todaySchedule.exercises.map((exercise) => (
                     <div key={exercise.id} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{exercise.name}</p>
@@ -125,18 +133,18 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todayMeals.length === 0 ? (
+              ) : todaySchedule.meals.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes comidas programadas para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todayMeals.map((meal) => {
+                  {todaySchedule.meals.map((meal) => {
                     const isCompleted = isMealCompleted(meal.id, meal.completed);
                     return (
                       <div key={meal.id} className="flex items-center justify-between border-b pb-2">
                         <div>
-                          <p className="font-medium">{meal.name}</p>
+                          <p className="font-medium">{meal.mealType}</p>
                           <p className="text-sm text-muted-foreground">
-                            {meal.items.join(", ")}
+                            {meal.foodName}
                           </p>
                         </div>
                         <Button 
@@ -175,20 +183,15 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : upcomingAppointments.length === 0 ? (
+              ) : todaySchedule.appointments.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes citas programadas próximamente</p>
               ) : (
                 <div className="space-y-3">
-                  {upcomingAppointments.map((appointment) => (
+                  {todaySchedule.appointments.map((appointment) => (
                     <div key={appointment.id} className="border-b pb-2">
                       <p className="font-medium">{appointment.title}</p>
-                      {appointment.description && (
-                        <p className="text-sm text-muted-foreground mb-1 line-clamp-1">
-                          {appointment.description}
-                        </p>
-                      )}
                       <p className="text-sm text-muted-foreground">
-                        {appointment.formattedDate}
+                        {appointment.time} ({appointment.duration} minutos)
                       </p>
                     </div>
                   ))}
