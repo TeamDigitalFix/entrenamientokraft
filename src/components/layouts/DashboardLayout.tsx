@@ -30,7 +30,6 @@ import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useTheme } from "@/hooks/useTheme";
-import { useClientMessages } from "@/hooks/cliente/useClientMessages";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -58,8 +57,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, setTheme } = useTheme();
-
-  const clientMessages = user?.role === UserRole.CLIENT ? useClientMessages() : null;
+  
+  // Safe default value for unreadCount
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // Only call useClientMessages when user is a client and component is mounted
+  useEffect(() => {
+    if (user?.role === UserRole.CLIENT) {
+      // Dynamically import to avoid dependency cycle
+      import("@/hooks/cliente/useClientMessages").then(({ useClientMessages }) => {
+        const { unreadCount, updateUnreadCount } = useClientMessages();
+        setUnreadCount(unreadCount || 0);
+      }).catch(err => {
+        console.error("Error loading useClientMessages:", err);
+      });
+    }
+  }, [user?.role]);
 
   useEffect(() => {
     if (!loading && (!user || !allowedRoles.includes(user.role))) {
@@ -100,9 +113,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
       <Link to="/cliente/mensajes" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1 relative">
         <MessageSquare className="h-4 w-4 mr-2" />
         Mensajes
-        {clientMessages?.unreadCount ? (
-          <NotificationBadge count={clientMessages.unreadCount} />
-        ) : null}
+        {unreadCount > 0 && (
+          <NotificationBadge count={unreadCount} />
+        )}
       </Link>
       
       <Link to="/cliente/progreso" className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md px-2 py-1">

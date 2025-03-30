@@ -23,7 +23,10 @@ export const useClientMessages = () => {
 
   // Cargar el entrenador del cliente
   const loadEntrenador = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     
     try {
       // Obtener el entrenador asignado al cliente
@@ -34,7 +37,9 @@ export const useClientMessages = () => {
         .single();
       
       if (clienteError) {
-        throw clienteError;
+        console.error("Error al obtener entrenador_id:", clienteError);
+        setLoading(false);
+        return;
       }
       
       if (!clienteData?.entrenador_id) {
@@ -51,7 +56,9 @@ export const useClientMessages = () => {
         .single();
       
       if (entrenadorError) {
-        throw entrenadorError;
+        console.error("Error al obtener datos del entrenador:", entrenadorError);
+        setLoading(false);
+        return;
       }
       
       setEntrenador({
@@ -66,16 +73,17 @@ export const useClientMessages = () => {
     } catch (error) {
       console.error("Error al cargar entrenador:", error);
       toast.error("No se pudo cargar la información del entrenador");
-    } finally {
       setLoading(false);
     }
   };
 
   // Cargar mensajes entre cliente y entrenador
   const loadMessages = async (entrenadorId: string) => {
-    if (!user?.id || !entrenadorId) return;
+    if (!user?.id || !entrenadorId) {
+      setLoading(false);
+      return;
+    }
     
-    setLoading(true);
     try {
       // Obtener mensajes entre cliente y entrenador
       const { data, error } = await supabase
@@ -86,7 +94,10 @@ export const useClientMessages = () => {
         .order("creado_en", { ascending: true });
       
       if (error) {
-        throw error;
+        console.error("Error al cargar mensajes:", error);
+        toast.error("No se pudieron cargar los mensajes");
+        setLoading(false);
+        return;
       }
       
       setMessages(data || []);
