@@ -12,8 +12,11 @@ import ProgressChart from "@/components/cliente/progress/ProgressChart";
 import MeasurementTable from "@/components/cliente/progress/MeasurementTable";
 import MeasurementForm from "@/components/cliente/progress/MeasurementForm";
 import { NewMeasurement } from "@/types/progress";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 const ClientProgress = () => {
+  const isMobile = useIsMobile();
   const { 
     measurements,
     latestMeasurement,
@@ -48,6 +51,45 @@ const ClientProgress = () => {
       label: "Masa Muscular (%)",
       color: "#10b981"
     }
+  };
+
+  // Use Drawer for mobile, Dialog for desktop
+  const MeasurementFormContainer = () => {
+    if (isMobile) {
+      return (
+        <Drawer open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DrawerContent className="px-4 pb-6 pt-2 max-h-[90vh]">
+            <div className="mx-auto w-full max-w-sm">
+              <h3 className="text-lg font-semibold py-3 text-center">Registrar Nueva Medición</h3>
+              <MeasurementForm
+                onSubmit={handleAddMeasurement}
+                onCancel={() => setIsDialogOpen(false)}
+                isSubmitting={isAddingMeasurement}
+              />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      );
+    }
+    
+    return (
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md md:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Registrar Nueva Medición</DialogTitle>
+            <DialogDescription>
+              Ingresa tus datos corporales para hacer seguimiento de tu progreso
+            </DialogDescription>
+          </DialogHeader>
+          
+          <MeasurementForm
+            onSubmit={handleAddMeasurement}
+            onCancel={() => setIsDialogOpen(false)}
+            isSubmitting={isAddingMeasurement}
+          />
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   return (
@@ -148,22 +190,7 @@ const ClientProgress = () => {
           </CardContent>
         </Card>
         
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Registrar Nueva Medición</DialogTitle>
-              <DialogDescription>
-                Ingresa tus datos corporales actuales para hacer seguimiento de tu progreso
-              </DialogDescription>
-            </DialogHeader>
-            
-            <MeasurementForm
-              onSubmit={handleAddMeasurement}
-              onCancel={() => setIsDialogOpen(false)}
-              isSubmitting={isAddingMeasurement}
-            />
-          </DialogContent>
-        </Dialog>
+        <MeasurementFormContainer />
       </div>
     </DashboardLayout>
   );
