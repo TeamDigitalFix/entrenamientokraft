@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardStats } from "@/components/admin/DashboardStats";
 import { RecentActivity } from "@/components/admin/RecentActivity";
@@ -24,8 +24,8 @@ const Dashboard: React.FC = () => {
   const [showDeletedTrainers, setShowDeletedTrainers] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
 
-  const { data: statsData, isLoading: isLoadingStats } = useStats();
-  const { data: activityData, isLoading: isLoadingActivity } = useRecentActivity();
+  const { stats, isLoading: isLoadingStats } = useStats();
+  const { activity, isLoading: isLoadingActivity } = useRecentActivity();
 
   const { 
     clients, 
@@ -112,8 +112,8 @@ const Dashboard: React.FC = () => {
             </TabsList>
 
             <TabsContent value="resumen" className="space-y-4">
-              <DashboardStats data={statsData} isLoading={isLoadingStats} />
-              <RecentActivity data={activityData} isLoading={isLoadingActivity} />
+              <DashboardStats data={stats} isLoading={isLoadingStats} />
+              <RecentActivity data={activity} isLoading={isLoadingActivity} />
             </TabsContent>
 
             <TabsContent value="entrenadores">
@@ -124,6 +124,7 @@ const Dashboard: React.FC = () => {
                 setSearchTerm={setTrainerSearchTerm}
                 page={trainerPage}
                 setPage={setTrainerPage}
+                pageSize={10}
                 showDeleted={showDeletedTrainers}
                 setShowDeleted={setShowDeletedTrainers}
                 showNewTrainerDialog={showNewTrainerDialog}
@@ -156,6 +157,7 @@ const Dashboard: React.FC = () => {
                 setSearchTerm={setSearchTerm}
                 page={page}
                 pageSize={10}
+                setPage={(newPage) => setPage(newPage)}
                 totalItems={totalItems}
                 showDeleted={showDeleted}
                 setShowDeleted={setShowDeleted}
@@ -184,7 +186,7 @@ const Dashboard: React.FC = () => {
 
       <ResetDataDialog
         open={showResetDialog}
-        onOpenChange={setShowResetDialog}
+        onOpenChange={(open) => setShowResetDialog(open)}
       />
     </DashboardLayout>
   );

@@ -32,7 +32,7 @@ export const PagoCard: React.FC<PagoCardProps> = ({
       case "pagado": return "outline";
       case "atrasado": return "destructive";
       case "cancelado": return "secondary";
-      case "pendiente": return isPastDue ? "destructive" : (isUpcoming ? "warning" : "default");
+      case "pendiente": return isPastDue ? "destructive" : (isUpcoming ? "default" : "default");
       default: return "default";
     }
   };

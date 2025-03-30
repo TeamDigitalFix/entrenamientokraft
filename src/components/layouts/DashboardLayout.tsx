@@ -33,7 +33,7 @@ import { useTheme } from "@/hooks/useTheme";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  allowedRoles: UserRole[];
+  allowedRoles?: UserRole[];
 }
 
 interface NotificationBadgeProps {
@@ -50,7 +50,7 @@ const NotificationBadge = ({ count }: NotificationBadgeProps) => {
   );
 };
 
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRoles }) => {
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRoles = Object.values(UserRole) }) => {
   const { user, loading, logout } = useAuth();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -290,4 +290,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
   );
 };
 
+// Export as both default and named export
+export { DashboardLayout };
 export default DashboardLayout;
