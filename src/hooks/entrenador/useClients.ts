@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -236,111 +237,148 @@ export const useClients = (searchTerm: string = "") => {
   // Reset client data
   const resetClientData = useMutation({
     mutationFn: async (clientId: string) => {
-      // Remove client's routines
-      const deleteRoutines = supabase
-        .from("rutinas")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's diet plans
-      const deleteDiets = supabase
-        .from("dietas")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's appointments
-      const deleteAppointments = supabase
-        .from("citas")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's progress records
-      const deleteProgress = supabase
-        .from("progreso")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's received messages
-      const deleteReceivedMessages = supabase
-        .from("mensajes")
-        .delete()
-        .eq("receptor_id", clientId);
-
-      // Remove client's sent messages
-      const deleteSentMessages = supabase
-        .from("mensajes")
-        .delete()
-        .eq("emisor_id", clientId);
-
-      // Remove client's completed exercises
-      const deleteCompletedExercises = supabase
-        .from("ejercicios_completados")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's completed meals
-      const deleteCompletedMeals = supabase
-        .from("comidas_completadas")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's daily sessions
-      const deleteDailySessions = supabase
-        .from("sesiones_diarias")
-        .delete()
-        .eq("cliente_id", clientId);
-
-      // Remove client's daily exercises
-      const deleteDailyExercises = supabase
-        .from("ejercicios_diarios")
-        .delete()
-        .eq("cliente_id", clientId);
+      try {
+        // Delete in correct order to respect foreign key constraints
         
-      // Run all the delete operations
-      // Note: This does not guarantee atomicity but will perform all deletions
-      const [
-        routinesResult, 
-        dietsResult,
-        appointmentsResult,
-        progressResult,
-        receivedMessagesResult,
-        sentMessagesResult,
-        completedExercisesResult,
-        completedMealsResult,
-        dailySessionsResult,
-        dailyExercisesResult
-      ] = await Promise.all([
-        deleteRoutines,
-        deleteDiets,
-        deleteAppointments,
-        deleteProgress,
-        deleteReceivedMessages,
-        deleteSentMessages,
-        deleteCompletedExercises,
-        deleteCompletedMeals,
-        deleteDailySessions,
-        deleteDailyExercises
-      ]);
+        // 1. First delete records from ejercicios_completados (references rutina_ejercicios)
+        const { error: completedExercisesError } = await supabase
+          .from("ejercicios_completados")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (completedExercisesError) {
+          console.error("Error deleting completed exercises:", completedExercisesError);
+        }
+        
+        // 2. Now delete records from rutina_ejercicios
+        const { error: rutinasEjerciciosError } = await supabase
+          .from("rutina_ejercicios")
+          .delete()
+          .eq("rutina_id", function(b) {
+            b.in(
+              supabase
+                .from("rutinas")
+                .select("id")
+                .eq("cliente_id", clientId)
+            );
+          });
+        
+        if (rutinasEjerciciosError) {
+          console.error("Error deleting rutina exercises:", rutinasEjerciciosError);
+        }
 
-      // Check for errors in any operation
-      const errors = [
-        routinesResult.error,
-        dietsResult.error,
-        appointmentsResult.error,
-        progressResult.error,
-        receivedMessagesResult.error,
-        sentMessagesResult.error,
-        completedExercisesResult.error,
-        completedMealsResult.error,
-        dailySessionsResult.error,
-        dailyExercisesResult.error
-      ].filter(error => error !== null);
+        // 3. Delete records from rutinas
+        const { error: rutinasError } = await supabase
+          .from("rutinas")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (rutinasError) {
+          console.error("Error deleting routines:", rutinasError);
+        }
 
-      if (errors.length > 0) {
-        throw new Error(`Ocurrieron errores al restablecer los datos del cliente: ${errors.map(e => e?.message).join(', ')}`);
+        // 4. Delete records from comidas_completadas
+        const { error: completedMealsError } = await supabase
+          .from("comidas_completadas")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (completedMealsError) {
+          console.error("Error deleting completed meals:", completedMealsError);
+        }
+
+        // 5. Delete records from dieta_comidas linked to this client's diets
+        const { error: dietaComidasError } = await supabase
+          .from("dieta_comidas")
+          .delete()
+          .eq("dieta_id", function(b) {
+            b.in(
+              supabase
+                .from("dietas")
+                .select("id")
+                .eq("cliente_id", clientId)
+            );
+          });
+        
+        if (dietaComidasError) {
+          console.error("Error deleting diet meals:", dietaComidasError);
+        }
+
+        // 6. Delete records from dietas
+        const { error: dietasError } = await supabase
+          .from("dietas")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (dietasError) {
+          console.error("Error deleting diets:", dietasError);
+        }
+
+        // 7. Delete records from citas
+        const { error: appointmentsError } = await supabase
+          .from("citas")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (appointmentsError) {
+          console.error("Error deleting appointments:", appointmentsError);
+        }
+
+        // 8. Delete records from progreso
+        const { error: progressError } = await supabase
+          .from("progreso")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (progressError) {
+          console.error("Error deleting progress records:", progressError);
+        }
+
+        // 9. Delete records from mensajes where client is receiver
+        const { error: receivedMessagesError } = await supabase
+          .from("mensajes")
+          .delete()
+          .eq("receptor_id", clientId);
+        
+        if (receivedMessagesError) {
+          console.error("Error deleting received messages:", receivedMessagesError);
+        }
+
+        // 10. Delete records from mensajes where client is sender
+        const { error: sentMessagesError } = await supabase
+          .from("mensajes")
+          .delete()
+          .eq("emisor_id", clientId);
+        
+        if (sentMessagesError) {
+          console.error("Error deleting sent messages:", sentMessagesError);
+        }
+
+        // 11. Delete records from sesiones_diarias
+        const { error: dailySessionsError } = await supabase
+          .from("sesiones_diarias")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (dailySessionsError) {
+          console.error("Error deleting daily sessions:", dailySessionsError);
+        }
+
+        // 12. Delete records from ejercicios_diarios
+        const { error: dailyExercisesError } = await supabase
+          .from("ejercicios_diarios")
+          .delete()
+          .eq("cliente_id", clientId);
+        
+        if (dailyExercisesError) {
+          console.error("Error deleting daily exercises:", dailyExercisesError);
+        }
+        
+        return { success: true };
+      } catch (error) {
+        console.error("Error in resetClientData:", error);
+        throw error;
       }
-
-      return { success: true };
     },
     onSuccess: () => {
       toast.success("Datos del cliente restablecidos con éxito");
