@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -362,7 +361,8 @@ export const useClientDashboard = () => {
           .select("id, titulo, fecha, duracion, estado, tipo")
           .eq("cliente_id", clientId)
           .gte("fecha", currentDate.toISOString())
-          .order("fecha", { ascending: true });
+          .order("fecha", { ascending: true })
+          .limit(3);
 
         const appointmentItems: TodaySchedule["appointments"] = (appointments || []).map(apt => ({
           id: apt.id,

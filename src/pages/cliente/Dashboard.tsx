@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dumbbell, Utensils, Calendar, BarChart2 } from "lucide-react";
@@ -24,13 +24,31 @@ const ClientDashboard = () => {
   
   const { toggleExerciseCompletion, isToggling: isTogglingExercise } = useExerciseToggle();
   const { toggleMealCompletion, isToggling: isTogglingMeal } = useMealToggle();
+  
+  const [localExercises, setLocalExercises] = useState<typeof todaySchedule.exercises>([]);
+  const [localMeals, setLocalMeals] = useState<typeof todaySchedule.meals>([]);
+  
+  React.useEffect(() => {
+    if (todaySchedule) {
+      setLocalExercises(todaySchedule.exercises);
+      setLocalMeals(todaySchedule.meals);
+    }
+  }, [todaySchedule]);
 
   const handleExerciseToggle = (id: string, currentStatus: boolean) => {
+    setLocalExercises(prev => prev.map(exercise => 
+      exercise.id === id ? {...exercise, completed: !currentStatus} : exercise
+    ));
+    
     toggleExerciseCompletion({ exerciseId: id, completed: currentStatus });
   };
 
   const handleMealToggle = (id: string, currentStatus: boolean) => {
     if (!clientId) return;
+    
+    setLocalMeals(prev => prev.map(meal => 
+      meal.id === id ? {...meal, completed: !currentStatus} : meal
+    ));
     
     toggleMealCompletion({ 
       mealId: id, 
@@ -102,11 +120,11 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todaySchedule?.exercises.length === 0 ? (
+              ) : localExercises.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes ejercicios programados para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todaySchedule.exercises.map((exercise) => (
+                  {localExercises.map((exercise) => (
                     <div key={exercise.id} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{exercise.name}</p>
@@ -148,11 +166,11 @@ const ClientDashboard = () => {
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
-              ) : todaySchedule?.meals.length === 0 ? (
+              ) : localMeals.length === 0 ? (
                 <p className="text-center py-4 text-muted-foreground">No tienes comidas programadas para hoy</p>
               ) : (
                 <div className="space-y-3">
-                  {todaySchedule.meals.map((meal) => (
+                  {localMeals.map((meal) => (
                     <div key={meal.id} className="flex items-center justify-between border-b pb-2">
                       <div>
                         <p className="font-medium">{meal.mealType}</p>
@@ -185,7 +203,7 @@ const ClientDashboard = () => {
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div>
                 <CardTitle>Próximas Citas</CardTitle>
-                <CardDescription>Todas tus citas programadas</CardDescription>
+                <CardDescription>Próximas 3 citas programadas</CardDescription>
               </div>
               <Calendar className="h-5 w-5 text-muted-foreground" />
             </CardHeader>
