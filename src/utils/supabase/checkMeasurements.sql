@@ -4,7 +4,7 @@
 
 -- Check all measurement records to see what's in the database
 SELECT * FROM progreso
-ORDER BY created_at DESC
+ORDER BY creado_en DESC
 LIMIT 10;
 
 -- Check table structure

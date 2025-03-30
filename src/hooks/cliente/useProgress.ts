@@ -35,10 +35,11 @@ export const useProgress = () => {
 
         console.log("Consultando mediciones para usuario:", user.id);
         
-        // Check for measurements in the database using explicit columns
+        // Check for measurements in the database using correct column names
+        // The error indicated 'created_at' doesn't exist, so let's remove it
         const { data, error } = await supabase
           .from("progreso")
-          .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, created_at, cliente_id")
+          .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, cliente_id")
           .eq("cliente_id", user.id)
           .order("fecha", { ascending: false });
 
