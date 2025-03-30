@@ -10,6 +10,19 @@ export interface Ejercicio {
   creado_en: string | null;
   dificultad?: string;
   tipo?: string;
+  // Campos adicionales para los ejercicios en rutinas
+  dia?: number;
+  series?: number;
+  repeticiones?: number;
+  peso?: string | number | null; // Modificado para aceptar tanto string como number
+  rutina_id?: string;
+  ejercicio_id?: string;
+  notas?: string | null;
+  ejercicios?: {
+    nombre: string;
+    grupo_muscular: string;
+    descripcion?: string | null;
+  };
 }
 
 export interface NuevoEjercicio {

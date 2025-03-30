@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
@@ -14,10 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import RutinaEjercicioForm from "@/components/entrenador/RutinaEjercicioForm";
 
-// Definir días de la semana
 const diasSemana = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-// Mapear números de día a nombres de día
 const mapDiaNumeroANombre = (diaNumero: number): string => {
   return diasSemana[diaNumero - 1] || "Desconocido";
 };
@@ -28,14 +25,14 @@ interface Ejercicio {
   series: number;
   repeticiones: number;
   dia: number;
-  notas?: string;
-  peso?: string;
+  notas?: string | null;
+  peso?: string | number | null;
   rutina_id: string;
   ejercicio_id: string;
-  ejercicio?: {
+  ejercicios?: {
     nombre: string;
     grupo_muscular: string;
-    descripcion?: string;
+    descripcion?: string | null;
   };
 }
 
@@ -66,17 +63,15 @@ const ClientRoutine = () => {
       try {
         setLoading(true);
         
-        // Obtener datos del cliente
         const { data: clientData, error: clientError } = await supabase
           .from("usuarios")
-          .select("nombre")
+          .select("nombre, ultimo_ingreso")
           .eq("id", clientId)
           .single();
         
         if (clientError) throw clientError;
         setClientName(clientData?.nombre || "Cliente");
         
-        // Obtener la rutina más reciente del cliente
         const { data: rutinasData, error: rutinasError } = await supabase
           .from("rutinas")
           .select("*")
@@ -90,7 +85,6 @@ const ClientRoutine = () => {
           const rutinaActual = rutinasData[0];
           setRutina(rutinaActual);
           
-          // Obtener ejercicios de la rutina con detalles del ejercicio
           const { data: ejerciciosData, error: ejerciciosError } = await supabase
             .from("rutina_ejercicios")
             .select(`
@@ -109,14 +103,13 @@ const ClientRoutine = () => {
           if (ejerciciosError) throw ejerciciosError;
           
           if (ejerciciosData) {
-            // Transformar los datos para que sean más fáciles de usar
             const ejerciciosTransformados = ejerciciosData.map(ej => ({
               ...ej,
               nombre: ej.ejercicios?.nombre || "Ejercicio sin nombre",
               dia: ej.dia,
             }));
             
-            setEjercicios(ejerciciosTransformados as Ejercicio[]);
+            setEjercicios(ejerciciosTransformados as unknown as Ejercicio[]);
           }
         } else {
           setRutina(null);
@@ -171,14 +164,12 @@ const ClientRoutine = () => {
     }
   };
 
-  // Agrupar ejercicios por día de la semana
   const ejerciciosPorDia = diasSemana.reduce((acc, dia, index) => {
     const diaNumero = index + 1;
     acc[dia] = ejercicios.filter(ejercicio => ejercicio.dia === diaNumero);
     return acc;
   }, {} as Record<string, Ejercicio[]>);
 
-  // Determinar qué pestaña debe estar activa por defecto (la primera que tenga ejercicios)
   useEffect(() => {
     if (!loading && ejercicios.length > 0) {
       for (const dia of diasSemana) {
