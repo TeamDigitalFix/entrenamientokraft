@@ -60,11 +60,14 @@ export const useClientDashboard = () => {
           .select("id")
           .eq("cliente_id", clientId)
           .lte("fecha_inicio", new Date().toISOString())
-          .gt("fecha_fin", new Date().toISOString())
+          .or(`fecha_fin.is.null,fecha_fin.gt.${new Date().toISOString()}`)
           .order("fecha_inicio", { ascending: false })
           .limit(1);
 
-        if (routineError) throw routineError;
+        if (routineError) {
+          console.error("Error fetching routines:", routineError);
+          throw routineError;
+        }
         
         if (!routines || routines.length === 0) {
           return [];
@@ -87,7 +90,10 @@ export const useClientDashboard = () => {
           .eq("rutina_id", routineId)
           .eq("dia", today);
 
-        if (exercisesError) throw exercisesError;
+        if (exercisesError) {
+          console.error("Error fetching exercises:", exercisesError);
+          throw exercisesError;
+        }
 
         // Get completed exercises for today
         const todayStart = new Date();
@@ -103,19 +109,22 @@ export const useClientDashboard = () => {
           .gte("fecha_completado", todayStart.toISOString())
           .lte("fecha_completado", todayEnd.toISOString());
 
-        if (completedError) throw completedError;
+        if (completedError) {
+          console.error("Error fetching completed exercises:", completedError);
+          throw completedError;
+        }
 
         // Map completed exercise IDs
-        const completedIds = new Set(completedExercises.map(e => e.rutina_ejercicio_id));
+        const completedIds = new Set(completedExercises?.map(e => e.rutina_ejercicio_id) || []);
 
         // Format exercises
-        return exercises.map(exercise => ({
+        return exercises?.map(exercise => ({
           id: exercise.id,
           name: exercise.ejercicios?.nombre || "Ejercicio sin nombre",
           sets: exercise.series,
           reps: exercise.repeticiones,
           completed: completedIds.has(exercise.id)
-        })) as TodayExercise[];
+        })) as TodayExercise[] || [];
       } catch (error) {
         console.error("Error fetching today's exercises:", error);
         toast.error("No se pudieron cargar los ejercicios de hoy");
@@ -141,11 +150,14 @@ export const useClientDashboard = () => {
           .select("id")
           .eq("cliente_id", clientId)
           .lte("fecha_inicio", new Date().toISOString())
-          .gt("fecha_fin", new Date().toISOString())
+          .or(`fecha_fin.is.null,fecha_fin.gt.${new Date().toISOString()}`)
           .order("fecha_inicio", { ascending: false })
           .limit(1);
 
-        if (dietError) throw dietError;
+        if (dietError) {
+          console.error("Error fetching diets:", dietError);
+          throw dietError;
+        }
         
         if (!diets || diets.length === 0) {
           return [];
@@ -167,11 +179,14 @@ export const useClientDashboard = () => {
           .eq("dieta_id", dietId)
           .eq("dia", today);
 
-        if (mealsError) throw mealsError;
+        if (mealsError) {
+          console.error("Error fetching meals:", mealsError);
+          throw mealsError;
+        }
 
         // Group meals by type
         const mealsByType: Record<string, any[]> = {};
-        meals.forEach(meal => {
+        meals?.forEach(meal => {
           if (!mealsByType[meal.tipo_comida]) {
             mealsByType[meal.tipo_comida] = [];
           }
@@ -213,15 +228,21 @@ export const useClientDashboard = () => {
           .order("fecha", { ascending: true })
           .limit(5);
 
-        if (appointmentsError) throw appointmentsError;
+        if (appointmentsError) {
+          console.error("Error fetching appointments:", appointmentsError);
+          throw appointmentsError;
+        }
 
-        return appointments.map(appointment => ({
-          id: appointment.id,
-          title: appointment.titulo,
-          description: appointment.descripcion,
-          date: parseISO(appointment.fecha),
-          formattedDate: formatAppointmentDate(parseISO(appointment.fecha))
-        })) as ClientAppointment[];
+        return (appointments || []).map(appointment => {
+          const date = parseISO(appointment.fecha);
+          return {
+            id: appointment.id,
+            title: appointment.titulo,
+            description: appointment.descripcion,
+            date: date,
+            formattedDate: formatAppointmentDate(date)
+          };
+        }) as ClientAppointment[];
       } catch (error) {
         console.error("Error fetching upcoming appointments:", error);
         toast.error("No se pudieron cargar las citas programadas");
@@ -246,7 +267,10 @@ export const useClientDashboard = () => {
           .order("fecha", { ascending: false })
           .limit(1);
 
-        if (latestError) throw latestError;
+        if (latestError) {
+          console.error("Error fetching latest progress:", latestError);
+          throw latestError;
+        }
 
         if (!latestProgress || latestProgress.length === 0) {
           return null;
@@ -260,7 +284,10 @@ export const useClientDashboard = () => {
           .order("fecha", { ascending: true })
           .limit(1);
 
-        if (firstError) throw firstError;
+        if (firstError) {
+          console.error("Error fetching first progress:", firstError);
+          throw firstError;
+        }
 
         const latest = latestProgress[0];
         const first = firstProgress && firstProgress.length > 0 ? firstProgress[0] : null;
@@ -270,9 +297,9 @@ export const useClientDashboard = () => {
           bodyFat: latest.grasa_corporal,
           muscleMass: latest.masa_muscular,
           weightChange: first ? latest.peso - first.peso : null,
-          bodyFatChange: first && latest.grasa_corporal && first.grasa_corporal ? 
+          bodyFatChange: first && latest.grasa_corporal !== null && first.grasa_corporal !== null ? 
             latest.grasa_corporal - first.grasa_corporal : null,
-          muscleMassChange: first && latest.masa_muscular && first.masa_muscular ? 
+          muscleMassChange: first && latest.masa_muscular !== null && first.masa_muscular !== null ? 
             latest.masa_muscular - first.masa_muscular : null
         } as ProgressData;
       } catch (error) {
@@ -290,9 +317,14 @@ export const useClientDashboard = () => {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
 
-    if (date.toDateString() === today.toDateString()) {
+    today.setHours(0, 0, 0, 0);
+    tomorrow.setHours(0, 0, 0, 0);
+    const dateClone = new Date(date);
+    dateClone.setHours(0, 0, 0, 0);
+
+    if (dateClone.getTime() === today.getTime()) {
       return `Hoy - ${format(date, 'HH:mm')}`;
-    } else if (date.toDateString() === tomorrow.toDateString()) {
+    } else if (dateClone.getTime() === tomorrow.getTime()) {
       return `Mañana - ${format(date, 'HH:mm')}`;
     } else {
       return format(date, "EEEE - HH:mm", { locale: es });

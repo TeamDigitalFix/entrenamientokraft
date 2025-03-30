@@ -26,19 +26,27 @@ const MeasurementTable = ({ measurements }: MeasurementTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {measurements.map((measurement) => (
-            <TableRow key={measurement.id}>
-              <TableCell>
-                {format(new Date(measurement.fecha), 'dd MMM yyyy', { locale: es })}
-              </TableCell>
-              <TableCell>{measurement.peso}</TableCell>
-              <TableCell>{measurement.grasa_corporal || "-"}</TableCell>
-              <TableCell>{measurement.masa_muscular || "-"}</TableCell>
-              <TableCell className="max-w-sm truncate">
-                {measurement.notas || "-"}
+          {measurements.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                No hay mediciones registradas
               </TableCell>
             </TableRow>
-          ))}
+          ) : (
+            measurements.map((measurement) => (
+              <TableRow key={measurement.id}>
+                <TableCell>
+                  {format(new Date(measurement.fecha), 'dd MMM yyyy', { locale: es })}
+                </TableCell>
+                <TableCell>{measurement.peso}</TableCell>
+                <TableCell>{measurement.grasa_corporal || "-"}</TableCell>
+                <TableCell>{measurement.masa_muscular || "-"}</TableCell>
+                <TableCell className="max-w-sm truncate">
+                  {measurement.notas || "-"}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
     </div>

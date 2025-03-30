@@ -10,6 +10,8 @@ import { useExerciseToggle } from "@/hooks/cliente/useExerciseToggle";
 import { useMealToggle } from "@/hooks/cliente/useMealToggle";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 const ClientDashboard = () => {
   const { 
@@ -23,7 +25,7 @@ const ClientDashboard = () => {
   // State for local meal completion (since we don't have a backend implementation yet)
   const [localMeals, setLocalMeals] = useState<Record<string, boolean>>({});
 
-  const { toggleExerciseCompletion } = useExerciseToggle();
+  const { toggleExerciseCompletion, isToggling } = useExerciseToggle();
   const { toggleMealCompletion } = useMealToggle();
 
   const handleExerciseToggle = (id: string, currentStatus: boolean) => {
@@ -37,13 +39,20 @@ const ClientDashboard = () => {
       [id]: !currentStatus
     }));
     
-    // Call the backend mutation (currently just a placeholder)
+    // Call the backend mutation
     toggleMealCompletion({ mealId: id, completed: currentStatus });
   };
 
   // Function to determine if a meal is completed (using local state or original data)
   const isMealCompleted = (id: string, originalCompleted: boolean) => {
     return id in localMeals ? localMeals[id] : originalCompleted;
+  };
+
+  // Format appointment date for display
+  const formatAppointmentDate = (dateString: string) => {
+    const date = new Date(dateString);
+    // Format day and time
+    return format(date, "EEEE - HH:mm", { locale: es });
   };
 
   return (
@@ -86,6 +95,7 @@ const ClientDashboard = () => {
                         className={`${exercise.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
                         size="sm"
                         onClick={() => handleExerciseToggle(exercise.id, exercise.completed)}
+                        disabled={isToggling}
                       >
                         {exercise.completed ? "Completado" : "Marcar"}
                       </Button>
@@ -172,6 +182,11 @@ const ClientDashboard = () => {
                   {upcomingAppointments.map((appointment) => (
                     <div key={appointment.id} className="border-b pb-2">
                       <p className="font-medium">{appointment.title}</p>
+                      {appointment.description && (
+                        <p className="text-sm text-muted-foreground mb-1 line-clamp-1">
+                          {appointment.description}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground">
                         {appointment.formattedDate}
                       </p>
