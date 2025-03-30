@@ -74,9 +74,27 @@ export const useClients = (searchTerm: string = "") => {
     enabled: !!user?.id
   });
 
+  // Check if username already exists
+  const checkUsernameExists = async (username: string): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("id")
+      .eq("username", username)
+      .single();
+    
+    return !!data;
+  };
+
   // Create new client
   const createClient = useMutation({
     mutationFn: async (clientData: ClientData) => {
+      // Check if username exists first
+      const usernameExists = await checkUsernameExists(clientData.username);
+      
+      if (usernameExists) {
+        throw new Error("El nombre de usuario ya está en uso. Por favor, elija otro.");
+      }
+      
       const { data, error } = await supabase
         .from("usuarios")
         .insert([{
@@ -109,7 +127,11 @@ export const useClients = (searchTerm: string = "") => {
       });
     },
     onError: (error: any) => {
-      toast.error(`Error al crear cliente: ${error.message}`);
+      if (error.message.includes("usuarios_username_key")) {
+        toast.error("El nombre de usuario ya está en uso. Por favor, elija otro.");
+      } else {
+        toast.error(`Error al crear cliente: ${error.message}`);
+      }
     }
   });
 

@@ -88,7 +88,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({
                     value={clientData.username}
                     onChange={handleChange}
                     required
+                    aria-describedby="username-description"
                   />
+                  <p id="username-description" className="text-xs text-muted-foreground">
+                    El nombre de usuario debe ser único en el sistema
+                  </p>
                 </div>
                 
                 <div className="grid gap-2">
