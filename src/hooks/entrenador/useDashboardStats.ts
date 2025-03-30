@@ -69,16 +69,16 @@ export const useDashboardStats = () => {
         
         const clientIds = clients.map(client => client.id);
         
-        // Now count clients who have completed exercises in the last 7 days
-        const { data, error } = await supabase
+        // Count unique client IDs who have completed exercises in the last 7 days
+        const { count, error } = await supabase
           .from("ejercicios_completados")
-          .select("cliente_id", { count: "exact", head: true, distinct: true })
+          .select("cliente_id", { count: "exact", head: true })
           .in("cliente_id", clientIds)
           .gte("fecha_completado", sevenDaysAgoFormatted);
           
         if (error) throw error;
         
-        return data ? clientIds.length : 0;
+        return count || 0;
       } catch (error) {
         console.error("Error loading active clients count:", error);
         return 0;

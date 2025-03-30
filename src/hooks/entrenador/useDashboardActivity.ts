@@ -2,94 +2,105 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { subDays, format, startOfDay, endOfDay } from "date-fns";
-import { es } from "date-fns/locale";
+import { format, subDays, startOfWeek, endOfWeek } from "date-fns";
+
+export type DayActivity = {
+  day: string;
+  count: number;
+};
 
 export type WeeklyActivity = {
-  day: string;
-  clientes: number;
-  ejercicios: number;
+  workouts: DayActivity[];
+  meals: DayActivity[];
 };
 
 export const useDashboardActivity = () => {
   const { user } = useAuth();
   const trainerId = user?.id;
-
+  
   const { data: weeklyActivity, isLoading } = useQuery({
-    queryKey: ["weekly-activity", trainerId],
+    queryKey: ["trainer-weekly-activity", trainerId],
     queryFn: async () => {
       try {
-        if (!trainerId) return [];
-
-        const lastSevenDays = Array.from({ length: 7 }, (_, i) => {
-          const date = subDays(new Date(), i);
-          return {
-            date,
-            dayName: format(date, 'EEEE', { locale: es }),
-            dayFormatted: format(date, 'yyyy-MM-dd')
-          };
-        }).reverse(); // Para que el día más antiguo esté primero
-
-        // Primero obtenemos los IDs de los clientes de este entrenador
-        const { data: clientsData, error: clientsError } = await supabase
+        if (!trainerId) return { workouts: [], meals: [] };
+        
+        // Get client IDs for this trainer
+        const { data: clients, error: clientsError } = await supabase
           .from("usuarios")
           .select("id")
           .eq("entrenador_id", trainerId)
           .eq("role", "cliente")
           .eq("eliminado", false);
-
+          
         if (clientsError) throw clientsError;
         
-        // Si no hay clientes, devolvemos un array vacío
-        if (!clientsData?.length) {
-          return lastSevenDays.map(day => ({
-            day: day.dayName,
-            clientes: 0,
-            ejercicios: 0
-          }));
-        }
+        if (!clients?.length) return { workouts: [], meals: [] };
         
-        const clientIds = clientsData.map(client => client.id);
+        const clientIds = clients.map(client => client.id);
         
-        // Ahora obtenemos los datos de actividad para cada día
-        const activityData: WeeklyActivity[] = await Promise.all(
-          lastSevenDays.map(async (day) => {
-            // Contar clientes activos para este día
-            const { data: activeClients, error: activeError } = await supabase
-              .from("ejercicios_completados")
-              .select("cliente_id", { count: "exact", head: true, distinct: true })
-              .in("cliente_id", clientIds)
-              .gte("fecha_completado", `${day.dayFormatted}T00:00:00`)
-              .lte("fecha_completado", `${day.dayFormatted}T23:59:59`);
-              
-            if (activeError) throw activeError;
-            
-            // Contar ejercicios completados para este día
-            const { count: ejercicios, error: ejerciciosError } = await supabase
-              .from("ejercicios_completados")
-              .select("*", { count: "exact", head: true })
-              .in("cliente_id", clientIds)
-              .gte("fecha_completado", `${day.dayFormatted}T00:00:00`)
-              .lte("fecha_completado", `${day.dayFormatted}T23:59:59`);
-              
-            if (ejerciciosError) throw ejerciciosError;
-            
-            return {
-              day: day.dayName,
-              clientes: activeClients?.length || 0,
-              ejercicios: ejercicios || 0
-            };
-          })
-        );
+        // Get current week boundaries
+        const today = new Date();
+        const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        const weekEnd = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
         
-        return activityData;
+        const weekStartStr = format(weekStart, 'yyyy-MM-dd');
+        const weekEndStr = format(weekEnd, 'yyyy-MM-dd');
+        
+        // Initialize workouts array for all days of the week
+        const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const workouts = days.map(day => ({ day, count: 0 }));
+        const meals = days.map(day => ({ day, count: 0 }));
+        
+        // Get workout completion data for the week
+        const { data: workoutData, error: workoutError } = await supabase
+          .from("ejercicios_completados")
+          .select("fecha_completado, cliente_id", { count: "exact", head: false })
+          .in("cliente_id", clientIds)
+          .gte("fecha_completado", `${weekStartStr}T00:00:00`)
+          .lte("fecha_completado", `${weekEndStr}T23:59:59`);
+          
+        if (workoutError) throw workoutError;
+        
+        // Aggregate workout data by day
+        workoutData?.forEach(workout => {
+          const date = new Date(workout.fecha_completado);
+          const dayIndex = (date.getDay() + 6) % 7; // Convert to 0 = Monday, 6 = Sunday
+          workouts[dayIndex].count += 1;
+        });
+        
+        // Get meal completion data for the week
+        const { data: mealData, error: mealError } = await supabase
+          .from("comidas_completadas")
+          .select("fecha_completado, cliente_id", { count: "exact", head: false })
+          .in("cliente_id", clientIds)
+          .gte("fecha_completado", `${weekStartStr}T00:00:00`)
+          .lte("fecha_completado", `${weekEndStr}T23:59:59`);
+          
+        if (mealError) throw mealError;
+        
+        // Aggregate meal data by day
+        mealData?.forEach(meal => {
+          const date = new Date(meal.fecha_completado);
+          const dayIndex = (date.getDay() + 6) % 7; // Convert to 0 = Monday, 6 = Sunday
+          meals[dayIndex].count += 1;
+        });
+        
+        return { workouts, meals };
       } catch (error) {
         console.error("Error loading weekly activity:", error);
-        return [];
+        const emptyDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+        const emptyData = emptyDays.map(day => ({ day, count: 0 }));
+        return { workouts: emptyData, meals: emptyData };
       }
     },
-    enabled: !!trainerId
+    enabled: !!trainerId,
   });
-
-  return { weeklyActivity, isLoading };
+  
+  return {
+    weeklyActivity: weeklyActivity || { 
+      workouts: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => ({ day, count: 0 })),
+      meals: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => ({ day, count: 0 }))
+    },
+    isLoading
+  };
 };

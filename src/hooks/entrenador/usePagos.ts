@@ -302,10 +302,15 @@ export const usePagos = (suscripcionId?: string) => {
             p.estado === "pendiente" &&
             isAfter(parseISO(p.fecha_programada), today) &&
             isBefore(parseISO(p.fecha_programada), in7Days)
+          ).sort((a, b) => 
+            parseISO(a.fecha_programada).getTime() - parseISO(b.fecha_programada).getTime()
           ).slice(0, 5);
           
           const pagosAtrasados = pagos.filter(p => 
-            p.estado === "atrasado"
+            p.estado === "atrasado" || 
+            (p.estado === "pendiente" && isBefore(parseISO(p.fecha_programada), today))
+          ).sort((a, b) => 
+            parseISO(b.fecha_programada).getTime() - parseISO(a.fecha_programada).getTime()
           ).slice(0, 5);
           
           return {
@@ -374,10 +379,16 @@ export const usePagos = (suscripcionId?: string) => {
             isAfter(parseISO(p.fecha_programada), today) &&
             isBefore(parseISO(p.fecha_programada), in7Days)
           )
+          .sort((a, b) => 
+            parseISO(a.fecha_programada).getTime() - parseISO(b.fecha_programada).getTime()
+          )
           .slice(0, 5);
         
         const pagosAtrasados = updatedPagos
           .filter(p => p.estado === "atrasado")
+          .sort((a, b) => 
+            parseISO(b.fecha_programada).getTime() - parseISO(a.fecha_programada).getTime()
+          )
           .slice(0, 5);
         
         return {

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { CalendarDays, AlertTriangle, DollarSign, ArrowRight, Trash } from "lucide-react";
-import { usePagos } from "@/hooks/entrenador/usePagos";
+import { usePagos, Pago } from "@/hooks/entrenador/usePagos";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,7 +33,8 @@ export const PaymentAlerts = () => {
       .find(p => p.id === pagoId);
       
     if (pago) {
-      marcarComoPagado(pago);
+      // Cast to the appropriate type
+      marcarComoPagado(pago as Pago);
     }
   };
 
@@ -47,7 +49,8 @@ export const PaymentAlerts = () => {
       .find(p => p.id === pagoToDelete);
       
     if (pago) {
-      eliminarPago(pago);
+      // Cast to the appropriate type
+      eliminarPago(pago as Pago);
       setPagoToDelete(null);
     }
   };
@@ -96,13 +99,20 @@ export const PaymentAlerts = () => {
             {dashboardStats?.pagosAtrasados.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <AlertTriangle className="h-4 w-4 mr-1 text-destructive" /> Pagos Atrasados
+                  <AlertTriangle className="h-4 w-4 mr-1 text-destructive" /> Pagos Vencidos
                 </h3>
+                <Alert variant="destructive" className="mb-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Atención</AlertTitle>
+                  <AlertDescription>
+                    Hay {dashboardStats.pagosAtrasados.length} pagos que ya vencieron y necesitan atención.
+                  </AlertDescription>
+                </Alert>
                 <div className="space-y-2">
                   {dashboardStats.pagosAtrasados.map((pago) => (
                     <div 
                       key={pago.id} 
-                      className="rounded-md border p-3 text-sm flex flex-col md:flex-row md:items-center justify-between"
+                      className="rounded-md border p-3 text-sm flex flex-col md:flex-row md:items-center justify-between bg-destructive/5"
                     >
                       <div>
                         <div className="font-medium">
