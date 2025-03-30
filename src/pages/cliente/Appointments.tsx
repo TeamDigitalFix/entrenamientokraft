@@ -120,7 +120,7 @@ const ClientAppointments = () => {
                             <div className="py-2">
                               <h4 className="text-sm font-medium mb-2">Entrenador:</h4>
                               <p className="text-sm text-muted-foreground">
-                                {appointment.entrenador?.nombre || "Sin asignar"}
+                                {appointment.entrenador_nombre || "Sin asignar"}
                               </p>
                             </div>
                           </DialogContent>
@@ -304,7 +304,7 @@ const ClientAppointments = () => {
                           <div className="py-2">
                             <h4 className="text-sm font-medium mb-2">Entrenador:</h4>
                             <p className="text-sm text-muted-foreground">
-                              {appointment.entrenador?.nombre || "Sin asignar"}
+                              {appointment.entrenador_nombre || "Sin asignar"}
                             </p>
                           </div>
                           <div className="py-2">

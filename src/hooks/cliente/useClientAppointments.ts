@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, isToday, parseISO, startOfDay, endOfDay, isAfter, isBefore, addDays, isYesterday } from "date-fns";
 import { es } from "date-fns/locale";
 import { useAuth } from "@/hooks/useAuth";
-import { Dialog } from "@/components/ui/dialog";
 
 export type ClientAppointment = {
   id: string;
@@ -15,9 +14,7 @@ export type ClientAppointment = {
   duracion: number;
   entrenador_id: string;
   estado: "programada" | "completada" | "cancelada";
-  entrenador?: {
-    nombre: string;
-  };
+  entrenador_nombre?: string;
   formattedDate?: string;
 };
 
@@ -45,14 +42,10 @@ export const useClientAppointments = () => {
     try {
       console.log("Buscando citas para cliente:", user.id);
       
+      // Primero, obtener las citas
       const { data: appointmentsData, error } = await supabase
         .from("citas")
-        .select(`
-          *,
-          usuarios!citas_entrenador_id_fkey (
-            nombre
-          )
-        `)
+        .select("*")
         .eq("cliente_id", user.id)
         .order("fecha", { ascending: true });
 
@@ -63,16 +56,31 @@ export const useClientAppointments = () => {
 
       console.log("Citas obtenidas:", appointmentsData);
 
-      // Procesamos las citas obtenidas
-      const processedAppointments = appointmentsData.map(appointment => {
-        return {
-          ...appointment,
-          entrenador: appointment.usuarios ? { 
-            nombre: appointment.usuarios.nombre 
-          } : undefined,
-          formattedDate: formatAppointmentDate(parseISO(appointment.fecha))
-        } as ClientAppointment;
-      });
+      // Para cada cita, obtener el nombre del entrenador
+      const processedAppointments = await Promise.all(
+        appointmentsData.map(async (appointment) => {
+          let entrenador_nombre = "Desconocido";
+          
+          // Obtener nombre del entrenador desde la tabla usuarios
+          if (appointment.entrenador_id) {
+            const { data: entrenadorData, error: entrenadorError } = await supabase
+              .from("usuarios")
+              .select("nombre")
+              .eq("id", appointment.entrenador_id)
+              .single();
+            
+            if (!entrenadorError && entrenadorData) {
+              entrenador_nombre = entrenadorData.nombre;
+            }
+          }
+          
+          return {
+            ...appointment,
+            entrenador_nombre,
+            formattedDate: formatAppointmentDate(parseISO(appointment.fecha))
+          } as ClientAppointment;
+        })
+      );
 
       // Separamos en citas próximas y pasadas
       const now = new Date();
