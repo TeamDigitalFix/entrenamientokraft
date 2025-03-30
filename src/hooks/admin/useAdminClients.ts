@@ -101,7 +101,7 @@ export const useAdminClients = (
       // Add pagination
       query = query.range(from, to);
 
-      const { data, error, count } = await query;
+      const { data, error } = await query;
 
       if (error) {
         toast.error(`Error al obtener clientes: ${error.message}`);
@@ -115,11 +115,20 @@ export const useAdminClients = (
       }));
 
       // Get total count for pagination
-      const { count: totalCount, error: countError } = await supabase
+      let countQuery = supabase
         .from("usuarios")
         .select("id", { count: 'exact', head: true })
-        .eq("role", "cliente")
-        .eq("eliminado", showDeleted ? null : false);
+        .eq("role", "cliente");
+
+      if (!showDeleted) {
+        countQuery = countQuery.eq("eliminado", false);
+      }
+
+      if (searchTerm) {
+        countQuery = countQuery.or(`nombre.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
+      }
+
+      const { count: totalCount, error: countError } = await countQuery;
 
       if (countError) {
         toast.error(`Error al obtener conteo de clientes: ${countError.message}`);
@@ -285,7 +294,7 @@ export const useAdminClients = (
 
   return {
     clients: data?.clients || [],
-    totalCount: data?.totalCount || 0,
+    totalItems: data?.totalCount || 0,
     isLoading,
     refetch,
     trainers,

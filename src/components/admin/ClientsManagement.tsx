@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Plus, Search, UserX, RefreshCw } from "lucide-react";
+import { Pencil, Plus, Search, UserX, RefreshCw, Trash } from "lucide-react";
 
 interface ClientsManagementProps {
   clients: AdminClientData[];
@@ -25,6 +25,7 @@ interface ClientsManagementProps {
   searchTerm: string;
   page: number;
   pageSize: number;
+  totalItems: number;
   showDeleted: boolean;
   setSearchTerm: (value: string) => void;
   setPage: (page: number) => void;
@@ -51,6 +52,7 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
   searchTerm,
   page,
   pageSize,
+  totalItems,
   showDeleted,
   setSearchTerm,
   setPage,
@@ -107,7 +109,10 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
               checked={showDeleted}
               onCheckedChange={setShowDeleted}
             />
-            <Label htmlFor="show-deleted">Mostrar eliminados</Label>
+            <Label htmlFor="show-deleted" className="flex items-center">
+              <Trash className="h-4 w-4 mr-1" />
+              Mostrar eliminados
+            </Label>
           </div>
           <Button onClick={() => setShowNewClientDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -121,7 +126,7 @@ export const ClientsManagement: React.FC<ClientsManagementProps> = ({
         isLoading={isLoading}
         page={page}
         pageSize={pageSize}
-        totalItems={clients.length}
+        totalItems={totalItems}
         setPage={setPage}
         onEdit={handleEdit}
         onDelete={handleDelete}
