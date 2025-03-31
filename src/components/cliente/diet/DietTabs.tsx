@@ -11,7 +11,7 @@ interface DietTabsProps {
   availableDays: string[];
   mealsByDay: Record<string, ClientMeal[]>;
   isToggling: boolean;
-  clientId: string; // Add clientId prop
+  clientId: string;
 }
 
 const DietTabs: React.FC<DietTabsProps> = ({ 
@@ -46,7 +46,7 @@ const DietTabs: React.FC<DietTabsProps> = ({
           <DietDayContent 
             meals={mealsByDay[day] || []} 
             isToggling={isToggling} 
-            clientId={clientId} // Pass the clientId
+            clientId={clientId}
           />
         </TabsContent>
       ))}

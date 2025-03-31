@@ -18,7 +18,7 @@ interface MealTypeCardProps {
   mealType: string;
   meals: ClientMeal[];
   isToggling: boolean;
-  clientId: string; // Add clientId prop
+  clientId: string;
 }
 
 // Calculate total macros for a meal type
@@ -52,7 +52,7 @@ const MealTypeCard: React.FC<MealTypeCardProps> = ({ mealType, meals, isToggling
     toggleMealCompletion({
       dietMealIds: mealIds,
       completed: !isCompleted,
-      clientId // Pass the clientId
+      clientId
     });
   };
   

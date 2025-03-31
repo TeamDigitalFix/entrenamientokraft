@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -234,25 +235,49 @@ export const useClientDiet = (clientId?: string) => {
           };
         });
 
-        clientDiet.meals = availableDays.flatMap(day => {
-          return mealsByDay[day].map(meal => {
-            return {
-              id: meal.id,
-              foodName: meal.type,
-              foodCategory: meal.type,
-              quantity: 1,
-              calories: 0,
-              protein: 0,
-              carbs: 0,
-              fat: 0,
-              imageUrl: '',
-              mealType: meal.type,
-              completed: meal.completed
-            };
+        // Convert the meals structure to ClientMeal[] format for mealsByDay
+        const formattedMealsByDay: Record<string, ClientMeal[]> = {};
+        
+        Object.keys(mealsByDay).forEach(day => {
+          formattedMealsByDay[day] = [];
+          
+          Object.values(mealsByDay[day]).forEach(meal => {
+            // Calculate total nutrients for the meal
+            let mealCalories = 0;
+            let mealProtein = 0;
+            let mealCarbs = 0;
+            let mealFat = 0;
+            
+            meal.foods.forEach(food => {
+              mealCalories += (food.calories * food.quantity) / 100;
+              mealProtein += (food.protein * food.quantity) / 100;
+              mealCarbs += (food.carbs * food.quantity) / 100;
+              mealFat += (food.fat * food.quantity) / 100;
+            });
+            
+            // For each food in the meal, create a ClientMeal entry
+            meal.foods.forEach(food => {
+              formattedMealsByDay[day].push({
+                id: food.dietMealId,
+                foodName: food.name,
+                foodCategory: food.category,
+                quantity: food.quantity,
+                calories: Math.round((food.calories * food.quantity) / 100),
+                protein: Math.round((food.protein * food.quantity) / 100),
+                carbs: Math.round((food.carbs * food.quantity) / 100),
+                fat: Math.round((food.fat * food.quantity) / 100),
+                imageUrl: food.imageUrl,
+                mealType: meal.type,
+                completed: meal.completed
+              });
+            });
           });
         });
-
-        clientDiet.mealsByDay = mealsByDay;
+        
+        clientDiet.mealsByDay = formattedMealsByDay;
+        
+        // Convert to a flat list of meals for the legacy format
+        clientDiet.meals = Object.values(formattedMealsByDay).flat();
 
         return clientDiet;
       } catch (error) {
@@ -300,6 +325,7 @@ export const useClientDiet = (clientId?: string) => {
     setActiveDay,
     availableDays,
     handleToggleMeal,
-    isToggling
+    isToggling,
+    clientId
   };
 };

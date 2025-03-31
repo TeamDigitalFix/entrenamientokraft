@@ -7,7 +7,7 @@ import MealTypeCard from "./MealTypeCard";
 interface DietDayContentProps {
   meals: ClientMeal[];
   isToggling: boolean;
-  clientId: string; // Add clientId prop
+  clientId: string;
 }
 
 // Group meals by type
@@ -46,7 +46,7 @@ const DietDayContent: React.FC<DietDayContentProps> = ({ meals, isToggling, clie
           mealType={mealType} 
           meals={mealsList} 
           isToggling={isToggling} 
-          clientId={clientId} // Pass the clientId
+          clientId={clientId}
         />
       ))}
     </div>

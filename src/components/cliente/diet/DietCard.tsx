@@ -3,8 +3,7 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Utensils, Loader2 } from "lucide-react";
 import DietTabs from "./DietTabs";
-import { useClientDiet } from "@/hooks/cliente/useClientDiet";
-import { useMealToggle } from "@/hooks/cliente/useMealToggle";
+import { useClientDiet, ClientDietHook } from "@/hooks/cliente/useClientDiet";
 
 interface DietCardProps {
   dietHook: ReturnType<typeof useClientDiet>;
@@ -12,7 +11,6 @@ interface DietCardProps {
 
 const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
   const { diet, isLoading, activeDay, setActiveDay, availableDays, clientId } = dietHook;
-  const { isToggling } = useMealToggle();
 
   return (
     <Card>
@@ -42,7 +40,7 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             setActiveDay={setActiveDay}
             availableDays={availableDays}
             mealsByDay={diet.mealsByDay}
-            isToggling={isToggling}
+            isToggling={dietHook.isToggling}
             clientId={clientId || ''}
           />
         )}
