@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -44,7 +45,7 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 const Reports = () => {
   const [selectedClient, setSelectedClient] = useState<string | undefined>(undefined);
-  const { data: reportes, isLoading, isError } = useReportes(selectedClient);
+  const { clientsList, isLoading } = useReportes(selectedClient);
 
   const handleClientChange = (clientId: string) => {
     setSelectedClient(clientId);
@@ -52,10 +53,6 @@ const Reports = () => {
 
   if (isLoading) {
     return <DashboardLayout><Skeleton className="w-[200px] h-[40px]" /></DashboardLayout>;
-  }
-
-  if (isError) {
-    return <DashboardLayout>Error al cargar los reportes.</DashboardLayout>;
   }
 
   return (
@@ -66,11 +63,11 @@ const Reports = () => {
           <CardDescription>Selecciona un cliente para ver sus informes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <ClientSelect onChange={handleClientChange} />
-          {selectedClient && reportes ? (
-            <ReportContent reportes={reportes} />
+          <ClientSelect onChange={handleClientChange} clientsList={clientsList} />
+          {selectedClient ? (
+            <ReportContent clientId={selectedClient} />
           ) : (
-            <p>Selecciona un cliente para ver sus informes.</p>
+            <p className="mt-4 text-center text-muted-foreground">Selecciona un cliente para ver sus informes.</p>
           )}
         </CardContent>
       </Card>
@@ -80,17 +77,12 @@ const Reports = () => {
 
 interface ClientSelectProps {
   onChange: (clientId: string) => void;
+  clientsList: any[];
 }
 
-const ClientSelect: React.FC<ClientSelectProps> = ({ onChange }) => {
-  const { data: clientes, isLoading, isError } = useReportes();
-
-  if (isLoading) {
-    return <Skeleton className="w-[200px] h-[40px]" />;
-  }
-
-  if (isError) {
-    return <p>Error al cargar la lista de clientes.</p>;
+const ClientSelect: React.FC<ClientSelectProps> = ({ onChange, clientsList }) => {
+  if (clientsList.length === 0) {
+    return <p>No hay clientes disponibles.</p>;
   }
 
   return (
@@ -99,9 +91,9 @@ const ClientSelect: React.FC<ClientSelectProps> = ({ onChange }) => {
         <SelectValue placeholder="Selecciona un cliente" />
       </SelectTrigger>
       <SelectContent>
-        {clientes && clientes.map((cliente) => (
+        {clientsList.map((cliente) => (
           <SelectItem key={cliente.id} value={cliente.id}>
-            {cliente.name}
+            {cliente.nombre}
           </SelectItem>
         ))}
       </SelectContent>
@@ -110,10 +102,10 @@ const ClientSelect: React.FC<ClientSelectProps> = ({ onChange }) => {
 };
 
 interface ReportContentProps {
-  reportes: any;
+  clientId: string;
 }
 
-const ReportContent: React.FC<ReportContentProps> = ({ reportes }) => {
+const ReportContent: React.FC<ReportContentProps> = ({ clientId }) => {
   return (
     <Tabs defaultValue="overview" className="w-full mt-4">
       <TabsList>
@@ -135,26 +127,31 @@ const ReportContent: React.FC<ReportContentProps> = ({ reportes }) => {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="overview" className="space-y-4">
-        <OverviewTab reportes={reportes} />
+        <OverviewTab clientId={clientId} />
       </TabsContent>
       <TabsContent value="progress" className="space-y-4">
-        <ProgressTab reportes={reportes} />
+        <ProgressTab clientId={clientId} />
       </TabsContent>
       <TabsContent value="diet" className="space-y-4">
-        <DietTab reportes={reportes} />
+        <DietTab clientId={clientId} />
       </TabsContent>
       <TabsContent value="routine" className="space-y-4">
-        <RoutineTab reportes={reportes} />
+        <RoutineTab clientId={clientId} />
       </TabsContent>
     </Tabs>
   );
 };
 
 interface OverviewTabProps {
-  reportes: any;
+  clientId: string;
 }
 
-const OverviewTab: React.FC<OverviewTabProps> = ({ reportes }) => {
+const OverviewTab: React.FC<OverviewTabProps> = ({ clientId }) => {
+  const { clients } = useClients();
+  const client = clients.find(c => c.id === clientId);
+  const { data: measurementData } = useProgress(clientId);
+  const latestMeasurement = measurementData?.measurements?.[0];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <Card>
@@ -162,9 +159,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ reportes }) => {
           <CardTitle>Información del Cliente</CardTitle>
         </CardHeader>
         <CardContent>
-          <p><strong>Nombre:</strong> {reportes.client.name}</p>
-          <p><strong>Email:</strong> {reportes.client.email}</p>
-          {/* Add more client info here */}
+          <p><strong>Nombre:</strong> {client?.nombre || 'N/A'}</p>
+          <p><strong>Email:</strong> {client?.email || 'N/A'}</p>
+          <p><strong>Teléfono:</strong> {client?.telefono || 'N/A'}</p>
         </CardContent>
       </Card>
       <Card>
@@ -172,9 +169,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ reportes }) => {
           <CardTitle>Resumen de Progreso</CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Display progress summary here */}
-          <p>Peso actual: {reportes.latestMeasurement?.weight || 'N/A'}</p>
-          {/* Add more progress info here */}
+          <p><strong>Peso actual:</strong> {latestMeasurement?.weight || 'N/A'} kg</p>
+          <p><strong>Grasa corporal:</strong> {latestMeasurement?.bodyFat || 'N/A'}%</p>
+          <p><strong>Masa muscular:</strong> {latestMeasurement?.muscleMass || 'N/A'} kg</p>
         </CardContent>
       </Card>
     </div>
@@ -182,46 +179,168 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ reportes }) => {
 };
 
 interface ProgressTabProps {
-  reportes: any;
+  clientId: string;
 }
 
-const ProgressTab: React.FC<ProgressTabProps> = ({ reportes }) => {
+const ProgressTab: React.FC<ProgressTabProps> = ({ clientId }) => {
+  const { 
+    data: measurementData, 
+    isLoading: isProgressLoading 
+  } = useProgress(clientId);
+
+  if (isProgressLoading) {
+    return <Skeleton className="w-full h-[300px]" />;
+  }
+
+  if (!measurementData?.measurements || measurementData.measurements.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Scale className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">No hay datos de progreso disponibles para este cliente</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h2>Progreso</h2>
-      {/* Display charts and tables related to progress */}
-      <p>Aquí se mostrará información detallada sobre el progreso del cliente.</p>
+    <div className="space-y-6">
+      <ProgressChart measurements={measurementData.measurements} />
+      <MeasurementTable measurements={measurementData.measurements} />
     </div>
   );
 };
 
 interface DietTabProps {
-  reportes: any;
+  clientId: string;
 }
 
-const DietTab: React.FC<DietTabProps> = ({ reportes }) => {
+const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
+  const { 
+    dietData, 
+    isLoading: isDietLoading,
+    isToggling
+  } = useClientDiet(clientId);
+
+  if (isDietLoading) {
+    return <Skeleton className="w-full h-[300px]" />;
+  }
+
+  if (!dietData || !dietData.diet) {
+    return (
+      <div className="text-center py-8">
+        <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">No hay dieta asignada para este cliente</p>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h2>Dieta</h2>
-      {/* Display diet information */}
-      <p>Aquí se mostrará información detallada sobre la dieta del cliente.</p>
-    </div>
+    <DietCard 
+      diet={dietData.diet} 
+      isLoading={isDietLoading} 
+      activeDay={dietData.activeDay}
+      setActiveDay={dietData.setActiveDay}
+      availableDays={dietData.availableDays}
+      handleToggleMeal={dietData.handleToggleMeal}
+      isToggling={isToggling}
+      clientId={clientId}
+    />
   );
 };
 
 interface RoutineTabProps {
-  reportes: any;
+  clientId: string;
 }
 
-const RoutineTab: React.FC<RoutineTabProps> = ({ reportes }) => {
+const RoutineTab: React.FC<RoutineTabProps> = ({ clientId }) => {
+  const { 
+    routineData, 
+    isLoading: isRoutineLoading 
+  } = useClientRoutine(clientId);
+
+  if (isRoutineLoading) {
+    return <Skeleton className="w-full h-[300px]" />;
+  }
+
+  if (!routineData || !routineData.routine) {
+    return (
+      <div className="text-center py-8">
+        <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+        <p className="text-muted-foreground">No hay rutina asignada para este cliente</p>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h2>Rutina</h2>
-      {/* Display routine information */}
-      <p>Aquí se mostrará información detallada sobre la rutina del cliente.</p>
+      <h2 className="text-2xl font-bold mb-4">{routineData.routine.name}</h2>
+      <p className="mb-6">{routineData.routine.description}</p>
+      
+      <Accordion type="single" collapsible className="w-full">
+        {routineData.weekdays.map((day) => (
+          <AccordionItem key={day} value={day}>
+            <AccordionTrigger className="text-lg font-medium">
+              {day}
+              {routineData.exercisesByDay[day]?.length > 0 && (
+                <Badge variant="outline" className="ml-2">
+                  {routineData.exercisesByDay[day].length} ejercicios
+                </Badge>
+              )}
+            </AccordionTrigger>
+            <AccordionContent>
+              {routineData.exercisesByDay[day]?.length > 0 ? (
+                <div className="space-y-4">
+                  {routineData.exercisesByDay[day].map((exercise) => (
+                    <Card key={exercise.id} className="overflow-hidden">
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        {exercise.exercise.imageUrl && (
+                          <div className="md:col-span-1">
+                            <AspectRatio ratio={1 / 1}>
+                              <img
+                                src={exercise.exercise.imageUrl}
+                                alt={exercise.exercise.name}
+                                className="rounded-l object-cover h-full w-full"
+                              />
+                            </AspectRatio>
+                          </div>
+                        )}
+                        <div className={`p-4 ${exercise.exercise.imageUrl ? 'md:col-span-4' : 'md:col-span-5'}`}>
+                          <h3 className="text-lg font-semibold">{exercise.exercise.name}</h3>
+                          <p className="text-sm text-muted-foreground">{exercise.exercise.muscleGroup}</p>
+                          <div className="mt-2 grid grid-cols-3 gap-2">
+                            <div>
+                              <span className="text-xs text-muted-foreground">Series</span>
+                              <p className="font-medium">{exercise.sets}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-muted-foreground">Repeticiones</span>
+                              <p className="font-medium">{exercise.reps}</p>
+                            </div>
+                            <div>
+                              <span className="text-xs text-muted-foreground">Peso</span>
+                              <p className="font-medium">{exercise.weight || 'N/A'} kg</p>
+                            </div>
+                          </div>
+                          {exercise.notes && (
+                            <p className="mt-2 text-sm italic">{exercise.notes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground">No hay ejercicios programados para este día</p>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </div>
   );
 };
+
+// Import useClients hook
+import { useClients } from "@/hooks/entrenador/useClients";
 
 // Export both as default and named export to ensure compatibility
 export { Reports };
