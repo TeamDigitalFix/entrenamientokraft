@@ -112,8 +112,8 @@ const Dashboard: React.FC = () => {
             </TabsList>
 
             <TabsContent value="resumen" className="space-y-4">
-              <DashboardStats data={stats} isLoading={isLoadingStats} />
-              <RecentActivity data={activity} isLoading={isLoadingActivity} />
+              <DashboardStats stats={stats} isLoading={isLoadingStats} />
+              <RecentActivity activity={activity} isLoading={isLoadingActivity} />
             </TabsContent>
 
             <TabsContent value="entrenadores">
@@ -157,7 +157,7 @@ const Dashboard: React.FC = () => {
                 setSearchTerm={setSearchTerm}
                 page={page}
                 pageSize={10}
-                setPage={(newPage) => setPage(newPage)}
+                setPage={setPage}
                 totalItems={totalItems}
                 showDeleted={showDeleted}
                 setShowDeleted={setShowDeleted}
@@ -185,8 +185,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       <ResetDataDialog
-        open={showResetDialog}
-        onOpenChange={(open) => setShowResetDialog(open)}
+        onResetComplete={() => setShowResetDialog(false)}
       />
     </DashboardLayout>
   );
