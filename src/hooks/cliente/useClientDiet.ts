@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,20 @@ export type FoodItem = {
   quantity: number;
   imageUrl?: string;
   category: string;
+};
+
+export type ClientMeal = {
+  id: string;
+  foodName: string;
+  foodCategory: string;
+  quantity: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  imageUrl?: string;
+  mealType: string;
+  completed: boolean;
 };
 
 export type Meal = {
@@ -42,6 +55,19 @@ export type ClientDiet = {
   startDate: string;
   endDate?: string;
   days: DietDay[];
+  meals: ClientMeal[];
+  mealsByDay: Record<string, ClientMeal[]>;
+};
+
+export type ClientDietHook = {
+  diet: ClientDiet | null;
+  isLoading: boolean;
+  activeDay: string;
+  setActiveDay: (day: string) => void;
+  availableDays: string[];
+  handleToggleMeal: (mealId: string, foods: FoodItem[], isCompleted: boolean) => Promise<void>;
+  isToggling: boolean;
+  clientId?: string;
 };
 
 export const useClientDiet = (clientId?: string) => {
@@ -50,17 +76,14 @@ export const useClientDiet = (clientId?: string) => {
   const [availableDays] = useState<string[]>(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
   const { toggleMealCompletion, isToggling } = useMealToggle();
 
-  // Consulta para obtener la dieta del cliente
   const { data: diet, isLoading, refetch } = useQuery({
     queryKey: ['clientDiet', clientId || user?.id],
     queryFn: async () => {
       try {
-        // Si se proporciona un clientId, usamos ese, de lo contrario usamos el user.id actual
         const targetUserId = clientId || user?.id;
         
         if (!targetUserId) return null;
 
-        // Obtener la dieta activa del cliente
         const { data: dieta, error: dietaError } = await supabase
           .from('dietas')
           .select(`
@@ -84,7 +107,6 @@ export const useClientDiet = (clientId?: string) => {
 
         if (!dieta) return null;
 
-        // Obtener las comidas de la dieta
         const { data: comidas, error: comidasError } = await supabase
           .from('dieta_comidas')
           .select(`
@@ -110,7 +132,6 @@ export const useClientDiet = (clientId?: string) => {
           throw comidasError;
         }
 
-        // Obtener las comidas completadas hoy
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -124,31 +145,28 @@ export const useClientDiet = (clientId?: string) => {
           console.error("Error al obtener comidas completadas:", completadasError);
         }
 
-        // Map de comidas completadas para verificación rápida
         const completadasMap = new Map();
         completadas?.forEach(item => {
           completadasMap.set(item.dieta_comida_id, true);
         });
 
-        // Convertir los datos al formato necesario para el cliente
         const clientDiet: ClientDiet = {
           id: dieta.id,
           name: dieta.nombre,
           description: dieta.descripcion,
           startDate: dieta.fecha_inicio,
           endDate: dieta.fecha_fin,
-          days: []
+          days: [],
+          meals: [],
+          mealsByDay: {}
         };
 
-        // Agrupar las comidas por día
         const mealsByDay: Record<string, Record<string, Meal>> = {};
 
-        // Inicializar los días de la semana
         availableDays.forEach(day => {
           mealsByDay[day] = {};
         });
 
-        // Procesar las comidas de la dieta
         comidas?.forEach((comida: any) => {
           if (!comida.alimentos) return;
           
@@ -165,9 +183,7 @@ export const useClientDiet = (clientId?: string) => {
             category: comida.alimentos.categoria
           };
           
-          // Organizar por día y tipo de comida
           if (comida.dia) {
-            // Capitalize first letter of day
             const day = comida.dia.charAt(0).toUpperCase() + comida.dia.slice(1).toLowerCase();
             
             if (!mealsByDay[day]) {
@@ -185,18 +201,15 @@ export const useClientDiet = (clientId?: string) => {
             
             mealsByDay[day][comida.tipo_comida].foods.push(food);
             
-            // Marcar como completada si todas las comidas de este tipo están completadas
             if (completadasMap.has(comida.id)) {
               mealsByDay[day][comida.tipo_comida].completed = true;
             }
           }
         });
 
-        // Convertir a array de días
         clientDiet.days = availableDays.map(day => {
           const meals = Object.values(mealsByDay[day] || {});
           
-          // Calcular totales para el día
           let totalCalories = 0;
           let totalProtein = 0;
           let totalCarbs = 0;
@@ -221,6 +234,26 @@ export const useClientDiet = (clientId?: string) => {
           };
         });
 
+        clientDiet.meals = availableDays.flatMap(day => {
+          return mealsByDay[day].map(meal => {
+            return {
+              id: meal.id,
+              foodName: meal.type,
+              foodCategory: meal.type,
+              quantity: 1,
+              calories: 0,
+              protein: 0,
+              carbs: 0,
+              fat: 0,
+              imageUrl: '',
+              mealType: meal.type,
+              completed: meal.completed
+            };
+          });
+        });
+
+        clientDiet.mealsByDay = mealsByDay;
+
         return clientDiet;
       } catch (error) {
         console.error("Error al cargar la dieta:", error);
@@ -231,32 +264,25 @@ export const useClientDiet = (clientId?: string) => {
     enabled: !!(clientId || user?.id),
   });
 
-  // Manejador para marcar/desmarcar comidas como completadas
   const handleToggleMeal = async (mealId: string, foods: FoodItem[], isCompleted: boolean) => {
     try {
-      // Realizar la acción solo si la dieta está cargada
       if (!diet) return;
       
-      // Obtener todos los ids de comidas para este tipo de comida
       const dietMealIds = foods.map(food => food.dietMealId);
       
-      // Usar el hook de toggle para marcar/desmarcar comidas
       await toggleMealCompletion({
         dietMealIds, 
         completed: !isCompleted,
-        clientId: clientId // Opcional: para cuando el entrenador gestiona comidas de un cliente
+        clientId: clientId
       });
       
-      // Refrescar los datos
       await refetch();
-      
     } catch (error) {
       console.error("Error al cambiar estado de comida:", error);
       toast.error("No se pudo actualizar el estado de la comida");
     }
   };
 
-  // Set the active day to the first day that has meals
   useEffect(() => {
     if (diet && diet.days) {
       const daysWithMeals = diet.days.filter(day => day.meals.length > 0);

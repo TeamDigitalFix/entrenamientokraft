@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,6 +24,13 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { NewMeasurement } from "@/types/progress";
+import { 
+  ResponsiveContainer, BarChart as RechartsBarChart, Line, LineChart as RechartsLineChart,
+  PieChart as RechartsPieChart, Pie, Cell, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Bar
+} from "recharts";
+
+// Define colors for the charts
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 const extractYouTubeVideoId = (url: string): string | null => {
   if (!url) return null;
@@ -73,7 +81,7 @@ const TrainerReports = () => {
 
   const handleAddMeasurement = (data: NewMeasurement) => {
     if (selectedClient !== "all") {
-      progressHook.addMeasurement({...data, clienteId: selectedClient});
+      progressHook.addMeasurement({...data, clientId: selectedClient}); // Changed clienteId to clientId
       setIsDialogOpen(false);
     }
   };

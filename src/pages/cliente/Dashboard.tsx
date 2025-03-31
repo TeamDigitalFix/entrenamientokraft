@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,17 +43,10 @@ const ClientDashboard = () => {
     toggleExerciseCompletion({ exerciseId: id, completed: currentStatus });
   };
 
-  const handleMealToggle = (id: string, currentStatus: boolean) => {
-    if (!clientId) return;
-    
-    setLocalMeals(prev => prev.map(meal => 
-      meal.id === id ? {...meal, completed: !currentStatus} : meal
-    ));
-    
-    toggleMealCompletion({ 
-      mealId: id, 
-      completed: currentStatus,
-      clientId: clientId
+  const handleToggleMeal = (mealId: string, completed: boolean) => {
+    toggleMealCompletion({
+      dietMealIds: [mealId],
+      completed: !completed
     });
   };
 
@@ -183,7 +175,7 @@ const ClientDashboard = () => {
                         variant={meal.completed ? "default" : "outline"}
                         className={`${meal.completed ? "bg-green-500 hover:bg-green-600" : ""}`}
                         size="sm"
-                        onClick={() => handleMealToggle(meal.id, meal.completed)}
+                        onClick={() => handleToggleMeal(meal.id, meal.completed)}
                         disabled={isTogglingMeal}
                       >
                         {meal.completed ? "Completado" : "Marcar"}

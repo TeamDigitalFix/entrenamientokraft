@@ -42,16 +42,16 @@ const areMealsCompleted = (meals: ClientMeal[]): boolean => {
 };
 
 const MealTypeCard: React.FC<MealTypeCardProps> = ({ mealType, meals, isToggling, clientId }) => {
-  const { toggleMealTypeCompletion } = useMealToggle();
+  const { toggleMealCompletion } = useMealToggle();
   const isCompleted = areMealsCompleted(meals);
   const macros = calculateMealTypeMacros(meals);
   
   // Handler for marking/unmarking a meal type as complete
   const handleToggleMealType = () => {
     const mealIds = meals.map(meal => meal.id);
-    toggleMealTypeCompletion({
-      mealIds,
-      completed: isCompleted,
+    toggleMealCompletion({
+      dietMealIds: mealIds,
+      completed: !isCompleted,
       clientId // Pass the clientId
     });
   };

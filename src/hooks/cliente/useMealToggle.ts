@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 
-type ToggleMealParams = {
+export type ToggleMealParams = {
   dietMealIds: string[];
   completed: boolean;
-  clientId?: string; // Nuevo parámetro opcional para cuando el entrenador gestiona comidas de un cliente
+  clientId?: string; // Optional parameter for when trainer manages a client's meals
 };
 
 export const useMealToggle = () => {
@@ -15,10 +15,10 @@ export const useMealToggle = () => {
 
   const toggleMealMutation = useMutation({
     mutationFn: async ({ dietMealIds, completed, clientId }: ToggleMealParams) => {
-      // Si no hay comidas para cambiar, retornar
+      // If no meals to change, return
       if (!dietMealIds.length) return;
       
-      // Si se proporciona un clientId, usamos ese, de lo contrario usamos el user.id actual
+      // If clientId is provided, use that, otherwise use current user.id
       const targetUserId = clientId || user?.id;
       
       if (!targetUserId) {
@@ -26,7 +26,7 @@ export const useMealToggle = () => {
       }
 
       if (completed) {
-        // Marcar como completado: Insertar registros en comidas_completadas
+        // Mark as completed: Insert records in comidas_completadas
         const inserts = dietMealIds.map(mealId => ({
           dieta_comida_id: mealId,
           cliente_id: targetUserId
@@ -38,7 +38,7 @@ export const useMealToggle = () => {
 
         if (error) throw error;
       } else {
-        // Marcar como no completado: Eliminar registros de comidas_completadas
+        // Mark as not completed: Delete records from comidas_completadas
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -67,6 +67,7 @@ export const useMealToggle = () => {
 
   return {
     toggleMealCompletion: toggleMealMutation.mutate,
+    toggleMealTypeCompletion: toggleMealMutation.mutate, // Alias for toggleMealCompletion to match expected API
     isToggling: toggleMealMutation.isPending
   };
 };

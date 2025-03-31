@@ -29,7 +29,7 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Cargando dieta...</span>
           </div>
-        ) : !diet || diet.meals.length === 0 ? (
+        ) : !diet || (diet.meals && diet.meals.length === 0) ? (
           <div className="text-center py-8">
             <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">
@@ -41,9 +41,9 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             activeDay={activeDay}
             setActiveDay={setActiveDay}
             availableDays={availableDays}
-            mealsByDay={diet.mealsByDay}
+            mealsByDay={diet.mealsByDay || {}}
             isToggling={isToggling}
-            clientId={clientId} // Pass the clientId
+            clientId={clientId || ''}
           />
         )}
       </CardContent>
