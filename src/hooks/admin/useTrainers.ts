@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,8 +244,19 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
     if (!trainerToPermanentDelete) return;
     
     try {
+      // Use direct function call instead of rpc
       const { error } = await supabase
-        .rpc('delete_trainer_cascade', { trainer_id: trainerToPermanentDelete.id });
+        .from('usuarios')
+        .select()
+        .eq('id', trainerToPermanentDelete.id)
+        .then(async ({ error: selectError }) => {
+          if (selectError) throw selectError;
+          
+          // Call the function directly
+          return await supabase.functions.invoke('delete-trainer', {
+            body: { trainer_id: trainerToPermanentDelete.id }
+          });
+        });
       
       if (error) throw error;
       
