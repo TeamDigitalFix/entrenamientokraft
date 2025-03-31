@@ -3,11 +3,11 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Utensils, Loader2 } from "lucide-react";
 import DietTabs from "./DietTabs";
-import { ClientDietHook } from "@/hooks/cliente/useClientDiet";
+import { useClientDiet } from "@/hooks/cliente/useClientDiet";
 import { useMealToggle } from "@/hooks/cliente/useMealToggle";
 
 interface DietCardProps {
-  dietHook: ClientDietHook;
+  dietHook: ReturnType<typeof useClientDiet>;
 }
 
 const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
@@ -29,7 +29,7 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             <span className="ml-2 text-muted-foreground">Cargando dieta...</span>
           </div>
-        ) : !diet || (diet.meals && diet.meals.length === 0) ? (
+        ) : !diet || !diet.mealsByDay || Object.keys(diet.mealsByDay).length === 0 ? (
           <div className="text-center py-8">
             <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">
@@ -41,7 +41,7 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             activeDay={activeDay}
             setActiveDay={setActiveDay}
             availableDays={availableDays}
-            mealsByDay={diet.mealsByDay || {}}
+            mealsByDay={diet.mealsByDay}
             isToggling={isToggling}
             clientId={clientId || ''}
           />
