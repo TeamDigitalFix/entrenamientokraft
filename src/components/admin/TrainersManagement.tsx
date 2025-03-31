@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,7 +164,6 @@ export const TrainersManagement = ({
           onRestoreTrainer={restoreTrainer}
         />
         
-        {/* Paginación */}
         <div className="flex items-center justify-end space-x-2 py-4">
           <Button
             variant="outline"
@@ -188,7 +186,6 @@ export const TrainersManagement = ({
         </div>
       </CardContent>
 
-      {/* Diálogo de Edición de Entrenador */}
       <Dialog open={showEditTrainerDialog} onOpenChange={setShowEditTrainerDialog}>
         {editTrainerData && (
           <TrainerForm

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,24 +19,20 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
   const [trainerToPermanentDelete, setTrainerToPermanentDelete] = useState<DeletedTrainer | null>(null);
   const [trainerToRestore, setTrainerToRestore] = useState<DeletedTrainer | null>(null);
 
-  // Consulta de entrenadores
   const { data: trainers, isLoading, refetch } = useQuery({
     queryKey: ['admin-trainers', page, searchTerm, showDeleted],
     queryFn: async () => {
       try {
-        // Consulta básica de entrenadores
         let query = supabase
           .from('usuarios')
           .select('id, username, nombre, email, telefono, creado_en, actualizado_en, eliminado')
           .eq('role', 'entrenador')
           .eq('eliminado', showDeleted);
         
-        // Aplicar búsqueda si hay término
         if (searchTerm) {
           query = query.or(`nombre.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
         }
         
-        // Aplicar paginación
         const from = (page - 1) * pageSize;
         query = query.range(from, from + pageSize - 1);
         
@@ -45,7 +40,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
         
         if (error) throw error;
         
-        // Para cada entrenador, contar sus clientes
         const trainersWithClientCount = await Promise.all(
           (data || []).map(async (trainer) => {
             const { data: clients, error: clientsError } = await supabase
@@ -93,16 +87,13 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
     }
   });
 
-  // Función para crear un nuevo entrenador
   const createTrainer = async () => {
     try {
-      // Validar datos
       if (!newTrainerData.username || !newTrainerData.password || !newTrainerData.name) {
         toast.error("Por favor completa los campos obligatorios");
         return;
       }
       
-      // Verificar si el username ya existe
       const { data: existingUser, error: checkError } = await supabase
         .from('usuarios')
         .select('id')
@@ -116,7 +107,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
         return;
       }
       
-      // Insertar nuevo entrenador
       const { data, error } = await supabase
         .from('usuarios')
         .insert([
@@ -136,7 +126,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
       toast.success("Entrenador creado exitosamente");
       setShowNewTrainerDialog(false);
       
-      // Limpiar formulario
       setNewTrainerData({
         username: "",
         password: "",
@@ -145,7 +134,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
         phone: ""
       });
       
-      // Refrescar datos
       refetch();
     } catch (error) {
       console.error("Error al crear entrenador:", error);
@@ -153,21 +141,17 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
     }
   };
 
-  // Función para actualizar un entrenador
   const updateTrainer = async () => {
     if (!editTrainerData) return;
     
     try {
-      // Construir objeto de actualización
       const updateData: any = {
         nombre: editTrainerData.name,
         email: editTrainerData.email,
         telefono: editTrainerData.phone
       };
 
-      // Si se está cambiando el username, verificar que no exista
       if ('username' in editTrainerData && editTrainerData.username) {
-        // Verificar si el username ya existe para otro usuario
         const { data: existingUser, error: checkError } = await supabase
           .from('usuarios')
           .select('id')
@@ -185,7 +169,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
         updateData.username = editTrainerData.username;
       }
       
-      // Si se está cambiando la contraseña
       if ('password' in editTrainerData && editTrainerData.password) {
         updateData.password = editTrainerData.password;
       }
@@ -207,12 +190,10 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
     }
   };
 
-  // Función para eliminar un entrenador (soft delete)
   const deleteTrainer = async () => {
     if (!trainerToDelete) return;
     
     try {
-      // Primero, reasignar los clientes de este entrenador (ponerlos sin entrenador asignado)
       const { error: updateError } = await supabase
         .from('usuarios')
         .update({ entrenador_id: null })
@@ -220,7 +201,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
       
       if (updateError) throw updateError;
       
-      // Luego, marcar al entrenador como eliminado
       const { error: deleteError } = await supabase
         .from('usuarios')
         .update({ eliminado: true })
@@ -231,7 +211,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
       toast.success("Entrenador movido a la papelera");
       setTrainerToDelete(null);
       
-      // Refrescar datos
       refetch();
     } catch (error) {
       console.error("Error al eliminar entrenador:", error);
@@ -239,7 +218,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
     }
   };
 
-  // Función para restaurar un entrenador eliminado
   const restoreTrainer = async () => {
     if (!trainerToRestore) return;
     
@@ -254,7 +232,6 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
       toast.success("Entrenador restaurado exitosamente");
       setTrainerToRestore(null);
       
-      // Refrescar datos
       refetch();
     } catch (error) {
       console.error("Error al restaurar entrenador:", error);
@@ -262,22 +239,18 @@ export const useTrainers = (page: number, searchTerm: string, showDeleted: boole
     }
   };
 
-  // Función para eliminar permanentemente un entrenador
   const permanentDeleteTrainer = async () => {
     if (!trainerToPermanentDelete) return;
     
     try {
       const { error } = await supabase
-        .from('usuarios')
-        .delete()
-        .eq('id', trainerToPermanentDelete.id);
+        .rpc('delete_trainer_cascade', { trainer_id: trainerToPermanentDelete.id });
       
       if (error) throw error;
       
       toast.success("Entrenador eliminado permanentemente");
       setTrainerToPermanentDelete(null);
       
-      // Refrescar datos
       refetch();
     } catch (error) {
       console.error("Error al eliminar permanentemente entrenador:", error);

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Table, 
@@ -192,13 +191,28 @@ export const TrainersTable = ({
                           <AlertDialogHeader>
                             <AlertDialogTitle>¿Eliminar permanentemente?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Esta acción eliminará permanentemente al entrenador {trainerToPermanentDelete?.name}. 
-                              Esta acción no se puede deshacer.
+                              Esta acción eliminará permanentemente al entrenador {trainerToPermanentDelete?.name} y <strong>TODOS sus datos asociados</strong> incluyendo:
+                              <ul className="list-disc pl-5 mt-2 space-y-1">
+                                <li>Alimentos creados</li>
+                                <li>Planes de pago</li>
+                                <li>Estadísticas y registros de actividad</li>
+                                <li>Citas programadas</li>
+                                <li>Mensajes enviados y recibidos</li>
+                              </ul>
+                              <p className="mt-2">
+                                Los clientes asociados a este entrenador quedarán sin entrenador asignado.
+                              </p>
+                              <p className="mt-2 font-semibold text-destructive">Esta operación NO se puede deshacer.</p>
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={onPermanentDeleteTrainer}>Eliminar permanentemente</AlertDialogAction>
+                            <AlertDialogAction 
+                              onClick={onPermanentDeleteTrainer}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Eliminar permanentemente
+                            </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>

@@ -946,6 +946,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_trainer_cascade: {
+        Args: {
+          trainer_id: string
+        }
+        Returns: undefined
+      }
       insertar_medicion_progreso: {
         Args: {
           p_cliente_id: string
