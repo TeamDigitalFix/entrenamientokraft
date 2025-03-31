@@ -11,11 +11,10 @@ import { Calendar, Clock, ArrowUpRight, MessageSquare, Users } from "lucide-reac
 import { useDashboard } from "@/hooks/entrenador/useDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatCards } from "@/components/entrenador/dashboard/StatCards";
-import { WeeklyActivityChart } from "@/components/entrenador/dashboard/WeeklyActivityChart";
 import { PaymentAlerts } from "@/components/entrenador/dashboard/PaymentAlerts";
 
 const TrainerDashboard = () => {
-  const { dashboardStats, todayAppointments, recentMessages, weeklyActivity, isLoading } = useDashboard();
+  const { dashboardStats, todayAppointments, recentMessages, isLoading } = useDashboard();
 
   return (
     <DashboardLayout allowedRoles={[UserRole.TRAINER]}>
@@ -173,8 +172,6 @@ const TrainerDashboard = () => {
             </CardContent>
           </Card>
         </div>
-        
-        <WeeklyActivityChart isLoading={isLoading} weeklyActivity={weeklyActivity} />
       </div>
     </DashboardLayout>
   );
