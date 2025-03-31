@@ -1,182 +1,271 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { toast } from "sonner";
+import { useMealToggle } from "./useMealToggle";
 
-export type ClientMeal = {
+export type FoodItem = {
   id: string;
-  foodName: string;
-  foodCategory: string;
+  name: string;
+  dietMealId: string;
   calories: number;
   protein: number;
   carbs: number;
   fat: number;
   quantity: number;
-  mealType: string;
-  date: string; // YYYY-MM-DD format or day of week (1-7)
-  completed?: boolean;
-  imageUrl?: string | null;
+  imageUrl?: string;
+  category: string;
+};
+
+export type Meal = {
+  id: string;
+  type: string;
+  foods: FoodItem[];
+  completed: boolean;
+};
+
+export type DietDay = {
+  name: string;
+  meals: Meal[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFat: number;
 };
 
 export type ClientDiet = {
   id: string;
   name: string;
-  description: string | null;
-  startDate: Date;
-  endDate: Date | null;
-  meals: ClientMeal[];
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  days: DietDay[];
 };
 
-export interface ClientDietHook {
-  diet: ClientDiet & { mealsByDay: { [key: string]: ClientMeal[] } } | null;
-  isLoading: boolean;
-  activeDay: string;
-  setActiveDay: (day: string) => void;
-  availableDays: string[];
-  clientId: string; // Add clientId to the return interface
-}
-
-// Mapeo de día numérico a nombre del día
-const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
-// Determinar el día de la semana a partir de la fecha o número de día
-const getDayFromDateOrNumber = (dateOrDay: string): string => {
-  // Si es un número del 1-7, convertirlo a nombre del día
-  if (/^[1-7]$/.test(dateOrDay)) {
-    return dayNames[parseInt(dateOrDay) - 1];
-  }
-  
-  // Si es una fecha en formato YYYY-MM-DD, obtener el día de la semana
-  try {
-    if (dateOrDay.includes("-")) {
-      const dayNumber = parseInt(format(parseISO(dateOrDay), "i", { locale: es })) - 1;
-      return dayNames[dayNumber];
-    }
-  } catch (error) {
-    console.error("Error parsing date:", error);
-  }
-  
-  return "Desconocido";
-};
-
-export const useClientDiet = (): ClientDietHook => {
+export const useClientDiet = (clientId?: string) => {
   const { user } = useAuth();
-  const clientId = user?.id || "dbd137fd-96c9-4243-9daf-29d6cff0fdbc"; // Provide a default ID for testing
-  const [activeDay, setActiveDay] = useState<string>("Lunes");
+  const [activeDay, setActiveDay] = useState<string>('Lunes');
+  const [availableDays] = useState<string[]>(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
+  const { toggleMealCompletion, isToggling } = useMealToggle();
 
-  const { data: diet, isLoading } = useQuery({
-    queryKey: ["client-diet", clientId],
+  // Consulta para obtener la dieta del cliente
+  const { data: diet, isLoading, refetch } = useQuery({
+    queryKey: ['clientDiet', clientId || user?.id],
     queryFn: async () => {
       try {
-        // Get active diet
-        const { data: diets, error: dietError } = await supabase
-          .from("dietas")
-          .select("*")
-          .eq("cliente_id", clientId)
-          .lte("fecha_inicio", new Date().toISOString())
-          .order("fecha_inicio", { ascending: false })
-          .limit(1);
-
-        if (dietError) throw dietError;
+        // Si se proporciona un clientId, usamos ese, de lo contrario usamos el user.id actual
+        const targetUserId = clientId || user?.id;
         
-        if (!diets || diets.length === 0) {
-          return null;
+        if (!targetUserId) return null;
+
+        // Obtener la dieta activa del cliente
+        const { data: dieta, error: dietaError } = await supabase
+          .from('dietas')
+          .select(`
+            id, 
+            nombre, 
+            descripcion, 
+            fecha_inicio, 
+            fecha_fin
+          `)
+          .eq('cliente_id', targetUserId)
+          .is('fecha_fin', null)
+          .single();
+
+        if (dietaError) {
+          if (dietaError.code === 'PGRST116') {
+            console.log("No se encontró una dieta activa para el cliente.");
+            return null;
+          }
+          throw dietaError;
         }
 
-        const dietData = diets[0];
+        if (!dieta) return null;
 
-        // Get meals for the diet
-        const { data: meals, error: mealsError } = await supabase
-          .from("dieta_comidas")
+        // Obtener las comidas de la dieta
+        const { data: comidas, error: comidasError } = await supabase
+          .from('dieta_comidas')
           .select(`
-            id,
-            tipo_comida,
-            dia,
+            id, 
+            tipo_comida, 
             cantidad,
-            dieta_id,
+            dia,
             alimento_id,
-            alimentos:alimento_id (
+            alimentos (
+              id,
               nombre,
-              categoria,
               calorias,
               proteinas,
               carbohidratos,
               grasas,
+              categoria,
               imagen_url
             )
           `)
-          .eq("dieta_id", dietData.id);
+          .eq('dieta_id', dieta.id);
 
-        if (mealsError) throw mealsError;
+        if (comidasError) {
+          throw comidasError;
+        }
 
-        // Get completed meals for the client
-        const { data: completedMeals, error: completedError } = await supabase
-          .from("comidas_completadas")
-          .select("dieta_comida_id")
-          .eq("cliente_id", clientId);
+        // Obtener las comidas completadas hoy
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        if (completedError) throw completedError;
+        const { data: completadas, error: completadasError } = await supabase
+          .from('comidas_completadas')
+          .select('dieta_comida_id')
+          .eq('cliente_id', targetUserId)
+          .gte('fecha_completado', today.toISOString());
 
-        // Create a set of completed meal IDs for faster lookup
-        const completedMealIds = new Set(completedMeals?.map(meal => meal.dieta_comida_id) || []);
+        if (completadasError) {
+          console.error("Error al obtener comidas completadas:", completadasError);
+        }
 
-        // Format meals by date
-        const transformedMeals: ClientMeal[] = meals?.map(meal => ({
-          id: meal.id,
-          foodName: meal.alimentos?.nombre || "Alimento sin nombre",
-          foodCategory: meal.alimentos?.categoria || "Sin categoría",
-          calories: Math.round((meal.alimentos?.calorias || 0) * meal.cantidad / 100),
-          protein: Math.round((meal.alimentos?.proteinas || 0) * meal.cantidad / 100),
-          carbs: Math.round((meal.alimentos?.carbohidratos || 0) * meal.cantidad / 100),
-          fat: Math.round((meal.alimentos?.grasas || 0) * meal.cantidad / 100),
-          quantity: meal.cantidad,
-          mealType: meal.tipo_comida,
-          date: meal.dia || "1", // Si no tiene día, asignamos "1" (Lunes)
-          completed: completedMealIds.has(meal.id),
-          imageUrl: meal.alimentos?.imagen_url
-        }));
-
-        // Group meals by day of week
-        const mealsByDay: { [key: string]: ClientMeal[] } = {};
-        
-        // Inicializar todos los días de la semana
-        dayNames.forEach(day => {
-          mealsByDay[day] = [];
-        });
-        
-        // Agrupar comidas por día
-        transformedMeals.forEach(meal => {
-          const dayName = getDayFromDateOrNumber(meal.date);
-          if (!mealsByDay[dayName]) {
-            mealsByDay[dayName] = [];
-          }
-          mealsByDay[dayName].push(meal);
+        // Map de comidas completadas para verificación rápida
+        const completadasMap = new Map();
+        completadas?.forEach(item => {
+          completadasMap.set(item.dieta_comida_id, true);
         });
 
-        return {
-          id: dietData.id,
-          name: dietData.nombre,
-          description: dietData.descripcion,
-          startDate: new Date(dietData.fecha_inicio),
-          endDate: dietData.fecha_fin ? new Date(dietData.fecha_fin) : null,
-          meals: transformedMeals,
-          mealsByDay,
+        // Convertir los datos al formato necesario para el cliente
+        const clientDiet: ClientDiet = {
+          id: dieta.id,
+          name: dieta.nombre,
+          description: dieta.descripcion,
+          startDate: dieta.fecha_inicio,
+          endDate: dieta.fecha_fin,
+          days: []
         };
+
+        // Agrupar las comidas por día
+        const mealsByDay: Record<string, Record<string, Meal>> = {};
+
+        // Inicializar los días de la semana
+        availableDays.forEach(day => {
+          mealsByDay[day] = {};
+        });
+
+        // Procesar las comidas de la dieta
+        comidas?.forEach((comida: any) => {
+          if (!comida.alimentos) return;
+          
+          const food: FoodItem = {
+            id: comida.alimentos.id,
+            name: comida.alimentos.nombre,
+            dietMealId: comida.id,
+            calories: comida.alimentos.calorias,
+            protein: comida.alimentos.proteinas,
+            carbs: comida.alimentos.carbohidratos,
+            fat: comida.alimentos.grasas,
+            quantity: comida.cantidad,
+            imageUrl: comida.alimentos.imagen_url,
+            category: comida.alimentos.categoria
+          };
+          
+          // Organizar por día y tipo de comida
+          if (comida.dia) {
+            // Capitalize first letter of day
+            const day = comida.dia.charAt(0).toUpperCase() + comida.dia.slice(1).toLowerCase();
+            
+            if (!mealsByDay[day]) {
+              mealsByDay[day] = {};
+            }
+            
+            if (!mealsByDay[day][comida.tipo_comida]) {
+              mealsByDay[day][comida.tipo_comida] = {
+                id: comida.tipo_comida,
+                type: comida.tipo_comida,
+                foods: [],
+                completed: false
+              };
+            }
+            
+            mealsByDay[day][comida.tipo_comida].foods.push(food);
+            
+            // Marcar como completada si todas las comidas de este tipo están completadas
+            if (completadasMap.has(comida.id)) {
+              mealsByDay[day][comida.tipo_comida].completed = true;
+            }
+          }
+        });
+
+        // Convertir a array de días
+        clientDiet.days = availableDays.map(day => {
+          const meals = Object.values(mealsByDay[day] || {});
+          
+          // Calcular totales para el día
+          let totalCalories = 0;
+          let totalProtein = 0;
+          let totalCarbs = 0;
+          let totalFat = 0;
+          
+          meals.forEach(meal => {
+            meal.foods.forEach(food => {
+              totalCalories += (food.calories * food.quantity) / 100;
+              totalProtein += (food.protein * food.quantity) / 100;
+              totalCarbs += (food.carbs * food.quantity) / 100;
+              totalFat += (food.fat * food.quantity) / 100;
+            });
+          });
+          
+          return {
+            name: day,
+            meals: meals,
+            totalCalories: Math.round(totalCalories),
+            totalProtein: Math.round(totalProtein),
+            totalCarbs: Math.round(totalCarbs),
+            totalFat: Math.round(totalFat)
+          };
+        });
+
+        return clientDiet;
       } catch (error) {
-        console.error("Error fetching diet:", error);
+        console.error("Error al cargar la dieta:", error);
         toast.error("No se pudo cargar la dieta");
         return null;
       }
     },
-    enabled: true // Always enabled to simplify the approach
+    enabled: !!(clientId || user?.id),
   });
 
-  // Todos los días de la semana siempre deben estar disponibles
-  const availableDays = dayNames;
+  // Manejador para marcar/desmarcar comidas como completadas
+  const handleToggleMeal = async (mealId: string, foods: FoodItem[], isCompleted: boolean) => {
+    try {
+      // Realizar la acción solo si la dieta está cargada
+      if (!diet) return;
+      
+      // Obtener todos los ids de comidas para este tipo de comida
+      const dietMealIds = foods.map(food => food.dietMealId);
+      
+      // Usar el hook de toggle para marcar/desmarcar comidas
+      await toggleMealCompletion({
+        dietMealIds, 
+        completed: !isCompleted,
+        clientId: clientId // Opcional: para cuando el entrenador gestiona comidas de un cliente
+      });
+      
+      // Refrescar los datos
+      await refetch();
+      
+    } catch (error) {
+      console.error("Error al cambiar estado de comida:", error);
+      toast.error("No se pudo actualizar el estado de la comida");
+    }
+  };
+
+  // Set the active day to the first day that has meals
+  useEffect(() => {
+    if (diet && diet.days) {
+      const daysWithMeals = diet.days.filter(day => day.meals.length > 0);
+      
+      if (daysWithMeals.length > 0 && !diet.days.find(d => d.name === activeDay)?.meals.length) {
+        setActiveDay(daysWithMeals[0].name);
+      }
+    }
+  }, [diet, activeDay]);
 
   return {
     diet,
@@ -184,6 +273,7 @@ export const useClientDiet = (): ClientDietHook => {
     activeDay,
     setActiveDay,
     availableDays,
-    clientId // Return the clientId for use in components
+    handleToggleMeal,
+    isToggling
   };
 };

@@ -1,148 +1,72 @@
 
-import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 
 type ToggleMealParams = {
-  mealId: string;
+  dietMealIds: string[];
   completed: boolean;
-  clientId: string; // We keep this parameter for compatibility
-};
-
-type ToggleMealTypeParams = {
-  mealIds: string[];
-  completed: boolean;
-  clientId: string; // We keep this parameter for compatibility
+  clientId?: string; // Nuevo parámetro opcional para cuando el entrenador gestiona comidas de un cliente
 };
 
 export const useMealToggle = () => {
-  const queryClient = useQueryClient();
-  const [isToggling, setIsToggling] = useState(false);
+  const { user } = useAuth();
 
   const toggleMealMutation = useMutation({
-    mutationFn: async ({ mealId, completed, clientId }: ToggleMealParams) => {
-      setIsToggling(true);
-
-      if (completed) {
-        // Si está completada, la desmarcamos (eliminamos el registro)
-        const { error } = await supabase
-          .from("comidas_completadas")
-          .delete()
-          .eq("dieta_comida_id", mealId);
-
-        if (error) {
-          console.error("Error al desmarcar comida:", error);
-          throw error;
-        }
-      } else {
-        // Si no está completada, la marcamos (insertamos un registro)
-        const { error } = await supabase
-          .from("comidas_completadas")
-          .insert({
-            cliente_id: clientId, // We still need to provide a value for this field
-            dieta_comida_id: mealId
-          });
-
-        if (error) {
-          console.error("Error al marcar comida:", error);
-          throw error;
-        }
-      }
+    mutationFn: async ({ dietMealIds, completed, clientId }: ToggleMealParams) => {
+      // Si no hay comidas para cambiar, retornar
+      if (!dietMealIds.length) return;
       
-      return !completed;
-    },
-    onSuccess: (_, variables) => {
-      // Show success toast
-      const message = variables.completed
-        ? "Comida desmarcada como completada"
-        : "Comida marcada como completada";
-      toast.success(message);
-
-      // Invalidate relevant queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["client-dashboard", "meals"] });
-      queryClient.invalidateQueries({ queryKey: ["client-diet"] });
+      // Si se proporciona un clientId, usamos ese, de lo contrario usamos el user.id actual
+      const targetUserId = clientId || user?.id;
       
-      setIsToggling(false);
-    },
-    onError: (error) => {
-      console.error("Error toggling meal completion:", error);
-      toast.error("No se pudo actualizar el estado de la comida");
-      setIsToggling(false);
-    },
-  });
-
-  // Simplified version of the mutation for meal types
-  const toggleMealTypeMutation = useMutation({
-    mutationFn: async ({ mealIds, completed, clientId }: ToggleMealTypeParams) => {
-      if (mealIds.length === 0) {
-        throw new Error("No hay comidas seleccionadas");
+      if (!targetUserId) {
+        throw new Error("No se pudo determinar el usuario");
       }
 
-      setIsToggling(true);
-
-      // Process all meals in the meal type
       if (completed) {
-        // If they're completed, unmark them all (delete records)
-        const { error } = await supabase
-          .from("comidas_completadas")
-          .delete()
-          .in("dieta_comida_id", mealIds);
-
-        if (error) {
-          console.error("Error al desmarcar comidas:", error);
-          throw error;
-        }
-      } else {
-        // If they're not completed, mark them all (insert records)
-        const recordsToInsert = mealIds.map(mealId => ({
-          cliente_id: clientId, // Still needed for the database schema
-          dieta_comida_id: mealId
+        // Marcar como completado: Insertar registros en comidas_completadas
+        const inserts = dietMealIds.map(mealId => ({
+          dieta_comida_id: mealId,
+          cliente_id: targetUserId
         }));
 
         const { error } = await supabase
-          .from("comidas_completadas")
-          .insert(recordsToInsert);
+          .from('comidas_completadas')
+          .insert(inserts);
 
-        if (error) {
-          console.error("Error al marcar comidas:", error);
-          throw error;
-        }
+        if (error) throw error;
+      } else {
+        // Marcar como no completado: Eliminar registros de comidas_completadas
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const { error } = await supabase
+          .from('comidas_completadas')
+          .delete()
+          .eq('cliente_id', targetUserId)
+          .gte('fecha_completado', today.toISOString())
+          .in('dieta_comida_id', dietMealIds);
+
+        if (error) throw error;
       }
-      
-      return !completed;
+
+      return { success: true };
     },
     onSuccess: (_, variables) => {
-      // Show success toast
-      const message = variables.completed
-        ? "Comidas desmarcadas como completadas"
-        : "Comidas marcadas como completadas";
-      toast.success(message);
-
-      // Invalidate relevant queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ["client-dashboard", "meals"] });
-      queryClient.invalidateQueries({ queryKey: ["client-diet"] });
-      
-      setIsToggling(false);
+      toast.success(variables.completed 
+        ? "Comida marcada como completada" 
+        : "Comida desmarcada");
     },
     onError: (error) => {
-      console.error("Error toggling meal type completion:", error);
-      toast.error("No se pudo actualizar el estado de las comidas");
-      setIsToggling(false);
-    },
+      console.error("Error al actualizar estado de comida:", error);
+      toast.error("No se pudo actualizar el estado de la comida");
+    }
   });
 
-  const toggleMealCompletion = (params: ToggleMealParams) => {
-    toggleMealMutation.mutate(params);
-  };
-
-  const toggleMealTypeCompletion = (params: ToggleMealTypeParams) => {
-    toggleMealTypeMutation.mutate(params);
-  };
-
   return {
-    toggleMealCompletion,
-    toggleMealTypeCompletion,
-    isToggling: isToggling || toggleMealMutation.isPending || toggleMealTypeMutation.isPending,
+    toggleMealCompletion: toggleMealMutation.mutate,
+    isToggling: toggleMealMutation.isPending
   };
 };

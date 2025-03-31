@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useMeasurementQueries } from "./progress/useMeasurementQueries";
 import { useMeasurementMutations } from "./progress/useMeasurementMutations";
 
-export const useProgress = () => {
+export const useProgress = (clientId?: string) => {
   const {
     measurements,
     isLoadingMeasurements,
@@ -12,7 +12,7 @@ export const useProgress = () => {
     chartData,
     isDialogOpen,
     setIsDialogOpen
-  } = useMeasurementQueries();
+  } = useMeasurementQueries(clientId);
 
   const {
     addMeasurement,

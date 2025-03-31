@@ -7,25 +7,28 @@ import { toast } from "sonner";
 import { ProgressMeasurement } from "@/types/progress";
 import { calculateChanges, formatChartData } from "@/utils/progressUtils";
 
-export const useMeasurementQueries = () => {
+export const useMeasurementQueries = (clientId?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Get all client measurements
   const { data: measurements, isLoading: isLoadingMeasurements } = useQuery({
-    queryKey: ["progress", user?.id],
+    queryKey: ["progress", clientId || user?.id],
     queryFn: async () => {
       try {
-        if (!user?.id) return [];
+        // Si se proporciona un clientId, usamos ese, de lo contrario usamos el user.id actual
+        const targetUserId = clientId || user?.id;
+        
+        if (!targetUserId) return [];
 
-        console.log("Consultando mediciones para usuario:", user.id);
+        console.log("Consultando mediciones para usuario:", targetUserId);
         
         // Check for measurements in the database using the right column names
         const { data, error } = await supabase
           .from("progreso")
           .select("id, fecha, peso, grasa_corporal, masa_muscular, notas, cliente_id, altura, circunferencia_cuello, circunferencia_cintura, circunferencia_cadera, sexo")
-          .eq("cliente_id", user.id)
+          .eq("cliente_id", targetUserId)
           .order("fecha", { ascending: false });
 
         if (error) {
@@ -50,7 +53,7 @@ export const useMeasurementQueries = () => {
         return [];
       }
     },
-    enabled: !!user?.id,
+    enabled: !!(clientId || user?.id),
     // Add these options to ensure we always get fresh data
     refetchOnWindowFocus: true,
     refetchOnMount: true,

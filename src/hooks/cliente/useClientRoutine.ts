@@ -1,173 +1,173 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
-export type ClientRoutineExercise = {
+// Tipos de datos
+export type ExerciseDetails = {
   id: string;
   name: string;
-  sets: number;
-  reps: number;
-  weight?: number;
   muscleGroup: string;
+  reps: number;
+  sets: number;
+  weight?: string;
   notes?: string;
-  date: string; // YYYY-MM-DD format or day of week (1-7)
+  imageUrl?: string;
+  videoUrl?: string;
   completed: boolean;
-  imageUrl?: string | null;
-  videoUrl?: string | null;
 };
 
 export type ClientRoutine = {
   id: string;
   name: string;
-  description: string | null;
-  startDate: Date;
-  endDate: Date | null;
-  exercises: ClientRoutineExercise[];
+  description?: string;
+  startDate: string;
+  endDate?: string;
+  exercises: ExerciseDetails[];
+  exercisesByDay: Record<string, ExerciseDetails[]>;
 };
 
-// Mapeo de día numérico a nombre del día
-const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
-// Determinar el día de la semana a partir de la fecha o número de día
-const getDayFromDateOrNumber = (dateOrDay: string): string => {
-  // Si es un número del 1-7, convertirlo a nombre del día
-  if (/^[1-7]$/.test(dateOrDay)) {
-    return dayNames[parseInt(dateOrDay) - 1];
-  }
-  
-  // Si es una fecha en formato YYYY-MM-DD, obtener el día de la semana
-  try {
-    if (dateOrDay.includes("-")) {
-      const dayNumber = parseInt(format(parseISO(dateOrDay), "i", { locale: es })) - 1;
-      return dayNames[dayNumber];
-    }
-  } catch (error) {
-    console.error("Error parsing date:", error);
-  }
-  
-  return "Desconocido";
-};
-
-export const useClientRoutine = () => {
+export const useClientRoutine = (clientId?: string) => {
   const { user } = useAuth();
-  const clientId = user?.id;
-  const [activeDay, setActiveDay] = useState<string>("Lunes");
+  const [activeDay, setActiveDay] = useState<string>('Lunes');
+  const [availableDays] = useState<string[]>(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
 
+  // Consulta para obtener la rutina del cliente
   const { data: routine, isLoading } = useQuery({
-    queryKey: ["client-routine", clientId],
+    queryKey: ['clientRoutine', clientId || user?.id],
     queryFn: async () => {
       try {
-        if (!clientId) throw new Error("No hay usuario autenticado");
-
-        // Get active routine
-        const { data: routines, error: routineError } = await supabase
-          .from("rutinas")
-          .select("*")
-          .eq("cliente_id", clientId)
-          .lte("fecha_inicio", new Date().toISOString())
-          .order("fecha_inicio", { ascending: false })
-          .limit(1);
-
-        if (routineError) throw routineError;
+        // Si se proporciona un clientId, usamos ese, de lo contrario usamos el user.id actual
+        const targetUserId = clientId || user?.id;
         
-        if (!routines || routines.length === 0) {
-          return null;
-        }
+        if (!targetUserId) return null;
 
-        const routineData = routines[0];
-
-        // Get exercises for the routine
-        const { data: exercises, error: exercisesError } = await supabase
-          .from("rutina_ejercicios")
+        // Obtener la rutina activa del cliente
+        const { data: rutina, error: rutinaError } = await supabase
+          .from('rutinas')
           .select(`
-            id,
-            series,
-            repeticiones,
-            dia,
-            notas,
-            peso,
-            rutina_id,
-            ejercicio_id,
-            ejercicios:ejercicio_id (
-              nombre,
-              grupo_muscular,
-              descripcion,
-              imagen_url,
-              video_url
+            id, 
+            nombre, 
+            descripcion, 
+            fecha_inicio, 
+            fecha_fin,
+            rutina_ejercicios (
+              id,
+              dia,
+              series,
+              repeticiones,
+              peso,
+              notas,
+              ejercicio_id,
+              ejercicios (
+                id,
+                nombre,
+                grupo_muscular,
+                imagen_url,
+                video_url
+              )
             )
           `)
-          .eq("rutina_id", routineData.id);
+          .eq('cliente_id', targetUserId)
+          .is('fecha_fin', null)
+          .single();
 
-        if (exercisesError) throw exercisesError;
-
-        // Get completed exercises
-        const { data: completedExercises, error: completedError } = await supabase
-          .from("ejercicios_completados")
-          .select("rutina_ejercicio_id")
-          .eq("cliente_id", clientId);
-
-        if (completedError) throw completedError;
-
-        // Map completed exercise IDs
-        const completedIds = new Set(completedExercises?.map(e => e.rutina_ejercicio_id) || []);
-
-        // Format exercises by date
-        const transformedExercises: ClientRoutineExercise[] = exercises?.map(exercise => ({
-          id: exercise.id,
-          name: exercise.ejercicios?.nombre || "Ejercicio sin nombre",
-          sets: exercise.series,
-          reps: exercise.repeticiones,
-          weight: exercise.peso,
-          muscleGroup: exercise.ejercicios?.grupo_muscular || "Sin grupo",
-          notes: exercise.notas,
-          date: exercise.dia || "1", // Si no tiene día, asignamos "1" (Lunes)
-          completed: completedIds.has(exercise.id),
-          imageUrl: exercise.ejercicios?.imagen_url,
-          videoUrl: exercise.ejercicios?.video_url
-        }));
-
-        // Group exercises by day of week
-        const exercisesByDay: { [key: string]: ClientRoutineExercise[] } = {};
-        
-        // Inicializar todos los días de la semana
-        dayNames.forEach(day => {
-          exercisesByDay[day] = [];
-        });
-        
-        // Agrupar ejercicios por día
-        transformedExercises.forEach(exercise => {
-          const dayName = getDayFromDateOrNumber(exercise.date);
-          if (!exercisesByDay[dayName]) {
-            exercisesByDay[dayName] = [];
+        if (rutinaError) {
+          if (rutinaError.code === 'PGRST116') {
+            console.log("No se encontró una rutina activa para el cliente.");
+            return null;
           }
-          exercisesByDay[dayName].push(exercise);
+          throw rutinaError;
+        }
+
+        if (!rutina) return null;
+
+        // Obtener los ejercicios completados para marcarlos en la rutina
+        const { data: completados, error: completadosError } = await supabase
+          .from('ejercicios_completados')
+          .select('rutina_ejercicio_id')
+          .eq('cliente_id', targetUserId)
+          .gte('fecha_completado', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
+
+        if (completadosError) {
+          console.error("Error al obtener ejercicios completados:", completadosError);
+        }
+
+        // Map de ejercicios completados para verificación rápida
+        const completadosMap = new Map();
+        completados?.forEach(item => {
+          completadosMap.set(item.rutina_ejercicio_id, true);
         });
 
-        return {
-          id: routineData.id,
-          name: routineData.nombre,
-          description: routineData.descripcion,
-          startDate: new Date(routineData.fecha_inicio),
-          endDate: routineData.fecha_fin ? new Date(routineData.fecha_fin) : null,
-          exercises: transformedExercises,
-          exercisesByDay,
+        // Convertir los datos al formato necesario para el cliente
+        const clientRoutine: ClientRoutine = {
+          id: rutina.id,
+          name: rutina.nombre,
+          description: rutina.descripcion,
+          startDate: rutina.fecha_inicio,
+          endDate: rutina.fecha_fin,
+          exercises: [],
+          exercisesByDay: {}
         };
+
+        // Inicializar los días de la semana
+        availableDays.forEach(day => {
+          clientRoutine.exercisesByDay[day] = [];
+        });
+
+        // Procesar los ejercicios de la rutina
+        rutina.rutina_ejercicios?.forEach((ejercicio: any) => {
+          if (!ejercicio.ejercicios) return;
+          
+          const exercise: ExerciseDetails = {
+            id: ejercicio.id,
+            name: ejercicio.ejercicios.nombre,
+            muscleGroup: ejercicio.ejercicios.grupo_muscular,
+            sets: ejercicio.series,
+            reps: ejercicio.repeticiones,
+            weight: ejercicio.peso ? `${ejercicio.peso}` : undefined,
+            notes: ejercicio.notas,
+            imageUrl: ejercicio.ejercicios.imagen_url,
+            videoUrl: ejercicio.ejercicios.video_url,
+            completed: completadosMap.has(ejercicio.id)
+          };
+          
+          clientRoutine.exercises.push(exercise);
+          
+          // Organizar por día
+          if (ejercicio.dia) {
+            // Capitalize first letter of day
+            const day = ejercicio.dia.charAt(0).toUpperCase() + ejercicio.dia.slice(1).toLowerCase();
+            if (clientRoutine.exercisesByDay[day]) {
+              clientRoutine.exercisesByDay[day].push(exercise);
+            }
+          }
+        });
+
+        return clientRoutine;
       } catch (error) {
-        console.error("Error fetching routine:", error);
+        console.error("Error al cargar la rutina:", error);
         toast.error("No se pudo cargar la rutina");
         return null;
       }
     },
-    enabled: !!clientId
+    enabled: !!(clientId || user?.id),
   });
 
-  // Todos los días de la semana siempre deben estar disponibles
-  const availableDays = dayNames;
+  // Set the active day to the first day that has exercises
+  useEffect(() => {
+    if (routine && routine.exercisesByDay) {
+      const daysWithExercises = availableDays.filter(day => 
+        routine.exercisesByDay[day] && routine.exercisesByDay[day].length > 0
+      );
+      
+      if (daysWithExercises.length > 0 && !routine.exercisesByDay[activeDay]?.length) {
+        setActiveDay(daysWithExercises[0]);
+      }
+    }
+  }, [routine, availableDays, activeDay]);
 
   return {
     routine,
