@@ -223,7 +223,7 @@ const ProgressTab: React.FC<ProgressTabProps> = ({ clientId }) => {
           <div className="h-[300px]">
             {chartData && chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
+                <RechartsLineChart
                   data={chartData}
                   margin={{
                     top: 5,
@@ -246,7 +246,7 @@ const ProgressTab: React.FC<ProgressTabProps> = ({ clientId }) => {
                   />
                   <Line type="monotone" dataKey="grasa" stroke="#82ca9d" name="Grasa (%)" />
                   <Line type="monotone" dataKey="musculo" stroke="#ffc658" name="Músculo (%)" />
-                </LineChart>
+                </RechartsLineChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex items-center justify-center h-full">
