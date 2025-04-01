@@ -149,8 +149,7 @@ interface OverviewTabProps {
 const OverviewTab: React.FC<OverviewTabProps> = ({ clientId }) => {
   const { clients } = useClients();
   const client = clients.find(c => c.id === clientId);
-  const { data: measurementData } = useProgress(clientId);
-  const latestMeasurement = measurementData?.measurements?.[0];
+  const { measurements, latestMeasurement } = useProgress(clientId);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -169,9 +168,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ clientId }) => {
           <CardTitle>Resumen de Progreso</CardTitle>
         </CardHeader>
         <CardContent>
-          <p><strong>Peso actual:</strong> {latestMeasurement?.weight || 'N/A'} kg</p>
-          <p><strong>Grasa corporal:</strong> {latestMeasurement?.bodyFat || 'N/A'}%</p>
-          <p><strong>Masa muscular:</strong> {latestMeasurement?.muscleMass || 'N/A'} kg</p>
+          <p><strong>Peso actual:</strong> {latestMeasurement?.peso || 'N/A'} kg</p>
+          <p><strong>Grasa corporal:</strong> {latestMeasurement?.grasa_corporal || 'N/A'}%</p>
+          <p><strong>Masa muscular:</strong> {latestMeasurement?.masa_muscular || 'N/A'} kg</p>
         </CardContent>
       </Card>
     </div>
@@ -184,15 +183,16 @@ interface ProgressTabProps {
 
 const ProgressTab: React.FC<ProgressTabProps> = ({ clientId }) => {
   const { 
-    data: measurementData, 
-    isLoading: isProgressLoading 
+    measurements, 
+    isLoadingMeasurements,
+    chartData
   } = useProgress(clientId);
 
-  if (isProgressLoading) {
+  if (isLoadingMeasurements) {
     return <Skeleton className="w-full h-[300px]" />;
   }
 
-  if (!measurementData?.measurements || measurementData.measurements.length === 0) {
+  if (!measurements || measurements.length === 0) {
     return (
       <div className="text-center py-8">
         <Scale className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -201,10 +201,63 @@ const ProgressTab: React.FC<ProgressTabProps> = ({ clientId }) => {
     );
   }
 
+  // Use existing components with correct props
   return (
     <div className="space-y-6">
-      <ProgressChart measurements={measurementData.measurements} />
-      <MeasurementTable measurements={measurementData.measurements} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <MeasurementCard 
+          title="Peso"
+          value={measurements[0]?.peso || null}
+          unit="kg"
+          icon={<Scale />}
+          isLoading={isLoadingMeasurements}
+        />
+      </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Progreso</CardTitle>
+          <CardDescription>Historial de mediciones</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            {chartData && chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={chartData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="peso"
+                    stroke="#8884d8"
+                    activeDot={{ r: 8 }}
+                    name="Peso (kg)"
+                  />
+                  <Line type="monotone" dataKey="grasa" stroke="#82ca9d" name="Grasa (%)" />
+                  <Line type="monotone" dataKey="musculo" stroke="#ffc658" name="Músculo (%)" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-muted-foreground">No hay suficientes datos para mostrar el gráfico</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      
+      <MeasurementTable measurements={measurements} />
     </div>
   );
 };
@@ -215,16 +268,20 @@ interface DietTabProps {
 
 const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
   const { 
-    dietData, 
-    isLoading: isDietLoading,
+    diet, 
+    isLoading,
+    activeDay,
+    setActiveDay,
+    availableDays,
+    handleToggleMeal,
     isToggling
   } = useClientDiet(clientId);
 
-  if (isDietLoading) {
+  if (isLoading) {
     return <Skeleton className="w-full h-[300px]" />;
   }
 
-  if (!dietData || !dietData.diet) {
+  if (!diet) {
     return (
       <div className="text-center py-8">
         <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -234,16 +291,16 @@ const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
   }
 
   return (
-    <DietCard 
-      diet={dietData.diet} 
-      isLoading={isDietLoading} 
-      activeDay={dietData.activeDay}
-      setActiveDay={dietData.setActiveDay}
-      availableDays={dietData.availableDays}
-      handleToggleMeal={dietData.handleToggleMeal}
-      isToggling={isToggling}
-      clientId={clientId}
-    />
+    <DietCard dietHook={{
+      diet,
+      isLoading,
+      activeDay,
+      setActiveDay,
+      availableDays,
+      handleToggleMeal,
+      isToggling,
+      clientId
+    }} />
   );
 };
 
@@ -253,15 +310,18 @@ interface RoutineTabProps {
 
 const RoutineTab: React.FC<RoutineTabProps> = ({ clientId }) => {
   const { 
-    routineData, 
-    isLoading: isRoutineLoading 
+    routine, 
+    isLoading,
+    activeDay,
+    setActiveDay,
+    availableDays
   } = useClientRoutine(clientId);
 
-  if (isRoutineLoading) {
+  if (isLoading) {
     return <Skeleton className="w-full h-[300px]" />;
   }
 
-  if (!routineData || !routineData.routine) {
+  if (!routine) {
     return (
       <div className="text-center py-8">
         <Dumbbell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -272,40 +332,40 @@ const RoutineTab: React.FC<RoutineTabProps> = ({ clientId }) => {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-4">{routineData.routine.name}</h2>
-      <p className="mb-6">{routineData.routine.description}</p>
+      <h2 className="text-2xl font-bold mb-4">{routine.name}</h2>
+      <p className="mb-6">{routine.description}</p>
       
       <Accordion type="single" collapsible className="w-full">
-        {routineData.weekdays.map((day) => (
+        {availableDays.map((day) => (
           <AccordionItem key={day} value={day}>
             <AccordionTrigger className="text-lg font-medium">
               {day}
-              {routineData.exercisesByDay[day]?.length > 0 && (
+              {routine.exercisesByDay[day]?.length > 0 && (
                 <Badge variant="outline" className="ml-2">
-                  {routineData.exercisesByDay[day].length} ejercicios
+                  {routine.exercisesByDay[day].length} ejercicios
                 </Badge>
               )}
             </AccordionTrigger>
             <AccordionContent>
-              {routineData.exercisesByDay[day]?.length > 0 ? (
+              {routine.exercisesByDay[day]?.length > 0 ? (
                 <div className="space-y-4">
-                  {routineData.exercisesByDay[day].map((exercise) => (
+                  {routine.exercisesByDay[day].map((exercise) => (
                     <Card key={exercise.id} className="overflow-hidden">
                       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        {exercise.exercise.imageUrl && (
+                        {exercise.imageUrl && (
                           <div className="md:col-span-1">
                             <AspectRatio ratio={1 / 1}>
                               <img
-                                src={exercise.exercise.imageUrl}
-                                alt={exercise.exercise.name}
+                                src={exercise.imageUrl}
+                                alt={exercise.name}
                                 className="rounded-l object-cover h-full w-full"
                               />
                             </AspectRatio>
                           </div>
                         )}
-                        <div className={`p-4 ${exercise.exercise.imageUrl ? 'md:col-span-4' : 'md:col-span-5'}`}>
-                          <h3 className="text-lg font-semibold">{exercise.exercise.name}</h3>
-                          <p className="text-sm text-muted-foreground">{exercise.exercise.muscleGroup}</p>
+                        <div className={`p-4 ${exercise.imageUrl ? 'md:col-span-4' : 'md:col-span-5'}`}>
+                          <h3 className="text-lg font-semibold">{exercise.name}</h3>
+                          <p className="text-sm text-muted-foreground">{exercise.muscleGroup}</p>
                           <div className="mt-2 grid grid-cols-3 gap-2">
                             <div>
                               <span className="text-xs text-muted-foreground">Series</span>

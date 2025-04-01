@@ -6,11 +6,11 @@ import DietTabs from "./DietTabs";
 import { useClientDiet, ClientDietHook } from "@/hooks/cliente/useClientDiet";
 
 interface DietCardProps {
-  dietHook: ReturnType<typeof useClientDiet>;
+  dietHook: ReturnType<typeof useClientDiet> | ClientDietHook;
 }
 
 const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
-  const { diet, isLoading, activeDay, setActiveDay, availableDays, clientId } = dietHook;
+  const { diet, isLoading, activeDay, setActiveDay, availableDays, clientId, handleToggleMeal, isToggling } = dietHook;
 
   return (
     <Card>
@@ -40,7 +40,7 @@ const DietCard: React.FC<DietCardProps> = ({ dietHook }) => {
             setActiveDay={setActiveDay}
             availableDays={availableDays}
             mealsByDay={diet.mealsByDay}
-            isToggling={dietHook.isToggling}
+            isToggling={isToggling}
             clientId={clientId || ''}
           />
         )}
