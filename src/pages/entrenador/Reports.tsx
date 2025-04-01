@@ -267,21 +267,13 @@ interface DietTabProps {
 }
 
 const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
-  const { 
-    diet, 
-    isLoading,
-    activeDay,
-    setActiveDay,
-    availableDays,
-    handleToggleMeal,
-    isToggling
-  } = useClientDiet(clientId);
+  const dietHook = useClientDiet(clientId);
 
-  if (isLoading) {
+  if (dietHook.isLoading) {
     return <Skeleton className="w-full h-[300px]" />;
   }
 
-  if (!diet) {
+  if (!dietHook.diet) {
     return (
       <div className="text-center py-8">
         <Utensils className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
@@ -291,16 +283,7 @@ const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
   }
 
   return (
-    <DietCard dietHook={{
-      diet,
-      isLoading,
-      activeDay,
-      setActiveDay,
-      availableDays,
-      handleToggleMeal,
-      isToggling,
-      clientId
-    }} />
+    <DietCard dietHook={dietHook} />
   );
 };
 
