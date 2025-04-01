@@ -282,6 +282,9 @@ const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
     );
   }
 
+  // Debugging: Log the diet details to inspect what's happening
+  console.log("Diet data in Reports:", dietHook.diet);
+
   return (
     <DietCard dietHook={dietHook} />
   );
@@ -312,6 +315,9 @@ const RoutineTab: React.FC<RoutineTabProps> = ({ clientId }) => {
       </div>
     );
   }
+
+  // Debugging: Log the routine details to inspect what's happening
+  console.log("Routine data in Reports:", routine);
 
   return (
     <div>
