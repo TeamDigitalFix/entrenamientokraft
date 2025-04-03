@@ -32,9 +32,9 @@ export const useAlimentos = (entrenadorId: string) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Obtener alimentos
+  // Obtener alimentos de todos los entrenadores
   const { data: alimentos, isLoading } = useQuery({
-    queryKey: ["alimentos", entrenadorId],
+    queryKey: ["alimentos"],
     queryFn: async () => {
       // Skip the query if entrenadorId is empty
       if (!entrenadorId) {
@@ -44,7 +44,6 @@ export const useAlimentos = (entrenadorId: string) => {
       const { data, error } = await supabase
         .from("alimentos")
         .select("*")
-        .eq("creado_por", entrenadorId)
         .order("nombre");
 
       if (error) {

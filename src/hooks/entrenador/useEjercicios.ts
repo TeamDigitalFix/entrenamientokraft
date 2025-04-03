@@ -11,14 +11,13 @@ export const useEjercicios = (entrenadorId: string) => {
   const { toast: hookToast } = useToast();
   const queryClient = useQueryClient();
 
-  // Obtener ejercicios
+  // Obtener ejercicios de todos los entrenadores
   const { data: ejercicios, isLoading } = useQuery({
-    queryKey: ["ejercicios", entrenadorId],
+    queryKey: ["ejercicios"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ejercicios")
         .select("*")
-        .eq("creado_por", entrenadorId)
         .order("nombre");
 
       if (error) {

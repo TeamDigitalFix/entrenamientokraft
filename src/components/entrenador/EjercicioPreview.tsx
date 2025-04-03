@@ -5,11 +5,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Activity } from "lucide-react";
+import { useState } from "react";
 
 interface EjercicioPreviewProps {
   ejercicio: Ejercicio | null;
@@ -30,9 +30,22 @@ const EjercicioPreview = ({ ejercicio, isOpen, onClose }: EjercicioPreviewProps)
     }
   };
 
+  // Function to extract YouTube video ID from a YouTube URL
+  const getYouTubeVideoId = (url: string) => {
+    if (!url) return null;
+    
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  // Get YouTube video ID if there's a video URL
+  const videoId = ejercicio.video_url ? getYouTubeVideoId(ejercicio.video_url) : null;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-xl">{ejercicio.nombre}</DialogTitle>
           <div className="flex gap-2 mt-1">
@@ -49,6 +62,7 @@ const EjercicioPreview = ({ ejercicio, isOpen, onClose }: EjercicioPreviewProps)
         </DialogHeader>
 
         <div className="grid grid-cols-1 gap-4">
+          {/* Display image */}
           {ejercicio.imagen_url ? (
             <div className="flex justify-center">
               <img
@@ -63,6 +77,7 @@ const EjercicioPreview = ({ ejercicio, isOpen, onClose }: EjercicioPreviewProps)
             </div>
           )}
 
+          {/* Description section */}
           {ejercicio.descripcion && (
             <Card className="p-4">
               <h3 className="font-medium mb-2">Descripción</h3>
@@ -70,19 +85,34 @@ const EjercicioPreview = ({ ejercicio, isOpen, onClose }: EjercicioPreviewProps)
             </Card>
           )}
 
-          {ejercicio.video_url && (
+          {/* Embedded YouTube video */}
+          {videoId ? (
             <Card className="p-4">
               <h3 className="font-medium mb-2">Video demostrativo</h3>
+              <div className="aspect-video overflow-hidden rounded-md">
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}`}
+                  title={`Video de ${ejercicio.nombre}`}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+              </div>
+            </Card>
+          ) : ejercicio.video_url ? (
+            <Card className="p-4">
+              <h3 className="font-medium mb-2">Video demostrativo</h3>
+              <p className="text-red-500">No se pudo cargar el video. URL no válida.</p>
               <a 
                 href={ejercicio.video_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:underline"
               >
-                Ver video
+                Ver video externo
               </a>
             </Card>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
