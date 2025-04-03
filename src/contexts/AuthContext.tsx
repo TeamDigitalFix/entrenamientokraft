@@ -23,14 +23,42 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Función para restaurar la ruta después de una recarga
+  const restorePathAfterRefresh = (user: User) => {
+    const lastPath = sessionStorage.getItem("lastPath");
+    if (lastPath && lastPath !== "/login" && lastPath !== "/") {
+      console.log("Restaurando ruta guardada:", lastPath);
+      navigate(lastPath);
+      return true;
+    }
+    return false;
+  };
+
   useEffect(() => {
     // Verificar si hay un usuario en localStorage al cargar la aplicación
-    const storedUser = localStorage.getItem("kraftUser");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
-  }, []);
+    const initializeAuth = () => {
+      try {
+        const storedUser = localStorage.getItem("kraftUser");
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          
+          // Intentar restaurar la ruta - ejecutar después de un pequeño delay
+          // para asegurarnos de que la navegación esté lista
+          setTimeout(() => {
+            restorePathAfterRefresh(parsedUser);
+          }, 100);
+        }
+      } catch (error) {
+        console.error("Error al inicializar la autenticación:", error);
+        localStorage.removeItem("kraftUser");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, [navigate]);
 
   const login = async (username: string, password: string): Promise<void> => {
     try {
@@ -88,6 +116,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUser(null);
     localStorage.removeItem("kraftUser");
+    sessionStorage.removeItem("lastPath");
     toast.info("Sesión cerrada correctamente");
     navigate("/login");
   };
