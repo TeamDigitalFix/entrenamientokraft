@@ -23,6 +23,7 @@ import { UserRole } from "@/types/index";
 import { useAuth } from "@/hooks/useAuth";
 import { useAlimentos, Alimento, NuevoAlimento } from "@/hooks/entrenador/useAlimentos";
 import { AlimentoForm } from "@/components/entrenador/AlimentoForm";
+import AlimentoPreview from "@/components/entrenador/AlimentoPreview";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const TrainerFoods = () => {
   const { user } = useAuth();
@@ -62,6 +69,7 @@ const TrainerFoods = () => {
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deleteAlimentoId, setDeleteAlimentoId] = useState<string | null>(null);
   const [alimentoEnUso, setAlimentoEnUso] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleCreateAlimento = (nuevoAlimento: NuevoAlimento) => {
     crearAlimento(nuevoAlimento);
@@ -93,6 +101,15 @@ const TrainerFoods = () => {
   const openCloneDialog = (alimento: Alimento) => {
     setSelectedAlimento(alimento);
     setShowCloneDialog(true);
+  };
+
+  const openPreview = (alimento: Alimento) => {
+    setSelectedAlimento(alimento);
+    setShowPreview(true);
+  };
+
+  const closePreview = () => {
+    setShowPreview(false);
   };
 
   const openDeleteAlert = async (id: string) => {
@@ -213,9 +230,22 @@ const TrainerFoods = () => {
                         <TableCell>{alimento.grasas}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button variant="ghost" size="icon" title="Ver">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => openPreview(alimento)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Ver detalles
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon">
@@ -281,6 +311,13 @@ const TrainerFoods = () => {
           />
         )}
       </Dialog>
+
+      {/* Vista previa del alimento */}
+      <AlimentoPreview 
+        alimento={selectedAlimento} 
+        isOpen={showPreview} 
+        onClose={closePreview}
+      />
 
       {/* Alerta de Confirmación para Eliminar */}
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>

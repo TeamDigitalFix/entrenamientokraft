@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,7 @@ import { EjercicioForm } from "@/components/entrenador/EjercicioForm";
 import { Ejercicio, NuevoEjercicio } from "@/types/ejercicios";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/index";
+import EjercicioPreview from "@/components/entrenador/EjercicioPreview";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const TrainerExercises = () => {
   const { user } = useAuth();
@@ -50,6 +58,7 @@ const TrainerExercises = () => {
   const [selectedEjercicio, setSelectedEjercicio] = useState<Ejercicio | null>(null);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [deleteEjercicioId, setDeleteEjercicioId] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleCreateEjercicio = (nuevoEjercicio: NuevoEjercicio) => {
     crearEjercicio(nuevoEjercicio);
@@ -72,6 +81,15 @@ const TrainerExercises = () => {
     setShowEditDialog(true);
   };
 
+  const openPreview = (ejercicio: Ejercicio) => {
+    setSelectedEjercicio(ejercicio);
+    setShowPreview(true);
+  };
+
+  const closePreview = () => {
+    setShowPreview(false);
+  };
+
   const openDeleteAlert = (id: string) => {
     setDeleteEjercicioId(id);
     setShowDeleteAlert(true);
@@ -90,6 +108,7 @@ const TrainerExercises = () => {
       case "Principiante": return "success";
       case "Intermedio": return "warning";
       case "Avanzado": return "destructive";
+      case "Básico": return "success";
       default: return "secondary";
     }
   };
@@ -176,9 +195,22 @@ const TrainerExercises = () => {
                         <TableCell>{ejercicio.tipo || "No especificado"}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="icon" title="Ver">
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => openPreview(ejercicio)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Ver detalles
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -223,6 +255,13 @@ const TrainerExercises = () => {
           />
         )}
       </Dialog>
+
+      {/* Vista previa del ejercicio */}
+      <EjercicioPreview 
+        ejercicio={selectedEjercicio} 
+        isOpen={showPreview} 
+        onClose={closePreview}
+      />
 
       <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
         <AlertDialogContent>

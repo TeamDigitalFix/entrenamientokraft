@@ -19,6 +19,7 @@ const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
   const [error, setError] = useState<string | null>(null);
   const [activeDay, setActiveDay] = useState<string>('Lunes');
   const [availableDays] = useState<string[]>(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
+  const [isToggling, setIsToggling] = useState(false);
   
   // This is the hook approach that wasn't working consistently
   const dietHook = useClientDiet(clientId);
@@ -213,6 +214,20 @@ const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
       setDiet(dietHook.diet);
     }
   }, [diet, dietHook.diet, isLoading]);
+
+  // Define handleToggleMeal that returns a Promise
+  const handleToggleMeal = async (mealId: string, foods: any[], isCompleted: boolean) => {
+    setIsToggling(true);
+    try {
+      console.log("Toggle meal called but in read-only mode in trainer view");
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Error toggling meal:", error);
+      return Promise.reject(error);
+    } finally {
+      setIsToggling(false);
+    }
+  };
   
   if (isLoading) {
     return <Skeleton className="w-full h-[300px]" />;
@@ -259,8 +274,8 @@ const DietTab: React.FC<DietTabProps> = ({ clientId }) => {
     setActiveDay,
     availableDays,
     clientId,
-    handleToggleMeal: () => {},
-    isToggling: false
+    handleToggleMeal,
+    isToggling
   };
 
   return <DietCard dietHook={dietWithHookInterface} />;
