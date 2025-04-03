@@ -11,13 +11,23 @@ const NotFound = () => {
   const { user } = useAuth();
 
   useEffect(() => {
+    // Verificar si hay una ruta guardada en sessionStorage
+    const savedPath = sessionStorage.getItem("lastPath");
+    
     console.error(
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
 
-    // Si el usuario está autenticado, redirigir según su rol
+    // Si el usuario está autenticado, redirigir según su rol o la ruta guardada
     if (user) {
+      // Si hay una ruta guardada y no es la página actual (para evitar bucles)
+      if (savedPath && savedPath !== location.pathname && savedPath !== "/") {
+        console.log("Redirecting to saved path:", savedPath);
+        navigate(savedPath);
+        return;
+      }
+      
       const path = location.pathname;
       
       // Intenta redirigir al usuario a la página correcta basado en la URL actual

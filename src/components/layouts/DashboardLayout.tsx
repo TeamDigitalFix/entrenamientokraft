@@ -60,6 +60,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, allowedRole
   
   const [unreadCount, setUnreadCount] = useState(0);
   
+  // Guardar la ruta actual en sessionStorage cuando cambie
+  useEffect(() => {
+    if (user && pathname !== "/login") {
+      sessionStorage.setItem("lastPath", pathname);
+      console.log("Path saved:", pathname);
+    }
+  }, [pathname, user]);
+  
   useEffect(() => {
     if (user?.role === UserRole.CLIENT) {
       import("@/hooks/cliente/useClientMessages").then(({ useClientMessages }) => {
