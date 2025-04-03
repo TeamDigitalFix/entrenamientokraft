@@ -48,6 +48,11 @@ const AlimentoPreview = ({ alimento, isOpen, onClose }: AlimentoPreviewProps) =>
                 src={alimento.imagen_url}
                 alt={alimento.nombre}
                 className="h-48 object-cover rounded-md"
+                onError={(e) => {
+                  // If image fails to load, show a placeholder
+                  const target = e.target as HTMLImageElement;
+                  target.src = "https://placehold.co/300x200/gray/white?text=No+imagen";
+                }}
               />
             </div>
           ) : (
